@@ -1,0 +1,16 @@
+spring:
+  application:
+    name: deokhugam
+  profiles:
+    active: ${SPRING_PROFILE:dev}
+
+  jpa:
+    open-in-view: false
+    show-sql: false
+    properties:
+      hibernate:
+        default_batch_fetch_size: 1000
+
+logging:
+  level:
+    root: INFO
