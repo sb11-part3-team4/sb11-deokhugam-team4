@@ -247,3 +247,4 @@ gradle-app.setting
 # 추가
 HELP.md
 *.env
+.idea/
