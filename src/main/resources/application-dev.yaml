@@ -14,10 +14,10 @@ spring:
         use_sql_comments: true
 
   datasource:
-    url: "jdbc:h2:mem:testdb;MODE=PostgreSQL;INIT=CREATE DOMAIN IF NOT EXISTS TIMESTAMPTZ AS TIMESTAMP WITH TIME ZONE"
-    username: sa
-    password:
-    driver-class-name: org.h2.Driver
+    url: jdbc:postgresql://localhost:5432/deokhugam
+    username: team4
+    password: deokhugam4!
+    Driver-class-name: org.postgresql.Driver
 
   h2:
     console:
