@@ -3,7 +3,7 @@ name: CD
 on:
   push:
     branches:
-      - main
+      - feature/global-cicd
 
 jobs:
   build-and-push:
