@@ -2,12 +2,14 @@ package com.part3_team4.deokhoogam.domain.notification.exception;
 
 import com.part3_team4.deokhoogam.global.exception.BusinessException;
 import com.part3_team4.deokhoogam.global.exception.ErrorCode;
-import java.util.Map;
 
-public class NotificationException extends BusinessException {
+public abstract class NotificationException extends BusinessException {
 
-  public NotificationException(ErrorCode errorCode, Map<String, Object> details) {
-    super(errorCode, details);
+  protected NotificationException(ErrorCode errorCode) {
+    super(errorCode);
   }
 
+  protected NotificationException(ErrorCode errorCode, Throwable cause) {
+    super(errorCode, cause);
+  }
 }

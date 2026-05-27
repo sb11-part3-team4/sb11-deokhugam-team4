@@ -1,23 +1,32 @@
 package com.part3_team4.deokhoogam.global.exception;
 
-import java.time.Instant;
+import java.util.HashMap;
 import java.util.Map;
 import lombok.Getter;
 
-@Getter
-public class BusinessException extends RuntimeException{
+public abstract class BusinessException extends RuntimeException {
 
-  private final Instant timestamp;
+  @Getter
   private final ErrorCode errorCode;
-  private final Map<String,Object> details;
 
-  public BusinessException(ErrorCode errorCode,Map<String,Object> details){
+  private final Map<String, Object> details = new HashMap<>();
+
+  protected BusinessException(ErrorCode errorCode) {
     super(errorCode.getMessage());
-    this.timestamp = Instant.now();
     this.errorCode = errorCode;
-    this.details = details == null ? Map.of() : details;
   }
 
+  protected BusinessException(ErrorCode errorCode, Throwable cause) {
+    super(errorCode.getMessage(), cause);
+    this.errorCode = errorCode;
+  }
 
+  // 유틸 메서드: 상세 정보 추가
+  protected void addDetail(ErrorKey key, Object value) {
+    this.details.put(key.getValue(), value);
+  }
 
+  public Map<String, Object> getDetails() {
+    return Map.copyOf(details);
+  }
 }
