@@ -32,7 +32,7 @@ public record ErrorResponse(
         Instant.now(),
         errorCode.getCode(),
         errorCode.getMessage(),
-        details != null ? Collections.unmodifiableMap(details) : Collections.emptyMap(), // null 방지
+        details != null ? Map.copyOf(details) : Collections.emptyMap(), // null 방지
         exception.getClass().getSimpleName(),
         errorCode.getStatus().value()
     );

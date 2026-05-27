@@ -1,6 +1,5 @@
 package com.part3_team4.deokhoogam.global.exception;
 
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 import lombok.Getter;
@@ -26,8 +25,8 @@ public abstract class BusinessException extends RuntimeException {
   protected void addDetail(ErrorKey key, Object value) {
     this.details.put(key.getValue(), value);
   }
-  
+
   public Map<String, Object> getDetails() {
-    return Collections.unmodifiableMap(details);
+    return Map.copyOf(details);
   }
 }
