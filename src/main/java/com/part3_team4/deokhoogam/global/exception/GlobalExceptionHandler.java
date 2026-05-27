@@ -1,9 +1,12 @@
 package com.part3_team4.deokhoogam.global.exception;
 
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
+import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
@@ -28,10 +31,14 @@ public class GlobalExceptionHandler {
   @ExceptionHandler(MethodArgumentNotValidException.class)
   public ResponseEntity<ErrorResponse> handleValidationException(
       MethodArgumentNotValidException e) {
-    Map<String, Object> details = new HashMap<>();
-    e.getBindingResult().getFieldErrors().forEach(error ->
-        details.put(error.getField(), error.getDefaultMessage())
-    );
+    Map<String, List<String>> fieldErrors = e.getBindingResult()
+        .getFieldErrors().stream()
+        .collect(Collectors.groupingBy(
+            FieldError::getField,
+            Collectors.mapping(FieldError::getDefaultMessage, Collectors.toList())
+        ));
+
+    Map<String, Object> details = new HashMap<>(fieldErrors);
     log.warn("Validation Exception: {}", details);
 
     ErrorCode errorCode = ErrorCode.INVALID_INPUT_VALUE;
