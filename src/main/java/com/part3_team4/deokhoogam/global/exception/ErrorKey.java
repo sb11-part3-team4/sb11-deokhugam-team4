@@ -8,6 +8,8 @@ import lombok.RequiredArgsConstructor;
 public enum ErrorKey {
 
   /// ==== Common ====
+  FIELD("field"),
+  REASON("reason"),
 
   /// ==== 도메인  ====
   // 도서
@@ -24,6 +26,6 @@ public enum ErrorKey {
 
   // 알림
   NOTIFICATION_ID("notificationId");
-  
+
   private final String value;
 }
