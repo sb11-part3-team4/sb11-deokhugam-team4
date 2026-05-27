@@ -43,6 +43,20 @@ tasks.named('test') {
 }
 
 
+tasks.named('jacocoTestCoverageVerification') {
+    violationRules {
+        rule {
+            element = 'BUNDLE'
+            limit {
+                counter = 'LINE'
+                value = 'COVEREDRATIO'
+                minimum = '0.50' // 80% 미만이면 빌드 실패
+            }
+        }
+    }
+}
+
+
 tasks.named('jacocoTestReport') {
     dependsOn test
     reports {
@@ -53,3 +67,9 @@ tasks.named('jacocoTestReport') {
     //나중에 필요시 불필요한 테스트 커버 범위인 dto, exception 등 제외
 
 }
+tasks.named('check') {
+    dependsOn jacocoTestCoverageVerification
+}
+
+
+
