@@ -132,6 +132,11 @@ CREATE TABLE popular_review
     CONSTRAINT fk_popular_review_review FOREIGN KEY (review_id) REFERENCES review (id)
 );
 
+-- 제약
+CREATE UNIQUE INDEX idx_popular_review_period_date_rank_unique ON popular_review (period, base_date, rank);
+-- 제약
+CREATE UNIQUE INDEX idx_popular_review_period_date_review_unique ON popular_review (period, base_date, review_id);
+
 -- Comment
 CREATE TABLE comment
 (
