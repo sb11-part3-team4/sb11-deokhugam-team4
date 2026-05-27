@@ -50,7 +50,7 @@ tasks.named('jacocoTestCoverageVerification') {
             limit {
                 counter = 'LINE'
                 value = 'COVEREDRATIO'
-                minimum = '0.50' // 80% 미만이면 빌드 실패
+                minimum = 0.50 // 50퍼 센트 제한. 추후 조정 예정
             }
         }
     }
