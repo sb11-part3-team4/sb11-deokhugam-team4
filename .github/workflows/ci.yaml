@@ -1,0 +1,44 @@
+name: PR test and Check coverage
+
+on:
+  pull_request:
+    branches:
+      - develop
+
+jobs:
+  test:
+    name: 테스트 체크
+    runs-on: ubuntu-latest
+
+    steps:
+
+      #코드 복사
+      - uses: actions/checkout@v4
+
+      - name: 자바 버전 셋업
+        uses: actions/setup-java@v4
+        with:
+          java-version: '17'
+          distribution: 'corretto'
+          cache: 'gradle'
+
+
+      - run: chmod +x gradlew
+      - name: 빌드 & 테스트 & jacoco 리포트 작성
+        run: ./gradlew clean test jacocoTestReport jacocoTestCoverageVerification
+
+      - name: codecov 리포트 생성
+        uses: codecov/codecov-action@v4
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          files: ./build/reports/jacoco/test/jacocoTestReport.xml
+          fail_ci_if_error: true
+
+
+      - name: PR에 커버리지 댓글 달기
+        uses: madrapps/jacoco-report@v1.6.1
+        with:
+          paths: ${{ github.workspace }}/build/reports/jacoco/test/jacocoTestReport.xml
+          token: ${{ secrets.GITHUB_TOKEN }}
+          min-coverage-overall: 80 # 전체 80%
+          min-coverage-changed-files: 80
