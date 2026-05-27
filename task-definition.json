@@ -1,10 +1,10 @@
 {
-  "taskDefinitionArn": "arn:aws:ecs:ap-northeast-2:720936371881:task-definition/deokhugam-task:3",
+  "taskDefinitionArn": "arn:aws:ecs:ap-northeast-2:720936371881:task-definition/deokhugam-task:11",
   "containerDefinitions": [
     {
       "name": "deokhugam-app",
-      "image": "720936371881.dkr.ecr.ap-northeast-2.amazonaws.com/deokhugam:1.0.0",
-      "cpu": 256,
+      "image": "720936371881.dkr.ecr.ap-northeast-2.amazonaws.com/deokhugam:2b35cc850512fc0e5cdb41259fd600e843534ff1",
+      "cpu": 246,
       "memory": 512,
       "memoryReservation": 256,
       "portMappings": [
@@ -26,7 +26,6 @@
       ],
       "mountPoints": [],
       "volumesFrom": [],
-      "ulimits": [],
       "logConfiguration": {
         "logDriver": "awslogs",
         "options": {
@@ -43,7 +42,7 @@
   "family": "deokhugam-task",
   "executionRoleArn": "arn:aws:iam::720936371881:role/ecsTaskExecutionRole",
   "networkMode": "bridge",
-  "revision": 3,
+  "revision": 11,
   "volumes": [],
   "status": "ACTIVE",
   "requiresAttributes": [
@@ -69,9 +68,6 @@
       "name": "ecs.capability.execution-role-ecr-pull"
     },
     {
-      "name": "com.amazonaws.ecs.capability.docker-remote-api.1.18"
-    },
-    {
       "name": "com.amazonaws.ecs.capability.docker-remote-api.1.29"
     }
   ],
@@ -88,7 +84,7 @@
   ],
   "cpu": "256",
   "memory": "512",
-  "registeredAt": "2026-05-26T07:16:06.055Z",
+  "registeredAt": "2026-05-27T04:50:06.136Z",
   "registeredBy": "arn:aws:iam::720936371881:root",
   "enableFaultInjection": false,
   "tags": []
