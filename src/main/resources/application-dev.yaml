@@ -17,7 +17,7 @@ spring:
     url: jdbc:postgresql://localhost:5432/deokhugam
     username: team4
     password: deokhugam4!
-    Driver-class-name: org.postgresql.Driver
+    driver-class-name: org.postgresql.Driver
 
   h2:
     console:
