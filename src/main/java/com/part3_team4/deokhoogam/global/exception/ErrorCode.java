@@ -6,32 +6,28 @@ import org.springframework.http.HttpStatus;
 
 @Getter
 @AllArgsConstructor
-public enum ErrorCode{
+public enum ErrorCode {
 
-  //1. 유저 예외
+  // 1. 사용자 예외
+  USER_NOT_FOUND(HttpStatus.NOT_FOUND, "USER-001", "존재하지 않는 사용자입니다."),
 
+  // 2. 도서 예외
+  BOOK_NOT_FOUND(HttpStatus.NOT_FOUND, "BOOK-001", "존재하지 않는 도서입니다."),
 
+  // 3. 댓글 예외
+  COMMENT_NOT_FOUND(HttpStatus.NOT_FOUND, "COMMENT-001", "존재하지 않는 댓글입니다."),
 
-  //2. 도서 예외
+  // 4. 리뷰 예외
+  REVIEW_NOT_FOUND(HttpStatus.NOT_FOUND, "REVIEW-001", "존재하지 않는 리뷰입니다."),
 
+  // 5. 알림 예외
+  NOTIFICATION_NOT_FOUND(HttpStatus.NOT_FOUND, "NOTIFICATION-001", "존재하지 않는 알림입니다."),
 
-  //3. 댓글 예외
-
-
-  //4. 리뷰 예외
-
-
-  //5. 알림 예외
-
-
-  //6. 공용 예외
-
-
-
-
-  DUMMY_EXCEPTION(HttpStatus.INTERNAL_SERVER_ERROR, "더미 예외입니다.");
+  // 6. 공용 예외
+  INTERNAL_SERVER_ERROR(HttpStatus.INTERNAL_SERVER_ERROR, "COMMON-001", "서버 내부 오류가 발생했습니다."),
+  INVALID_INPUT_VALUE(HttpStatus.BAD_REQUEST, "COMMON-002", "잘못된 입력값입니다.");
 
   private final HttpStatus status;
+  private final String code;
   private final String message;
-
 }
