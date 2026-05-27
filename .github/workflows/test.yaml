@@ -1,9 +1,9 @@
 name: PR test and Check coverage
 
 on:
-  push:
+  pull_request:
     branches:
-      - feature/global-cicd
+      - develop
 
 jobs:
   test:
