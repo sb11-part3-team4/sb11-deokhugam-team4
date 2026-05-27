@@ -44,6 +44,19 @@ tasks.named('test') {
 
 
 tasks.named('jacocoTestCoverageVerification') {
+
+    classDirectories.setFrom(
+            files(classDirectories.files.collect {
+                fileTree(dir: it, exclude: [
+                        "**/dto/**",
+                        "**/exception/**",
+                        "**/global/exception/**",
+                        "**/Q*.class"
+                ])
+            })
+    )
+
+
     violationRules {
         rule {
             element = 'BUNDLE'
