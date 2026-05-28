@@ -3,7 +3,7 @@ name: deploy
 on:
   push:
     branches:
-      - feature/global-cicd
+      - main
 
 jobs:
   build-and-push:
