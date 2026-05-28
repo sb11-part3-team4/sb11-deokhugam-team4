@@ -1,12 +1,12 @@
 {
-  "taskDefinitionArn": "arn:aws:ecs:ap-northeast-2:720936371881:task-definition/deokhugam-task:31",
+  "taskDefinitionArn": "arn:aws:ecs:ap-northeast-2:720936371881:task-definition/deokhugam-task:35",
   "containerDefinitions": [
     {
       "name": "deokhugam-app",
-      "image": "720936371881.dkr.ecr.ap-northeast-2.amazonaws.com/deokhugam:c1abbf6e4ca89026720ccab18d1932d60ce0a58f",
+      "image": "720936371881.dkr.ecr.ap-northeast-2.amazonaws.com/deokhugam:caa4cec1bbdf15cbd4b1109c3d481544d029305a",
       "cpu": 512,
-      "memory": 922,
-      "memoryReservation": 512,
+      "memory": 717,
+      "memoryReservation": 410,
       "portMappings": [
         {
           "containerPort": 80,
@@ -33,8 +33,7 @@
           "awslogs-create-group": "true",
           "awslogs-region": "ap-northeast-2",
           "awslogs-stream-prefix": "ecs"
-        },
-        "secretOptions": []
+        }
       },
       "systemControls": []
     }
@@ -42,7 +41,7 @@
   "family": "deokhugam-task",
   "executionRoleArn": "arn:aws:iam::720936371881:role/ecsTaskExecutionRole",
   "networkMode": "bridge",
-  "revision": 31,
+  "revision": 35,
   "volumes": [],
   "status": "ACTIVE",
   "requiresAttributes": [
@@ -83,9 +82,9 @@
     "EC2"
   ],
   "cpu": "512",
-  "memory": "922",
-  "registeredAt": "2026-05-28T10:13:49.752Z",
-  "registeredBy": "arn:aws:iam::720936371881:root",
+  "memory": "717",
+  "registeredAt": "2026-05-28T14:13:17.515Z",
+  "registeredBy": "arn:aws:iam::720936371881:user/Github_Action_for_CICD",
   "enableFaultInjection": false,
   "tags": []
 }
