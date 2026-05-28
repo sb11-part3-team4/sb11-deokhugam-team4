@@ -27,15 +27,7 @@ class BookRepositoryTest {
   void existsByIsbn_WhenBookExists_ReturnsTrue() {
     // given
     String targetIsbn = "1234567890123";
-
-    Book book = Book.builder()
-        .title("이펙티브 자바")
-        .author("조슈아 블로흐")
-        .description("자바 프로그래밍 가이드")
-        .publisher("인사이트")
-        .publishedDate(LocalDate.of(2026, 5, 28))
-        .isbn("1234567890123")
-        .build();
+    Book book = createFixtureBook(targetIsbn);
     bookRepository.save(book);
 
     // when
@@ -45,5 +37,17 @@ class BookRepositoryTest {
     // then
     assertThat(exists).isTrue();
     assertThat(notExists).isFalse();
+  }
+
+  // 픽스처 메서드
+  private Book createFixtureBook(String isbn) {
+    return Book.builder()
+        .title("이펙티브 자바")
+        .author("조슈아 블로흐")
+        .description("자바 프로그래밍 가이드")
+        .publisher("인사이트")
+        .publishedDate(LocalDate.of(2026, 5, 28))
+        .isbn(isbn)
+        .build();
   }
 }
