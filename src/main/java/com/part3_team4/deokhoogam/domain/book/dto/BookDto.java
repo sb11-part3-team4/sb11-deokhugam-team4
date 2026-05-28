@@ -2,6 +2,7 @@ package com.part3_team4.deokhoogam.domain.book.dto;
 
 import com.fasterxml.jackson.annotation.JsonFormat;
 import com.part3_team4.deokhoogam.domain.book.entity.Book;
+import java.math.BigDecimal;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.util.UUID;
@@ -21,14 +22,14 @@ public class BookDto {
   private String author;
   private String description;
   private String publisher;
-  
+
   @JsonFormat(pattern = "yyyy-MM-dd")
   private LocalDate publishedDate;
 
   private String isbn;
   private String thumbnailUrl;
   private int reviewCount;
-  private double rating;
+  private BigDecimal rating;
 
   @JsonFormat(pattern = "yyyy-MM-dd'T'HH:mm:ss'Z'")
   private Instant createdAt;
@@ -47,7 +48,7 @@ public class BookDto {
         .isbn(book.getIsbn())
         .thumbnailUrl(book.getThumbnailUrl())
         .reviewCount(book.getReviewCount())
-        .rating(book.getRating().doubleValue())
+        .rating(book.getRating())
         .createdAt(book.getCreatedAt())
         .updatedAt(book.getUpdatedAt())
         .build();
