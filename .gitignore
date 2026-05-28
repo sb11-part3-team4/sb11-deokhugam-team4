@@ -248,3 +248,6 @@ gradle-app.setting
 HELP.md
 *.env
 .idea/
+
+# PostgreSQL Docker Data Volume
+postgres_data/
