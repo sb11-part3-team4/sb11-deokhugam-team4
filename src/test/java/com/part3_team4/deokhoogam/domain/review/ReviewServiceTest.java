@@ -65,8 +65,15 @@ public class ReviewServiceTest {
     void createReview_duplicateReview_throwsException() {
         UUID userId = UUID.randomUUID();
         UUID bookId = UUID.randomUUID();
+
+        Book book = Book.builder()
+                .title("테스트 책").author("저자").description("설명")
+                .publisher("출판사").publishedDate(LocalDate.of(2020, 1, 1))
+                .build();
+
         ReviewCreateRequest request = new ReviewCreateRequest(bookId, 4, "좋은 책이에요");
 
+        given(bookRepository.findById(bookId)).willReturn(Optional.of(book));
         given(reviewRepository.existsByUserIdAndBookId(userId, bookId)).willReturn(true);
 
         assertThatThrownBy(() -> reviewService.createReview(userId, request))

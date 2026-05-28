@@ -22,12 +22,13 @@ public class ReviewServiceImpl implements ReviewService {
     @Override
     @Transactional
     public ReviewResponse createReview(UUID userId, ReviewCreateRequest request) {
-        if (reviewRepository.existsByUserIdAndBookId(userId, request.bookId())) {
-            throw ReviewAlreadyExistsException.withUserIdAndBookId(userId, request.bookId());
-        }
 
         bookRepository.findById(request.bookId())
                 .orElseThrow(() -> BookNotFoundException.withId(request.bookId()));
+
+        if (reviewRepository.existsByUserIdAndBookId(userId, request.bookId())) {
+            throw ReviewAlreadyExistsException.withUserIdAndBookId(userId, request.bookId());
+        }
 
         Review review = Review.create(userId, request.bookId(), request.rating(), request.content());
         Review saved = reviewRepository.save(review);
