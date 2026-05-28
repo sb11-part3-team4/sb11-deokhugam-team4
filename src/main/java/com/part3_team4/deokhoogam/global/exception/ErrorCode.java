@@ -18,6 +18,9 @@ public enum ErrorCode {
 
   // 3. 댓글 예외
   COMMENT_NOT_FOUND(HttpStatus.NOT_FOUND, "COMMENT-001", "존재하지 않는 댓글입니다."),
+  COMMENT_NOT_OWNER(HttpStatus.FORBIDDEN, "COMMENT-002", "본인이 작성한 댓글만 수정/삭제할 수 있습니다."),
+  COMMENT_CONTENT_REQUIRED(HttpStatus.BAD_REQUEST, "COMMENT-003", "댓글 내용은 필수입니다."),
+  COMMENT_CONTENT_TOO_LONG(HttpStatus.BAD_REQUEST, "COMMENT-004", "댓글 내용은 최대 1000자까지 입력 가능합니다."),
 
   // 4. 리뷰 예외
   REVIEW_NOT_FOUND(HttpStatus.NOT_FOUND, "REVIEW-001", "존재하지 않는 리뷰입니다."),
