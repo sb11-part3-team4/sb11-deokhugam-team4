@@ -13,6 +13,8 @@ public enum ErrorCode {
 
   // 2. 도서 예외
   BOOK_NOT_FOUND(HttpStatus.NOT_FOUND, "BOOK-001", "존재하지 않는 도서입니다."),
+  INVALID_BOOK_INPUT(HttpStatus.BAD_REQUEST, "BOOK-002", "올바르지 않은 도서 정보입니다."),
+  ISBN_ALREADY_EXISTS(HttpStatus.CONFLICT, "BOOK-003", "이미 존재하는 ISBN입니다."),
 
   // 3. 댓글 예외
   COMMENT_NOT_FOUND(HttpStatus.NOT_FOUND, "COMMENT-001", "존재하지 않는 댓글입니다."),
