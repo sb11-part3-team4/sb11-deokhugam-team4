@@ -6,13 +6,9 @@ import com.part3_team4.deokhoogam.global.exception.ErrorKey;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EntityListeners;
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.GenerationType;
-import jakarta.persistence.Id;
 import jakarta.persistence.Table;
 import java.math.BigDecimal;
 import java.time.LocalDate;
-import java.util.UUID;
 import lombok.AccessLevel;
 import lombok.Builder;
 import lombok.Getter;
@@ -26,33 +22,36 @@ import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 @EntityListeners(AuditingEntityListener.class)
 public class Book extends BaseEntity {
 
+  // ===== 정책 상수 =====
+  private static final int TITLE_MAX_LENGTH = 255;
+  private static final int AUTHOR_MAX_LENGTH = 100;
+  private static final int PUBLISHER_MAX_LENGTH = 100;
+  private static final int ISBN_MAX_LENGTH = 20;
+  private static final int THUMBNAIL_URL_MAX_LENGTH = 512;
+
   private static final BigDecimal MIN_RATING = new BigDecimal("0.00");
   private static final BigDecimal MAX_RATING = new BigDecimal("5.00");
 
-  @Id
-  @GeneratedValue(strategy = GenerationType.UUID)
-  @Column(name = "id", updatable = false, nullable = false)
-  private UUID id;
-
-  @Column(name = "title", nullable = false, length = 255)
+  // ===== 필드 =====
+  @Column(name = "title", nullable = false, length = TITLE_MAX_LENGTH)
   private String title;
 
-  @Column(name = "author", nullable = false, length = 100)
+  @Column(name = "author", nullable = false, length = AUTHOR_MAX_LENGTH)
   private String author;
 
   @Column(name = "description", nullable = false, columnDefinition = "TEXT")
   private String description;
 
-  @Column(name = "publisher", nullable = false, length = 100)
+  @Column(name = "publisher", nullable = false, length = PUBLISHER_MAX_LENGTH)
   private String publisher;
 
   @Column(name = "published_date", nullable = false)
   private LocalDate publishedDate;
 
-  @Column(name = "isbn", unique = true, length = 20)
+  @Column(name = "isbn", unique = true, length = ISBN_MAX_LENGTH)
   private String isbn;
 
-  @Column(name = "thumbnail_url", length = 512)
+  @Column(name = "thumbnail_url", length = THUMBNAIL_URL_MAX_LENGTH)
   private String thumbnailUrl;
 
   @Column(name = "review_count", nullable = false)
@@ -61,10 +60,15 @@ public class Book extends BaseEntity {
   @Column(name = "rating", nullable = false, precision = 3, scale = 2)
   private BigDecimal rating;
 
+  // ===== 생성 =====
   @Builder
   public Book(String title, String author, String description, String publisher,
       LocalDate publishedDate, String isbn, String thumbnailUrl) {
     validateBookInfo(title, author, description, publisher, publishedDate);
+    validateLength(title, TITLE_MAX_LENGTH, ErrorKey.BOOK_TITLE);
+    validateLength(author, AUTHOR_MAX_LENGTH, ErrorKey.BOOK_AUTHOR);
+    validateLength(publisher, PUBLISHER_MAX_LENGTH, ErrorKey.BOOK_PUBLISHER);
+    validateLength(thumbnailUrl, THUMBNAIL_URL_MAX_LENGTH, ErrorKey.BOOK_THUMBNAIL_URL);
     validateIsbn(isbn);
 
     this.title = title;
@@ -76,21 +80,25 @@ public class Book extends BaseEntity {
     this.thumbnailUrl = thumbnailUrl;
 
     this.reviewCount = 0;
-    this.rating = new BigDecimal("0.00");
+    this.rating = BigDecimal.ZERO;
   }
 
   // ===== 수정 메서드 =====
 
-  public void updateBookInfo(String title, String author, String description,
-      String publisher, LocalDate publishedDate, String thumbnailUrl) {
-    validateBookInfo(title, author, description, publisher, publishedDate);
+  public void updateBookInfo(String newTitle, String newAuthor, String newDescription,
+      String newPublisher, LocalDate newPublishedDate, String newThumbnailUrl) {
+    validateBookInfo(newTitle, newAuthor, newDescription, newPublisher, newPublishedDate);
+    validateLength(newTitle, TITLE_MAX_LENGTH, ErrorKey.BOOK_TITLE);
+    validateLength(newAuthor, AUTHOR_MAX_LENGTH, ErrorKey.BOOK_AUTHOR);
+    validateLength(newPublisher, PUBLISHER_MAX_LENGTH, ErrorKey.BOOK_PUBLISHER);
+    validateLength(newThumbnailUrl, THUMBNAIL_URL_MAX_LENGTH, ErrorKey.BOOK_THUMBNAIL_URL);
 
-    this.title = title;
-    this.author = author;
-    this.description = description;
-    this.publisher = publisher;
-    this.publishedDate = publishedDate;
-    this.thumbnailUrl = thumbnailUrl;
+    this.title = newTitle;
+    this.author = newAuthor;
+    this.description = newDescription;
+    this.publisher = newPublisher;
+    this.publishedDate = newPublishedDate;
+    this.thumbnailUrl = newThumbnailUrl;
   }
 
   public void updateReviewData(int newReviewCount, BigDecimal newRating) {
@@ -100,7 +108,7 @@ public class Book extends BaseEntity {
     this.rating = newRating;
   }
 
-  // ===== 검증 메서드 =====
+  // ===== 검증 =====
   private void validateBookInfo(
       String title,
       String author,
@@ -125,17 +133,28 @@ public class Book extends BaseEntity {
     }
   }
 
+  private void validateLength(String value, int maxLength, ErrorKey field) {
+    if (value != null && value.length() > maxLength) {
+      throw InvalidBookException.withFieldAndValue(
+          field, value, "최대 길이를 초과했습니다."
+      );
+    }
+  }
+
   private void validateIsbn(String isbn) {
     if (isbn != null && isbn.isBlank()) {
-      throw InvalidBookException.withFieldAndValue(
-          ErrorKey.BOOK_ISBN, isbn, "ISBN이 입력되면 공백이 될 수 없습니다.");
+      throw InvalidBookException.withFieldAndValue(ErrorKey.BOOK_ISBN, isbn,
+          "ISBN이 입력되면 공백이 될 수 없습니다."
+      );
     }
+    validateLength(isbn, ISBN_MAX_LENGTH, ErrorKey.BOOK_ISBN);
   }
 
   private void validateReviewData(int reviewCount, BigDecimal rating) {
     if (reviewCount < 0) {
-      throw InvalidBookException.withFieldAndValue(
-          ErrorKey.BOOK_REVIEW_COUNT, reviewCount, "리뷰 수는 음수가 될 수 없습니다.");
+      throw InvalidBookException.withFieldAndValue(ErrorKey.BOOK_REVIEW_COUNT, reviewCount,
+          "리뷰 수는 음수가 될 수 없습니다."
+      );
     }
 
     if (rating == null) {
@@ -144,8 +163,11 @@ public class Book extends BaseEntity {
     }
     if (rating.compareTo(MIN_RATING) < 0 || rating.compareTo(MAX_RATING) > 0) {
       throw InvalidBookException.withFieldAndValue(
-          ErrorKey.BOOK_RATING, rating, "평점은 0.00 ~ 5.00 사이여야 합니다."
-      );
+          ErrorKey.BOOK_RATING, rating, "평점은 0.00 ~ 5.00 사이여야 합니다.");
+    }
+    if (rating.scale() > 2) {
+      throw InvalidBookException.withFieldAndValue(
+          ErrorKey.BOOK_RATING, rating, "평점은 소수점 둘째 자리까지만 입력 가능합니다.");
     }
   }
 }

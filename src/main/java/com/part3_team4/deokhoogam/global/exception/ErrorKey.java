@@ -23,6 +23,7 @@ public enum ErrorKey {
   BOOK_REVIEW_COUNT("reviewCount"),
   BOOK_DESCRIPTION("description"),
   BOOK_PUBLISHED_DATE("publishedDate"),
+  BOOK_THUMBNAIL_URL("thumbnailUrl"),
 
   // 사용자
   USER_ID("userId"),
