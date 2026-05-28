@@ -10,10 +10,19 @@ public enum ErrorKey {
   /// ==== Common ====
   FIELD("field"),
   REASON("reason"),
+  VALUE("value"),
 
   /// ==== 도메인  ====
   // 도서
   BOOK_ID("bookId"),
+  BOOK_TITLE("title"),
+  BOOK_AUTHOR("author"),
+  BOOK_PUBLISHER("publisher"),
+  BOOK_ISBN("isbn"),
+  BOOK_RATING("rating"),
+  BOOK_REVIEW_COUNT("reviewCount"),
+  BOOK_DESCRIPTION("description"),
+  BOOK_PUBLISHED_DATE("publishedDate"),
 
   // 사용자
   USER_ID("userId"),
