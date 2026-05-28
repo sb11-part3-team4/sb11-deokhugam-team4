@@ -7,6 +7,7 @@ import static org.mockito.BDDMockito.given;
 import static org.mockito.BDDMockito.then;
 
 import com.part3_team4.deokhoogam.domain.book.dto.BookCreateRequest;
+import com.part3_team4.deokhoogam.domain.book.dto.BookDto;
 import com.part3_team4.deokhoogam.domain.book.entity.Book;
 import com.part3_team4.deokhoogam.domain.book.exception.IsbnAlreadyExistsException;
 import com.part3_team4.deokhoogam.domain.book.repository.BookRepository;
@@ -57,7 +58,7 @@ class BookServiceTest {
     given(bookRepository.save(any(Book.class))).willReturn(mockSavedBook);
 
     // when
-    Book result = bookService.create(request);
+    BookDto result = bookService.create(request);
 
     // then
     assertThat(result).isNotNull();
