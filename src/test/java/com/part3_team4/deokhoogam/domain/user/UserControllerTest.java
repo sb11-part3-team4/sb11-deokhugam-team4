@@ -1,10 +1,11 @@
 package com.part3_team4.deokhoogam.domain.user;
 
-import static org.mockito.BDDMockito.given;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.BDDMockito.given;
 import static org.mockito.BDDMockito.willThrow;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.multipart;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -12,17 +13,22 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.part3_team4.deokhoogam.domain.user.controller.UserController;
-import com.part3_team4.deokhoogam.domain.user.dto.UserResponse;
-import com.part3_team4.deokhoogam.domain.user.dto.UserCreateRequest;
-import com.part3_team4.deokhoogam.domain.user.dto.UserUpdateRequest;
+import com.part3_team4.deokhoogam.domain.user.dto.UserCreateRequestDto;
+import com.part3_team4.deokhoogam.domain.user.dto.UserDto;
+import com.part3_team4.deokhoogam.domain.user.dto.response.UserResponse;
+import com.part3_team4.deokhoogam.domain.user.dto.UserUpdateRequestDto;
 import com.part3_team4.deokhoogam.domain.user.service.UserService;
+import java.nio.charset.StandardCharsets;
 import java.util.UUID;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
+import org.springframework.http.MediaType;
+import org.springframework.mock.web.MockMultipartFile;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.web.multipart.MultipartFile;
 
 @WebMvcTest(UserController.class)
 public class UserControllerTest {
@@ -40,21 +46,37 @@ public class UserControllerTest {
   @DisplayName("회원가입 API 성공 - 201 반환")
   void createUser_success() throws Exception {
     UUID userId = UUID.randomUUID();
-    UserCreateRequest request = new UserCreateRequest(
+    UserCreateRequestDto request = new UserCreateRequestDto(
         "test@deokhugam.com", "testUser", "password123!");
+    UserDto responseDto = new UserDto(
+        userId, "test@deokhugam.com", "testUser", "password123!", null);
 
-    given(userService.createUser(any(UserCreateRequest.class))).willReturn(userId);
+    MockMultipartFile requestPart = new MockMultipartFile(
+        "request",
+        "",
+        "application/json",
+        objectMapper.writeValueAsString(request).getBytes(StandardCharsets.UTF_8));
 
-    mockMvc.perform(post("/api/users/signup")
-        .contentType("application/json")
-        .content(objectMapper.writeValueAsString(request)))
+    MockMultipartFile profileImagePart = new MockMultipartFile(
+        "profileImage",
+        "test.jpg",
+        "image/jpeg",
+        "dummy image data".getBytes());
+
+    given(userService.createUser(any(UserCreateRequestDto.class), any(MultipartFile.class)))
+        .willReturn(responseDto);
+
+    mockMvc.perform(multipart("/api/users/signup")
+            .file(requestPart)
+            .file(profileImagePart)
+            .contentType(MediaType.MULTIPART_FORM_DATA))
         .andExpect(status().isCreated());
   }
 
   @Test
   @DisplayName("회원가입 실패 - 잘못된 형식의 이메일 400 반환")
   void createUser_fail_invalidEmail() throws Exception {
-    UserCreateRequest request = new UserCreateRequest(
+    UserCreateRequestDto request = new UserCreateRequestDto(
         "test-email", "testUser", "password123!");
 
     mockMvc.perform(post("/api/users/signup")
@@ -96,11 +118,21 @@ public class UserControllerTest {
   @DisplayName("회원 정보 수정 성공 - 200 반환")
   void updateUser_success() throws Exception {
     UUID userId = UUID.randomUUID();
-    UserUpdateRequest request = new UserUpdateRequest("newTest@deokhugam.com", "newTestUser", "newPassword123!");
+    UserUpdateRequestDto request = new UserUpdateRequestDto("newTest@deokhugam.com", "newTestUser", "newPassword123!");
 
-    mockMvc.perform(patch("/api/users/{userId}", userId)
-        .contentType("application/json")
-        .content(objectMapper.writeValueAsString(request)))
+    MockMultipartFile requestPart = new MockMultipartFile(
+        "request",
+        "",
+        "application/json",
+        objectMapper.writeValueAsString(request).getBytes(StandardCharsets.UTF_8));
+
+    mockMvc.perform(multipart("/api/users/{userId}", userId)
+            .file(requestPart)
+            .with(req -> {
+              req.setMethod("PATCH");
+              return req;
+            })
+            .contentType(MediaType.MULTIPART_FORM_DATA))
         .andExpect(status().isOk());
   }
 
@@ -108,11 +140,21 @@ public class UserControllerTest {
   @DisplayName("회원 정보 수정 실패 - 존재하지 않는 유저 400 반환")
   void updateUser_fail_() throws Exception {
     UUID userId = UUID.randomUUID();
-    UserUpdateRequest request = new UserUpdateRequest("", "newTestUser", "newPassword123!");
+    UserUpdateRequestDto request = new UserUpdateRequestDto("invalid-email", "newTestUser", "newPassword123!");
 
-    mockMvc.perform(patch("/api/users/{userId}", userId)
-        .contentType("application/json")
-        .content(objectMapper.writeValueAsString(request)))
+    MockMultipartFile requestPart = new MockMultipartFile(
+        "request",
+        "",
+        "application/json",
+        objectMapper.writeValueAsString(request).getBytes(StandardCharsets.UTF_8));
+
+    mockMvc.perform(multipart("/api/users/{userId}", userId)
+            .file(requestPart)
+            .with(req -> {
+              req.setMethod("PATCH");
+              return req;
+            })
+            .contentType(MediaType.MULTIPART_FORM_DATA))
         .andExpect(status().isBadRequest());
   }
 
