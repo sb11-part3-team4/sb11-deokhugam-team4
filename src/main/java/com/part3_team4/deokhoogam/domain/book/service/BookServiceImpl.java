@@ -11,26 +11,17 @@ import org.springframework.transaction.annotation.Transactional;
 
 @Service
 @RequiredArgsConstructor
-public class BookServiceImpl {
+public class BookServiceImpl implements BookService {
 
   private final BookRepository bookRepository;
 
   @Transactional
   public BookDto create(BookCreateRequest request) {
-    if (bookRepository.existsByIsbn(request.getIsbn())) {
-      throw IsbnAlreadyExistsException.withIsbn(request.getIsbn());
+    if (bookRepository.existsByIsbn(request.isbn())) {
+      throw IsbnAlreadyExistsException.withIsbn(request.isbn());
     }
 
-    Book book = Book.builder()
-        .isbn(request.getIsbn())
-        .title(request.getTitle())
-        .author(request.getAuthor())
-        .description(request.getDescription())
-        .publisher(request.getPublisher())
-        .publishedDate(request.getPublishedDate())
-        .build();
-
-    Book savedBook = bookRepository.save(book);
-    return BookDto.from(savedBook);
+    Book book = request.toEntity();
+    return BookDto.from(bookRepository.save(book));
   }
 }

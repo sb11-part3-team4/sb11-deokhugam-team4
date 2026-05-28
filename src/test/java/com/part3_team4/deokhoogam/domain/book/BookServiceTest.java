@@ -5,6 +5,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.BDDMockito.then;
+import static org.springframework.test.util.ReflectionTestUtils.setField;
 
 import com.part3_team4.deokhoogam.domain.book.dto.BookCreateRequest;
 import com.part3_team4.deokhoogam.domain.book.dto.BookDto;
@@ -13,6 +14,7 @@ import com.part3_team4.deokhoogam.domain.book.exception.IsbnAlreadyExistsExcepti
 import com.part3_team4.deokhoogam.domain.book.repository.BookRepository;
 import com.part3_team4.deokhoogam.domain.book.service.BookServiceImpl;
 import java.time.LocalDate;
+import java.util.UUID;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -21,7 +23,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 @ExtendWith(MockitoExtension.class)
-@DisplayName("BookService 테스트")
+@DisplayName("BookService 단위 테스트")
 class BookServiceTest {
 
   @InjectMocks
@@ -31,13 +33,11 @@ class BookServiceTest {
   private BookRepository bookRepository;
 
   @Test
-  @DisplayName("새로운 도서를 등록한다")
+  @DisplayName("새로운 도서를 성공적으로 등록한다")
   void createBook_Success() {
     // given
-    String targetIsbn = "1234567890123";
-
     BookCreateRequest request = BookCreateRequest.builder()
-        .isbn(targetIsbn)
+        .isbn("1234567890123")
         .title("이펙티브 자바")
         .author("조슈아 블로흐")
         .description("자바 가이드")
@@ -45,16 +45,20 @@ class BookServiceTest {
         .publishedDate(LocalDate.of(2026, 5, 28))
         .build();
 
-    given(bookRepository.existsByIsbn(targetIsbn)).willReturn(false);
+    UUID mockId = UUID.randomUUID();
 
     Book mockSavedBook = Book.builder()
-        .isbn(targetIsbn)
-        .title("이펙티브 자바")
-        .author("조슈아 블로흐")
-        .description("자바 가이드")
-        .publisher("인사이트")
-        .publishedDate(LocalDate.of(2026, 5, 28))
+        .isbn(request.isbn())
+        .title(request.title())
+        .author(request.author())
+        .description(request.description())
+        .publisher(request.publisher())
+        .publishedDate(request.publishedDate())
         .build();
+
+    setField(mockSavedBook, "id", mockId);
+
+    given(bookRepository.existsByIsbn(request.isbn())).willReturn(false);
     given(bookRepository.save(any(Book.class))).willReturn(mockSavedBook);
 
     // when
@@ -62,7 +66,9 @@ class BookServiceTest {
 
     // then
     assertThat(result).isNotNull();
-    assertThat(result.getIsbn()).isEqualTo(targetIsbn);
+    assertThat(result.id()).isEqualTo(mockId);
+    assertThat(result.isbn()).isEqualTo(request.isbn());
+    assertThat(result.title()).isEqualTo(request.title());
 
     then(bookRepository).should().save(any(Book.class));
   }
@@ -71,10 +77,8 @@ class BookServiceTest {
   @DisplayName("이미 존재하는 ISBN으로 도서를 등록하면 예외가 발생한다")
   void registerBook_WithAlreadyExistIsbn_ThrowsException() {
     // given
-    String alreadyExistIsbn = "1234567890123";
-
     BookCreateRequest request = BookCreateRequest.builder()
-        .isbn(alreadyExistIsbn)
+        .isbn("1234567890123")
         .title("이펙티브 자바")
         .author("조슈아 블로흐")
         .description("자바 가이드")
@@ -82,10 +86,13 @@ class BookServiceTest {
         .publishedDate(LocalDate.of(2026, 5, 28))
         .build();
 
-    given(bookRepository.existsByIsbn(alreadyExistIsbn)).willReturn(true); // isbn 중복
+    given(bookRepository.existsByIsbn(request.isbn())).willReturn(true);
 
     // when & then
     assertThatThrownBy(() -> bookService.create(request))
         .isInstanceOf(IsbnAlreadyExistsException.class);
+
+    then(bookRepository).should().existsByIsbn(request.isbn());
+    then(bookRepository).shouldHaveNoMoreInteractions();
   }
 }
