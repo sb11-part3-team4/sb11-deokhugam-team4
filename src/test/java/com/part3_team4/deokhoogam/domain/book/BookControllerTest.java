@@ -2,7 +2,7 @@ package com.part3_team4.deokhoogam.domain.book;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.BDDMockito.given;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.multipart;
 import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.print;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -21,6 +21,7 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.http.MediaType;
+import org.springframework.mock.web.MockMultipartFile;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
@@ -46,6 +47,13 @@ class BookControllerTest {
     // given
     BookCreateRequest request = createValidBookRequest();
 
+    MockMultipartFile bookDataPart = new MockMultipartFile(
+        "bookData",
+        "",
+        MediaType.APPLICATION_JSON_VALUE,
+        objectMapper.writeValueAsBytes(request)
+    );
+
     UUID mockId = UUID.randomUUID();
     BookDto mockResponse = BookDto.builder()
         .id(mockId)
@@ -57,9 +65,8 @@ class BookControllerTest {
     given(bookService.create(any(BookCreateRequest.class))).willReturn(mockResponse);
 
     // when & then
-    mockMvc.perform(post("/api/books")
-            .contentType(MediaType.APPLICATION_JSON)
-            .content(objectMapper.writeValueAsString(request)))
+    mockMvc.perform(multipart("/api/books")
+            .file(bookDataPart))
         .andDo(print())
         .andExpect(status().isCreated())
         .andExpect(jsonPath("$.id").value(mockId.toString()))
@@ -74,13 +81,19 @@ class BookControllerTest {
     // given
     BookCreateRequest request = createValidBookRequest();
 
+    MockMultipartFile bookDataPart = new MockMultipartFile(
+        "bookData",
+        "",
+        MediaType.APPLICATION_JSON_VALUE,
+        objectMapper.writeValueAsBytes(request)
+    );
+
     given(bookService.create(any(BookCreateRequest.class)))
         .willThrow(IsbnAlreadyExistsException.withIsbn(request.isbn()));
 
     // when & then
-    mockMvc.perform(post("/api/books")
-            .contentType(MediaType.APPLICATION_JSON)
-            .content(objectMapper.writeValueAsString(request)))
+    mockMvc.perform(multipart("/api/books")
+            .file(bookDataPart))
         .andDo(print())
         .andExpect(status().isConflict())
         .andExpect(jsonPath("$.code").value(ErrorCode.ISBN_ALREADY_EXISTS.getCode()))
@@ -100,10 +113,16 @@ class BookControllerTest {
         .publishedDate(LocalDate.of(2026, 5, 28))
         .build();
 
+    MockMultipartFile bookDataPart = new MockMultipartFile(
+        "bookData",
+        "",
+        MediaType.APPLICATION_JSON_VALUE,
+        objectMapper.writeValueAsBytes(invalidRequest)
+    );
+
     // when & then
-    mockMvc.perform(post("/api/books")
-            .contentType(MediaType.APPLICATION_JSON)
-            .content(objectMapper.writeValueAsString(invalidRequest)))
+    mockMvc.perform(multipart("/api/books")
+            .file(bookDataPart))
         .andDo(print())
         .andExpect(status().isBadRequest())
         .andExpect(jsonPath("$.code").value(ErrorCode.INVALID_INPUT_VALUE.getCode()))
