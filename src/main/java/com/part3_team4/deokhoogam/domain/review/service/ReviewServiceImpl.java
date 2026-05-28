@@ -9,6 +9,7 @@ import com.part3_team4.deokhoogam.domain.review.exception.ReviewAlreadyExistsExc
 import com.part3_team4.deokhoogam.domain.review.repository.ReviewRepository;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -31,7 +32,12 @@ public class ReviewServiceImpl implements ReviewService {
         }
 
         Review review = Review.create(userId, request.bookId(), request.rating(), request.content());
-        Review saved = reviewRepository.save(review);
+        Review saved;
+        try {
+            saved = reviewRepository.save(review);
+        } catch (DataIntegrityViolationException e) {
+            throw ReviewAlreadyExistsException.withUserIdAndBookId(userId, request.bookId());
+        }
 
         return new ReviewResponse(
                 saved.getId(), saved.getUserId(), saved.getBookId(),
