@@ -2,7 +2,7 @@ spring:
   application:
     name: deokhugam
   profiles:
-    active: ${SPRING_PROFILE:dev}
+    active: ${SPRING_PROFILES_ACTIVE:dev}
 
   jpa:
     open-in-view: false

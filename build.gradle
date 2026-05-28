@@ -25,6 +25,7 @@ dependencies {
     implementation 'org.springframework.boot:spring-boot-starter-web'
     implementation 'org.springdoc:springdoc-openapi-starter-webmvc-ui:2.8.16'
     implementation 'org.springframework.boot:spring-boot-starter-batch'
+    implementation 'net.logstash.logback:logstash-logback-encoder:7.4'
     testImplementation 'org.springframework.batch:spring-batch-test'
     compileOnly 'org.projectlombok:lombok'
     runtimeOnly 'com.h2database:h2'
@@ -42,13 +43,56 @@ tasks.named('test') {
 }
 
 
+tasks.named('jacocoTestCoverageVerification') {
+
+    classDirectories.setFrom(
+            files(classDirectories.files.collect {
+                fileTree(dir: it, exclude: [
+                        "**/dto/**",
+                        "**/exception/**",
+                        "**/global/exception/**",
+                        "**/Q*.class"
+                ])
+            })
+    )
+
+
+    violationRules {
+        rule {
+            element = 'BUNDLE'
+            limit {
+                counter = 'LINE'
+                value = 'COVEREDRATIO'
+                minimum = 0.50 // 50퍼 센트 제한. 추후 조정 예정
+            }
+        }
+    }
+}
+
+
 tasks.named('jacocoTestReport') {
     dependsOn test
+
+
+    classDirectories.setFrom(
+            files(classDirectories.files.collect {
+                fileTree(dir: it, exclude: [
+                        "**/dto/**",
+                        "**/exception/**",
+                        "**/global/exception/**",
+                        "**/Q*.class"
+                ])
+            })
+    )
     reports {
         xml.required = true
         html.required = true
     }
 
-    //나중에 필요시 불필요한 테스트 커버 범위인 dto, exception 등 제외
-
 }
+tasks.named('check') {
+    dependsOn jacocoTestCoverageVerification
+}
+
+
+
