@@ -27,6 +27,10 @@ WORKDIR /app
 #위에서 빌드한 파일만 가져오기
 COPY --from=builder /app/build/libs/*.jar app.jar
 
+# non-root 그룹, 사용자 생성
+RUN addgroup -S appgroup && adduser -S appuser -G appgroup
+USER appuser
+
 # 환경변수
 ENV APP_NAME=deokhugam
 

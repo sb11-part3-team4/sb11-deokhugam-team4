@@ -9,11 +9,8 @@ public class PageResponseTest {
   @Test
   void test() {
 
-    PageResponse<Integer> page = new PageResponse<>(List.of(1,2,3,4,5), "nextCursor", "afterCursor", 5, 10L, true);
-
-
+    PageResponse<Integer> page = new PageResponse<>(List.of(1, 2, 3, 4, 5), "nextCursor",
+        "afterCursor", 5, 10L, true);
 
   }
-
-
 }

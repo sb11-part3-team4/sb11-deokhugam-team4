@@ -5,10 +5,10 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
 
 @SpringBootApplication
 
-public class DeokhoogamApplication {
+public class DeokhugamApplication {
 
 	public static void main(String[] args) {
-		SpringApplication.run(DeokhoogamApplication.class, args);
+		SpringApplication.run(DeokhugamApplication.class, args);
 	}
 
 }

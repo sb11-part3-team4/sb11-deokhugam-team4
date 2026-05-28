@@ -9,7 +9,8 @@
 
   <appender class="ch.qos.logback.core.ConsoleAppender" name="CONSOLE">
     <encoder>
-      <pattern>${DEV_PATTERN}</pattern> </encoder>
+      <pattern>${DEV_PATTERN}</pattern>
+    </encoder>
   </appender>
 
   <appender class="ch.qos.logback.core.ConsoleAppender" name="JSON">
