@@ -7,11 +7,13 @@ import static org.mockito.BDDMockito.given;
 import static org.mockito.BDDMockito.then;
 import static org.mockito.Mockito.never;
 
-import com.part3_team4.deokhoogam.domain.user.dto.UserResponse;
-import com.part3_team4.deokhoogam.domain.user.dto.UserCreateRequest;
-import com.part3_team4.deokhoogam.domain.user.dto.UserUpdateRequest;
+import com.part3_team4.deokhoogam.domain.user.dto.UserCreateRequestDto;
+import com.part3_team4.deokhoogam.domain.user.dto.UserDto;
+import com.part3_team4.deokhoogam.domain.user.dto.response.UserResponse;
+import com.part3_team4.deokhoogam.domain.user.dto.UserUpdateRequestDto;
 import com.part3_team4.deokhoogam.domain.user.entity.DeletedUser;
 import com.part3_team4.deokhoogam.domain.user.entity.User;
+import com.part3_team4.deokhoogam.domain.user.mapper.UserMapper;
 import com.part3_team4.deokhoogam.domain.user.repository.DeleteUserRepository;
 import com.part3_team4.deokhoogam.domain.user.repository.UserRepository;
 import com.part3_team4.deokhoogam.domain.user.service.UserServiceImpl;
@@ -35,32 +37,39 @@ public class UserServiceTest {
   @Mock
   private DeleteUserRepository deleteUserRepository;
 
+  @Mock
+  private UserMapper userMapper;
+
   @Test
   @DisplayName("회원가입 성공")
   void signUp_success() {
-    UserCreateRequest request = new UserCreateRequest(
+    UserCreateRequestDto request = new UserCreateRequestDto(
         "test@deokhugam.com", "testUser", "password123!");
+
+    UserDto mockDto = new UserDto(UUID.randomUUID(), "test@deokhugam.com"
+        , "testUser", "password123!", null);
 
     given(userRepository.existsByName(request.name())).willReturn(false);
     given(userRepository.existsByEmail(request.email())).willReturn(false);
+    given(userMapper.toDto(any(User.class))).willReturn(mockDto);
 
-    UUID savedUserId = userService.createUser(request);
+    UserDto savedUserDto = userService.createUser(request, null);
 
     then(userRepository).should().save(any(User.class));
 
-    assertThat(savedUserId).isNotNull();
+    assertThat(savedUserDto.name()).isEqualTo("testUser");
   }
 
   @Test
   @DisplayName("회원가입 실패 - 이미 존재하는 이름")
   void signUp_fail_duplicateName() {
-    UserCreateRequest request = new UserCreateRequest(
+    UserCreateRequestDto request = new UserCreateRequestDto(
         "duplicate@deokhugam.com", "testUser", "password123!");
 
     given(userRepository.existsByName(request.name())).willReturn(true);
 
     assertThrows(IllegalArgumentException.class, () -> {
-      userService.createUser(request);
+      userService.createUser(request, null);
     });
 
     then(userRepository).should(never()).save(any(User.class));
@@ -69,13 +78,13 @@ public class UserServiceTest {
   @Test
   @DisplayName("회원가입 실패 - 이미 존재하는 이메일")
   void signUp_fail_duplicateEmail() {
-    UserCreateRequest request = new UserCreateRequest(
+    UserCreateRequestDto request = new UserCreateRequestDto(
         "duplicate@deokhugam.com", "testUser", "password123!");
 
     given(userRepository.existsByEmail(request.email())).willReturn(true);
 
     assertThrows(IllegalArgumentException.class, () -> {
-      userService.createUser(request);
+      userService.createUser(request, null);
     });
 
     then(userRepository).should(never()).save(any(User.class));
@@ -85,7 +94,7 @@ public class UserServiceTest {
   @DisplayName("회원 정보 조회 성공")
   void getUser_success() {
     UUID userId = UUID.randomUUID();
-    User user = new User(userId,
+    User user = new User(
         "test@deokhugam.com", "testUser", "password123!");
 
     given(userRepository.findById(userId)).willReturn(Optional.of(user));
@@ -112,15 +121,15 @@ public class UserServiceTest {
   @DisplayName("회원 정보 수정 성공")
   void updateUser_success() {
     UUID userId = UUID.randomUUID();
-    User user = new User(userId,
+    User user = new User(
         "test@deokhugam.com", "testUser", "password123!");
 
-    UserUpdateRequest request = new UserUpdateRequest(
+    UserUpdateRequestDto request = new UserUpdateRequestDto(
         "newEmail@deokhugam.com","newName", "newPassword123!");
 
     given(userRepository.findById(userId)).willReturn(Optional.of(user));
 
-    userService.updateUser(userId, request);
+    userService.updateUser(userId, request, null);
 
     assertThat(user.getName()).isEqualTo("newName");
   }
@@ -129,13 +138,13 @@ public class UserServiceTest {
   @DisplayName("회원 정보 수정 실패 - 이미 존재하는 이름")
   void updateUser_fail_duplicateName() {
     UUID userId = UUID.randomUUID();
-    UserUpdateRequest request = new UserUpdateRequest(
+    UserUpdateRequestDto request = new UserUpdateRequestDto(
         "newEmail@deokhugam.com","newName", "newPassword123!");
 
     given(userRepository.existsByName(request.newName())).willReturn(true);
 
     assertThrows(IllegalArgumentException.class, () -> {
-      userService.updateUser(userId, request);
+      userService.updateUser(userId, request, null);
     });
   }
 
@@ -143,7 +152,7 @@ public class UserServiceTest {
   @DisplayName("회원 탈퇴 성공")
   void deleteUser_success() {
     UUID userId = UUID.randomUUID();
-    User user = new User(userId,
+    User user = new User(
         "test@deokhugam.com", "testUser", "password123!");
 
     given(userRepository.findById(userId)).willReturn(Optional.of(user));

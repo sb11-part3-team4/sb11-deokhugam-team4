@@ -1,7 +1,11 @@
 package com.part3_team4.deokhoogam.domain.user.entity;
 
 import com.part3_team4.deokhoogam.global.common.BaseEntity;
+import jakarta.persistence.CascadeType;
 import jakarta.persistence.Entity;
+import jakarta.persistence.FetchType;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.OneToOne;
 import jakarta.persistence.Table;
 import java.util.UUID;
 import lombok.Getter;
@@ -13,12 +17,15 @@ public class User extends BaseEntity {
   private String email;
   private String name;
   private String password;
-  private String profileImageUrl;
+
+  @OneToOne(fetch = FetchType.LAZY, cascade = CascadeType.ALL, orphanRemoval = false)
+  @JoinColumn(name = "profile_image_id")
+  private UserProfileImage profileImage;
 
   public User() {
   }
 
-  public User(UUID uuid, String email, String name, String password) {
+  public User(String email, String name, String password) {
     this.email = email;
     this.name = name;
     this.password = password;
@@ -26,5 +33,9 @@ public class User extends BaseEntity {
 
   public void updateName(String name) {
     this.name = name;
+  }
+
+  public void updateProfileImage(UserProfileImage profileImage) {
+    this.profileImage = profileImage;
   }
 }
