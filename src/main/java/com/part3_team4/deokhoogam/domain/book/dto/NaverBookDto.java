@@ -1,5 +1,6 @@
 package com.part3_team4.deokhoogam.domain.book.dto;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
@@ -15,7 +16,12 @@ public class NaverBookDto {
   private String author;
   private String description;
   private String publisher;
-  private String publishedDate;  // ISO 8601 (YYYY-MM-DD)
+
+  @JsonProperty("pubdate")
+  private String publishedDate;
+
   private String isbn;
-  private String thumbnailImage; // Base64 인코딩된 이미지
+
+  @JsonProperty("image")
+  private String thumbnailImage;
 }
