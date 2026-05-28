@@ -13,6 +13,8 @@ import com.part3_team4.deokhoogam.domain.user.dto.response.UserResponse;
 import com.part3_team4.deokhoogam.domain.user.dto.UserUpdateRequestDto;
 import com.part3_team4.deokhoogam.domain.user.entity.DeletedUser;
 import com.part3_team4.deokhoogam.domain.user.entity.User;
+import com.part3_team4.deokhoogam.domain.user.exception.UserAlreadyExistsException;
+import com.part3_team4.deokhoogam.domain.user.exception.UserNotFoundException;
 import com.part3_team4.deokhoogam.domain.user.mapper.UserMapper;
 import com.part3_team4.deokhoogam.domain.user.repository.DeleteUserRepository;
 import com.part3_team4.deokhoogam.domain.user.repository.UserRepository;
@@ -68,7 +70,7 @@ public class UserServiceTest {
 
     given(userRepository.existsByName(request.name())).willReturn(true);
 
-    assertThrows(IllegalArgumentException.class, () -> {
+    assertThrows(UserAlreadyExistsException.class, () -> {
       userService.createUser(request, null);
     });
 
@@ -83,7 +85,7 @@ public class UserServiceTest {
 
     given(userRepository.existsByEmail(request.email())).willReturn(true);
 
-    assertThrows(IllegalArgumentException.class, () -> {
+    assertThrows(UserAlreadyExistsException.class, () -> {
       userService.createUser(request, null);
     });
 
@@ -112,7 +114,7 @@ public class UserServiceTest {
 
     given(userRepository.findById(userId)).willReturn(Optional.empty());
 
-    assertThrows(IllegalArgumentException.class, () -> {
+    assertThrows(UserNotFoundException.class, () -> {
       userService.getUser(userId);
     });
   }
@@ -143,7 +145,7 @@ public class UserServiceTest {
 
     given(userRepository.existsByName(request.newName())).willReturn(true);
 
-    assertThrows(IllegalArgumentException.class, () -> {
+    assertThrows(UserAlreadyExistsException.class, () -> {
       userService.updateUser(userId, request, null);
     });
   }
@@ -170,7 +172,7 @@ public class UserServiceTest {
 
     given(userRepository.findById(userId)).willReturn(Optional.empty());
 
-    assertThrows(IllegalArgumentException.class, () -> {
+    assertThrows(UserNotFoundException.class, () -> {
       userService.deleteUser(userId);
     });
 
