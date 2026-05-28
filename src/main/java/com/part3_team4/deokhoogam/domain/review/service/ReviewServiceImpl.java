@@ -1,6 +1,5 @@
 package com.part3_team4.deokhoogam.domain.review.service;
 
-import com.part3_team4.deokhoogam.domain.book.entity.Book;
 import com.part3_team4.deokhoogam.domain.book.exception.BookNotFoundException;
 import com.part3_team4.deokhoogam.domain.book.repository.BookRepository;
 import com.part3_team4.deokhoogam.domain.review.dto.ReviewCreateRequest;
@@ -27,7 +26,7 @@ public class ReviewServiceImpl implements ReviewService {
             throw ReviewAlreadyExistsException.withUserIdAndBookId(userId, request.bookId());
         }
 
-        Book book = bookRepository.findById(request.bookId())
+        bookRepository.findById(request.bookId())
                 .orElseThrow(() -> BookNotFoundException.withId(request.bookId()));
 
         Review review = Review.create(userId, request.bookId(), request.rating(), request.content());
