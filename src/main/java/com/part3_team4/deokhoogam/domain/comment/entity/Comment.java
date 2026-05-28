@@ -1,10 +1,11 @@
 package com.part3_team4.deokhoogam.domain.comment.entity;
 
+import com.part3_team4.deokhoogam.domain.comment.exception.CommentContentRequiredException;
+import com.part3_team4.deokhoogam.domain.comment.exception.CommentContentTooLongException;
 import com.part3_team4.deokhoogam.global.common.BaseEntity;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.Table;
-import java.time.Instant;
 import java.util.UUID;
 import lombok.AccessLevel;
 import lombok.Getter;
@@ -18,17 +19,17 @@ public class Comment extends BaseEntity {
 
     public static final int MAX_CONTENT_LENGTH = 1000;
 
+    // NOTE: Review 도메인과 aggregate 경계를 분리합니다.
+    // TODO: User, Review 엔티티 머지 후 @ManyToOne으로 교체
     @Column(name = "review_id", nullable = false)
     private UUID reviewId;
 
+    // TODO: User, Review 엔티티 머지 후 @ManyToOne으로 교체
     @Column(name = "user_id", nullable = false)
     private UUID userId;
 
     @Column(nullable = false, length = MAX_CONTENT_LENGTH)
     private String content;
-
-    @Column(name = "deleted_at")
-    private Instant deletedAt;
 
     private Comment(UUID reviewId, UUID userId, String content) {
         this.reviewId = reviewId;
@@ -41,18 +42,17 @@ public class Comment extends BaseEntity {
         return new Comment(reviewId, userId, content);
     }
 
-    public void softDelete() {
-        this.deletedAt = Instant.now();
+    public void updateContent(String content) {
+        validate(content);
+        this.content = content;
     }
 
     private static void validate(String content) {
         if (content == null || content.isBlank()) {
-            // TODO: ErrorCode.COMMENT_CONTENT_REQUIRED 로 교체
-            throw new IllegalArgumentException("댓글 내용은 필수입니다.");
+            throw CommentContentRequiredException.create();
         }
         if (content.length() > MAX_CONTENT_LENGTH) {
-            // TODO: ErrorCode.COMMENT_CONTENT_TOO_LONG 으로 교체
-            throw new IllegalArgumentException("댓글 내용은 최대 " + MAX_CONTENT_LENGTH + "자까지 입력 가능합니다.");
+            throw CommentContentTooLongException.create();
         }
     }
 }
