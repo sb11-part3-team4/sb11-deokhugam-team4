@@ -6,6 +6,8 @@ import com.part3_team4.deokhoogam.domain.user.dto.UserCreateRequestDto;
 import com.part3_team4.deokhoogam.domain.user.dto.UserUpdateRequestDto;
 import com.part3_team4.deokhoogam.domain.user.entity.DeletedUser;
 import com.part3_team4.deokhoogam.domain.user.entity.User;
+import com.part3_team4.deokhoogam.domain.user.exception.UserAlreadyExistsException;
+import com.part3_team4.deokhoogam.domain.user.exception.UserNotFoundException;
 import com.part3_team4.deokhoogam.domain.user.mapper.UserMapper;
 import com.part3_team4.deokhoogam.domain.user.repository.DeleteUserRepository;
 import com.part3_team4.deokhoogam.domain.user.repository.UserRepository;
@@ -31,10 +33,10 @@ public class UserServiceImpl implements UserService{
   @Transactional
   public UserDto createUser(UserCreateRequestDto request, MultipartFile profileImage) {
     if (userRepository.existsByName(request.name())) {
-      throw new IllegalArgumentException("이미 존재하는 이름입니다.");
+      throw UserAlreadyExistsException.withName(request.name());
     }
     if (userRepository.existsByEmail(request.email())) {
-      throw new IllegalArgumentException("이미 존재하는 이메일입니다.");
+      throw UserAlreadyExistsException.withEmail(request.email());
     }
 
     User user = new User(request.email(), request.name(), request.password());
@@ -52,19 +54,19 @@ public class UserServiceImpl implements UserService{
   @Transactional(readOnly = true)
   public UserResponse getUser(UUID userId) {
     User user = userRepository.findById(userId)
-        .orElseThrow(() -> new IllegalArgumentException("해당 유저를 찾을 수 없습니다."));
+        .orElseThrow(() -> UserNotFoundException.withId(userId));
     return new UserResponse(user.getEmail(), user.getName());
   }
 
   @Override
   @Transactional
   public void updateUser(UUID userId, UserUpdateRequestDto request, MultipartFile profileImage) {
-    if (userRepository.existsByName(request.newName())) {
-      throw new IllegalArgumentException("이미 존재하는 닉네임입니다.");
+    if (request.newName() != null && userRepository.existsByName(request.newName())) {
+      throw UserAlreadyExistsException.withName(request.newName());
     }
 
     User user = userRepository.findById(userId)
-        .orElseThrow(() -> new IllegalArgumentException("해당 유저를 찾을 수 없습니다."));
+        .orElseThrow(() -> UserNotFoundException.withId(userId));
 
     if (request.newName() != null) {
       user.updateName(request.newName());
@@ -78,7 +80,7 @@ public class UserServiceImpl implements UserService{
   @Override
   public void deleteUser(UUID userId) {
     User user = userRepository.findById(userId)
-        .orElseThrow(() -> new IllegalArgumentException("해당 유저를 찾을 수 없습니다."));
+        .orElseThrow(() -> UserNotFoundException.withId(userId));
 
     DeletedUser deletedUser = DeletedUser.from(user);
 
