@@ -1,7 +1,8 @@
 package com.part3_team4.deokhoogam.domain.comment;
 
 import com.part3_team4.deokhoogam.domain.comment.entity.Comment;
-import com.part3_team4.deokhoogam.domain.comment.exception.CommentException;
+import com.part3_team4.deokhoogam.domain.comment.exception.CommentContentRequiredException;
+import com.part3_team4.deokhoogam.domain.comment.exception.CommentContentTooLongException;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
@@ -26,7 +27,6 @@ class CommentTest {
         assertThat(comment.getReviewId()).isEqualTo(REVIEW_ID);
         assertThat(comment.getUserId()).isEqualTo(USER_ID);
         assertThat(comment.getContent()).isEqualTo(content);
-        assertThat(comment.getDeletedAt()).isNull();
     }
 
     @Test
@@ -35,14 +35,14 @@ class CommentTest {
         String content = "";
 
         assertThatThrownBy(() -> Comment.create(REVIEW_ID, USER_ID, content))
-                .isInstanceOf(CommentException.class);
+                .isInstanceOf(CommentContentRequiredException.class);
     }
 
     @Test
     @DisplayName("내용이 null이면 예외가 발생한다")
     void createComment_nullContent_throwsException() {
         assertThatThrownBy(() -> Comment.create(REVIEW_ID, USER_ID, null))
-                .isInstanceOf(CommentException.class);
+                .isInstanceOf(CommentContentRequiredException.class);
     }
 
     @Test
@@ -51,26 +51,55 @@ class CommentTest {
         String content = "a".repeat(Comment.MAX_CONTENT_LENGTH + 1);
 
         assertThatThrownBy(() -> Comment.create(REVIEW_ID, USER_ID, content))
-                .isInstanceOf(CommentException.class);
+                .isInstanceOf(CommentContentTooLongException.class);
     }
 
     @Test
-    @DisplayName("논리 삭제 시 deletedAt이 설정된다")
-    void softDelete_setsDeletedAt() {
-        Comment comment = Comment.create(REVIEW_ID, USER_ID, "댓글 내용입니다.");
+    @DisplayName("내용이 공백 문자열이면 예외가 발생한다")
+    void createComment_blankContent_throwsException() {
+        String content = "   ";
 
-        comment.softDelete();
-
-        assertThat(comment.getDeletedAt()).isNotNull();
+        assertThatThrownBy(() -> Comment.create(REVIEW_ID, USER_ID, content))
+                .isInstanceOf(CommentContentRequiredException.class);
     }
 
     @Test
-    @DisplayName("물리 삭제는 UI 없이 테스트 코드로만 검증한다")
-    void hardDelete_notExposedInUI() {
-        Comment comment = Comment.create(REVIEW_ID, USER_ID, "물리 삭제 대상 댓글입니다.");
+    @DisplayName("내용이 최대 글자수와 정확히 같으면 정상 생성된다")
+    void createComment_maxLengthContent_success() {
+        String content = "a".repeat(Comment.MAX_CONTENT_LENGTH);
 
-        // 실제 물리 삭제(repository.delete())는 CommentRepositoryTest에서 검증
-        assertThat(comment.getId()).isNotNull();
-        assertThat(comment.getDeletedAt()).isNull();
+        Comment comment = Comment.create(REVIEW_ID, USER_ID, content);
+
+        assertThat(comment.getContent()).hasSize(Comment.MAX_CONTENT_LENGTH);
+    }
+
+    @Test
+    @DisplayName("내용을 정상적으로 수정한다")
+    void updateContent_success() {
+        Comment comment = Comment.create(REVIEW_ID, USER_ID, "원본 댓글입니다.");
+        String updatedContent = "수정된 댓글입니다.";
+
+        comment.updateContent(updatedContent);
+
+        assertThat(comment.getContent()).isEqualTo(updatedContent);
+    }
+
+    @Test
+    @DisplayName("수정 내용이 비어있으면 예외가 발생한다")
+    void updateContent_emptyContent_throwsException() {
+        Comment comment = Comment.create(REVIEW_ID, USER_ID, "원본 댓글입니다.");
+
+        assertThatThrownBy(() -> comment.updateContent(""))
+                .isInstanceOf(CommentContentRequiredException.class);
+    }
+
+    @Test
+    @DisplayName("수정 내용이 최대 글자수를 초과하면 예외가 발생한다")
+    void updateContent_contentExceedsMaxLength_throwsException() {
+        Comment comment = Comment.create(REVIEW_ID, USER_ID, "원본 댓글입니다.");
+        String tooLongContent = "a".repeat(Comment.MAX_CONTENT_LENGTH + 1);
+
+        assertThatThrownBy(() -> comment.updateContent(tooLongContent))
+                .isInstanceOf(CommentContentTooLongException.class);
     }
 }
