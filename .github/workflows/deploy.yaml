@@ -52,6 +52,7 @@ jobs:
           aws ecs describe-task-definition \
           --task-definition ${{ vars.ECS_TASK_DEFINITION }} \
           --query taskDefinition > task-definition.json
+
       - name: 새이미지로 교체
         id: task-def
         uses: aws-actions/amazon-ecs-render-task-definition@v1
@@ -61,31 +62,10 @@ jobs:
           image: ${{ vars.ECR_REPOSITORY_URI }}:${{ github.sha }}
 
 
-      - name: ecs 서비스 중단
-        run: |
-          echo "Scaling down ECS service to 0..."
-          aws ecs update-service \
-          --cluster ${{ vars.ECS_CLUSTER }} \
-          --service ${{ vars.ECS_SERVICE }} \
-          --desired-count 0
-          sleep 30
-
-
-      - name: 태스크 정의로 ECS 배포
+      - name: ECS 서비스에 무중단 배포 (롤링 업데이트)
         uses: aws-actions/amazon-ecs-deploy-task-definition@v2
         with:
           task-definition: ${{ steps.task-def.outputs.task-definition }}
           service: ${{ vars.ECS_SERVICE }}
           cluster: ${{ vars.ECS_CLUSTER }}
           wait-for-service-stability: true
-
-      - name: desired-count 1로 올리고 서비스 재개까지 대기
-        run: |
-          aws ecs update-service \
-          --cluster ${{ vars.ECS_CLUSTER }} \
-          --service ${{ vars.ECS_SERVICE }} \
-          --desired-count 1 
-          
-          aws ecs wait services-stable \
-          --cluster ${{ vars.ECS_CLUSTER }} \
-          --services ${{ vars.ECS_SERVICE }}
