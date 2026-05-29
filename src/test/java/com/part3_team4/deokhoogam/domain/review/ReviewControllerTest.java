@@ -155,4 +155,25 @@ public class ReviewControllerTest {
                 .andExpect(status().isBadRequest());
 
     }
+
+    @Test
+    @DisplayName("리뷰 상세 조회 성공시 200과 likedByMe를 반환한다")
+    void getReview_success() throws Exception {
+        UUID userId = UUID.randomUUID();
+        UUID reviewId = UUID.randomUUID();
+        UUID bookId = UUID.randomUUID();
+
+        ReviewResponse response = new ReviewResponse(
+                reviewId, userId, bookId, 4, "좋은 책이에요", 0, 0, true, Instant.now(), Instant.now()
+                );
+
+        given(reviewService.getReview(eq(reviewId), eq(userId))).willReturn(response);
+
+        mockMvc.perform(get("/api/reviews/" + reviewId)
+                .header("Deokhugam-Request-User-ID", userId.toString()))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.likedByMe").value(true));
+    }
+
+
 }
