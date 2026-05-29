@@ -10,7 +10,7 @@ import static org.mockito.Mockito.never;
 import com.part3_team4.deokhoogam.domain.notification.dto.NotificationDto;
 import com.part3_team4.deokhoogam.domain.notification.dto.NotificationUpdateRequest;
 import com.part3_team4.deokhoogam.domain.notification.entity.Notification;
-import com.part3_team4.deokhoogam.domain.notification.exception.NotificationException;
+import com.part3_team4.deokhoogam.domain.notification.exception.NotificationAccessDeniedException;
 import com.part3_team4.deokhoogam.domain.notification.exception.NotificationNotFoundException;
 import com.part3_team4.deokhoogam.domain.notification.repository.NotificationRepository;
 import com.part3_team4.deokhoogam.domain.notification.service.NotificationServiceImpl;
@@ -183,11 +183,10 @@ class NotificationServiceTest {
     NotificationUpdateRequest request = new NotificationUpdateRequest(true);
 
     // when & then
-    // 요청자와 알림 소유자가 다르므로 NotificationException 계열 예외가 발생해야 합니다.
-    // 나중에 Forbidden 전용 예외를 만들면 그 예외 타입으로 더 구체화하면 됩니다.
+    // 요청자와 알림 소유자가 다르므로 권한 없음 예외가 발생해야 합니다.
     assertThatThrownBy(() ->
         notificationService.updateConfirmed(notificationId, requesterId, request)
-    ).isInstanceOf(NotificationException.class);
+    ).isInstanceOf(NotificationAccessDeniedException.class);
 
     // 권한 없는 요청이므로 알림 상태가 바뀌면 안 됩니다.
     assertThat(notification.isConfirmed()).isFalse();

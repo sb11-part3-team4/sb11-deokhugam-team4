@@ -26,7 +26,7 @@ import lombok.NoArgsConstructor;
  */
 @Entity
 @Table(
-    name = "notifications",
+    name = "notification",
     indexes = {
         /**
          * 알림 목록 조회용 인덱스입니다.
