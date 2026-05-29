@@ -1,7 +1,7 @@
 package com.part3_team4.deokhoogam.domain.user.repository;
 
-import com.part3_team4.deokhoogam.domain.user.entity.DeletedUser;import java.util.UUID;import org.springframework.data.jpa.repository.JpaRepository;
+import com.part3_team4.deokhoogam.domain.user.entity.DeleteUser;import java.util.UUID;import org.springframework.data.jpa.repository.JpaRepository;
 
-public interface DeleteUserRepository extends JpaRepository<DeletedUser, UUID> {
+public interface DeleteUserRepository extends JpaRepository<DeleteUser, UUID> {
 
 }

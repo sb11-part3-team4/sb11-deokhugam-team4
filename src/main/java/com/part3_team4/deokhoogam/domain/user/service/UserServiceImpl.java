@@ -4,7 +4,7 @@ import com.part3_team4.deokhoogam.domain.user.dto.UserDto;
 import com.part3_team4.deokhoogam.domain.user.dto.response.UserResponse;
 import com.part3_team4.deokhoogam.domain.user.dto.UserCreateRequestDto;
 import com.part3_team4.deokhoogam.domain.user.dto.UserUpdateRequestDto;
-import com.part3_team4.deokhoogam.domain.user.entity.DeletedUser;
+import com.part3_team4.deokhoogam.domain.user.entity.DeleteUser;
 import com.part3_team4.deokhoogam.domain.user.entity.User;
 import com.part3_team4.deokhoogam.domain.user.exception.UserAlreadyExistsException;
 import com.part3_team4.deokhoogam.domain.user.exception.UserNotFoundException;
@@ -61,28 +61,28 @@ public class UserServiceImpl implements UserService{
   @Override
   @Transactional
   public void updateUser(UUID userId, UserUpdateRequestDto request, MultipartFile profileImage) {
-    if (request.newName() != null && userRepository.existsByName(request.newName())) {
-      throw UserAlreadyExistsException.withName(request.newName());
-    }
-
     User user = userRepository.findById(userId)
         .orElseThrow(() -> UserNotFoundException.withId(userId));
 
-    if (request.newName() != null) {
+    if (request.newName() != null && !user.getName().equals(request.newName())) {
+      if (userRepository.existsByName(request.newName())) {
+        throw UserAlreadyExistsException.withName(request.newName());
+      }
       user.updateName(request.newName());
     }
 
-    if (profileImage != null && profileImage.isEmpty()) {
+    if (profileImage != null && !profileImage.isEmpty()) {
       //새로운 프로필 이미지 덮어쓰기 로직 추가 예정
     }
   }
 
   @Override
+  @Transactional
   public void deleteUser(UUID userId) {
     User user = userRepository.findById(userId)
         .orElseThrow(() -> UserNotFoundException.withId(userId));
 
-    DeletedUser deletedUser = DeletedUser.from(user);
+    DeleteUser deletedUser = DeleteUser.from(user);
 
     deleteUserRepository.save(deletedUser);
 

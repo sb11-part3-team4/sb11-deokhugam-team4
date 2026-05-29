@@ -6,7 +6,6 @@ public record UserDto (
     UUID id,
     String email,
     String name,
-    String password,
     UserProfileImageDto profileImage
 ){
 

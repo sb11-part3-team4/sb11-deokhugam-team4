@@ -11,7 +11,7 @@ import com.part3_team4.deokhoogam.domain.user.dto.UserCreateRequestDto;
 import com.part3_team4.deokhoogam.domain.user.dto.UserDto;
 import com.part3_team4.deokhoogam.domain.user.dto.response.UserResponse;
 import com.part3_team4.deokhoogam.domain.user.dto.UserUpdateRequestDto;
-import com.part3_team4.deokhoogam.domain.user.entity.DeletedUser;
+import com.part3_team4.deokhoogam.domain.user.entity.DeleteUser;
 import com.part3_team4.deokhoogam.domain.user.entity.User;
 import com.part3_team4.deokhoogam.domain.user.exception.UserAlreadyExistsException;
 import com.part3_team4.deokhoogam.domain.user.exception.UserNotFoundException;
@@ -49,7 +49,7 @@ public class UserServiceTest {
         "test@deokhugam.com", "testUser", "password123!");
 
     UserDto mockDto = new UserDto(UUID.randomUUID(), "test@deokhugam.com"
-        , "testUser", "password123!", null);
+        , "testUser", null);
 
     given(userRepository.existsByName(request.name())).willReturn(false);
     given(userRepository.existsByEmail(request.email())).willReturn(false);
@@ -140,9 +140,12 @@ public class UserServiceTest {
   @DisplayName("회원 정보 수정 실패 - 이미 존재하는 이름")
   void updateUser_fail_duplicateName() {
     UUID userId = UUID.randomUUID();
+    User user = new User("test@deokhugam.com", "oldName", "password123!");
+
     UserUpdateRequestDto request = new UserUpdateRequestDto(
         "newEmail@deokhugam.com","newName", "newPassword123!");
 
+    given(userRepository.findById(userId)).willReturn(Optional.of(user));
     given(userRepository.existsByName(request.newName())).willReturn(true);
 
     assertThrows(UserAlreadyExistsException.class, () -> {
@@ -162,7 +165,7 @@ public class UserServiceTest {
     userService.deleteUser(userId);
 
     then(userRepository).should().delete(user);
-    then(deleteUserRepository).should().save(any(DeletedUser.class));
+    then(deleteUserRepository).should().save(any(DeleteUser.class));
   }
 
   @Test
@@ -176,7 +179,7 @@ public class UserServiceTest {
       userService.deleteUser(userId);
     });
 
-    then(deleteUserRepository).should(never()).save(any(DeletedUser.class));
+    then(deleteUserRepository).should(never()).save(any(DeleteUser.class));
     then(userRepository).should(never()).delete(any(User.class));
   }
 }
