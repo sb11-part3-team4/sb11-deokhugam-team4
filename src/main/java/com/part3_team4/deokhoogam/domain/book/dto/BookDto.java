@@ -6,36 +6,30 @@ import java.math.BigDecimal;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.util.UUID;
-import lombok.AllArgsConstructor;
 import lombok.Builder;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
 
-@Getter
-@NoArgsConstructor
-@AllArgsConstructor
 @Builder
-public class BookDto {
+public record BookDto(
+    UUID id,
+    String title,
+    String author,
+    String description,
+    String publisher,
 
-  private UUID id;
-  private String title;
-  private String author;
-  private String description;
-  private String publisher;
+    @JsonFormat(pattern = "yyyy-MM-dd")
+    LocalDate publishedDate,
 
-  @JsonFormat(pattern = "yyyy-MM-dd")
-  private LocalDate publishedDate;
+    String isbn,
+    String thumbnailUrl,
+    int reviewCount,
+    BigDecimal rating,
 
-  private String isbn;
-  private String thumbnailUrl;
-  private int reviewCount;
-  private BigDecimal rating;
+    @JsonFormat(pattern = "yyyy-MM-dd'T'HH:mm:ss'Z'")
+    Instant createdAt,
 
-  @JsonFormat(pattern = "yyyy-MM-dd'T'HH:mm:ss'Z'")
-  private Instant createdAt;
-
-  @JsonFormat(pattern = "yyyy-MM-dd'T'HH:mm:ss'Z'")
-  private Instant updatedAt;
+    @JsonFormat(pattern = "yyyy-MM-dd'T'HH:mm:ss'Z'")
+    Instant updatedAt
+) {
 
   public static BookDto from(Book book) {
     return BookDto.builder()
