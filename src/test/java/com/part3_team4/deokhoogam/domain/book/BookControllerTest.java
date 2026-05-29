@@ -129,6 +129,54 @@ class BookControllerTest {
         .andExpect(jsonPath("$.details.title").exists());
   }
 
+  @Test
+  @DisplayName("ISBN에 숫자가 아닌 값이 섞여있으면 400 Bad Request를 반환한다")
+  void createBook_isbnContainsLetters_returnsBadRequest() throws Exception {
+    // given
+    BookCreateRequest invalidRequest = BookCreateRequest.builder()
+        .isbn("1234567890abc")
+        .title("이펙티브 자바")
+        .author("조슈아 블로흐")
+        .build();
+
+    MockMultipartFile bookDataPart = new MockMultipartFile(
+        "bookData", "", MediaType.APPLICATION_JSON_VALUE,
+        objectMapper.writeValueAsBytes(invalidRequest)
+    );
+
+    // when & then
+    mockMvc.perform(multipart("/api/books")
+            .file(bookDataPart))
+        .andDo(print())
+        .andExpect(status().isBadRequest())
+        .andExpect(jsonPath("$.code").value(ErrorCode.INVALID_INPUT_VALUE.getCode()))
+        .andExpect(jsonPath("$.details.isbn").exists());
+  }
+
+  @Test
+  @DisplayName("ISBN이 20자를 초과하는 경우 400 Bad Request를 반환한다")
+  void createBook_isbnTooLong_returnsBadRequest() throws Exception {
+    // given
+    BookCreateRequest invalidRequest = BookCreateRequest.builder()
+        .isbn("123456789012345678901")
+        .title("이펙티브 자바")
+        .author("조슈아 블로흐")
+        .build();
+
+    MockMultipartFile bookDataPart = new MockMultipartFile(
+        "bookData", "", MediaType.APPLICATION_JSON_VALUE,
+        objectMapper.writeValueAsBytes(invalidRequest)
+    );
+
+    // when & then
+    mockMvc.perform(multipart("/api/books")
+            .file(bookDataPart))
+        .andDo(print())
+        .andExpect(status().isBadRequest())
+        .andExpect(jsonPath("$.code").value(ErrorCode.INVALID_INPUT_VALUE.getCode()))
+        .andExpect(jsonPath("$.details.isbn").exists());
+  }
+
   // 픽스처 메소드
   private BookCreateRequest createValidBookRequest() {
     return BookCreateRequest.builder()
