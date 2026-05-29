@@ -230,11 +230,11 @@ class BookControllerTest {
 
     @Test
     @DisplayName("유효하지 않은 ID가 들어오면 404 상태 코드를 반환한다")
-    void return_404_when_when_invalid_id() throws Exception {
+    void return_404_when_invalid_id() throws Exception {
 
       //given
       UUID mockId = UUID.randomUUID();
-      given(bookService.getDetails(mockId)).willThrow(BookNotFoundException.class);
+      given(bookService.getDetails(mockId)).willThrow(BookNotFoundException.withId(mockId));
 
       //when
       ResultActions result = mockMvc.perform(get("/api/books/{bookId}", mockId)
@@ -242,7 +242,6 @@ class BookControllerTest {
 
       //then
       result.andExpect(status().isNotFound());
-
 
     }
 
