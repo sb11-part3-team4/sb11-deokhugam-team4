@@ -25,6 +25,7 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.test.util.ReflectionTestUtils;
 
 @ExtendWith(MockitoExtension.class)
 @DisplayName("BookService 단위 테스트")
@@ -129,15 +130,15 @@ class BookServiceTest {
 
 
   @Nested
-  @DisplayName("getBook() 메서드")
-  class testGetBookDetails {
+  @DisplayName("getDetails() 메서드")
+  class TestGetDetails {
 
     UUID mockId = UUID.randomUUID();
 
 
     @Test
     @DisplayName("유효한 id가 들어왔을때 책 정보를 반환한다.")
-    void returnDetails(){
+    void returnDetails() {
 
       //given
       given(bookRepository.findById(mockId)).willReturn(book());
@@ -151,66 +152,40 @@ class BookServiceTest {
       then(bookRepository).should().findById(mockId);
 
 
-
-
-
-
-
     }
 
 
     @Test
     @DisplayName("유효하지 않은 id가 들어왔을때 예외를 발생시킨다.")
-    public void returnDetailsInvalidId(){
+    void returnDetailsInvalidId() {
 
       //given
       given(bookRepository.findById(mockId)).willReturn(Optional.empty());
       //then & when
-      assertThatThrownBy(()-> bookService.getDetails(mockId)).isInstanceOf(BookNotFoundException.class);
+      assertThatThrownBy(() -> bookService.getDetails(mockId)).isInstanceOf(
+          BookNotFoundException.class);
 
     }
 
 
+    private Optional<Book> book() {
 
+      Book book = Book.builder()
+          .title("모비 딕")
+          .author("허먼 멜빌")
+          .description("『모비 딕』 완역본")
+          .publisher("작가정신")
+          .publishedDate(LocalDate.of(2024, 4, 9))
+          .thumbnailUrl("temp/url")
+          .isbn("9791160263404")
+          .build();
 
-    private Optional<Book> book (){
+      ReflectionTestUtils.setField(book, "id", mockId);
 
-      return Optional.of(
-          Book.builder()
-              .title("모비 딕")
-              .author("허먼 멜빌")
-              .description("『모비 딕』 완역본")
-              .publisher("작가정신")
-              .publishedDate(LocalDate.of(2024, 4, 9))
-              .thumbnailUrl("temp/url")
-              .isbn("9791160263404")
-              .build()
-      );
-
+      return Optional.of(book);
 
     }
-
 
   }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 }
