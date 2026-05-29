@@ -2,6 +2,7 @@ package com.part3_team4.deokhoogam.domain.book;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.BDDMockito.given;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.multipart;
 import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.print;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -11,12 +12,16 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.part3_team4.deokhoogam.domain.book.controller.BookController;
 import com.part3_team4.deokhoogam.domain.book.dto.BookCreateRequest;
 import com.part3_team4.deokhoogam.domain.book.dto.BookDto;
+import com.part3_team4.deokhoogam.domain.book.exception.BookNotFoundException;
 import com.part3_team4.deokhoogam.domain.book.exception.IsbnAlreadyExistsException;
 import com.part3_team4.deokhoogam.domain.book.service.BookService;
 import com.part3_team4.deokhoogam.global.exception.ErrorCode;
+import java.math.BigDecimal;
+import java.time.Instant;
 import java.time.LocalDate;
 import java.util.UUID;
 import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
@@ -25,6 +30,7 @@ import org.springframework.mock.web.MockMultipartFile;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.test.web.servlet.ResultActions;
 
 @WebMvcTest(BookController.class)
 @ActiveProfiles("test")
@@ -194,4 +200,74 @@ class BookControllerTest {
         .publishedDate(LocalDate.of(2026, 5, 28))
         .build();
   }
+
+
+  @Nested
+  @DisplayName("getBookDetails() API에서")
+  class TestGetBookDetails {
+
+    @Test
+    @DisplayName("유효한 ID로 요청이 들어오면 200 상태 코드로 책 상세 정보를 반환한다.")
+    void return_200_when_valid_id() throws Exception {
+
+      //given
+      UUID mockId = UUID.randomUUID();
+
+      BookDto bookDto = createValidBookDto(mockId);
+
+      given(bookService.getDetails(mockId)).willReturn(bookDto);
+
+      //when
+      ResultActions result = mockMvc.perform(get("/api/books/{bookId}", mockId)
+          .accept(MediaType.APPLICATION_JSON));
+
+      //then
+      result.andExpect(status().isOk())
+          .andExpect(jsonPath("$.id").value(mockId.toString()))
+          .andExpect(jsonPath("$.isbn").value(bookDto.isbn()));
+
+    }
+
+    @Test
+    @DisplayName("유효하지 않은 ID가 들어오면 404 상태 코드를 반환한다")
+    void return_404_when_invalid_id() throws Exception {
+
+      //given
+      UUID mockId = UUID.randomUUID();
+      given(bookService.getDetails(mockId)).willThrow(BookNotFoundException.withId(mockId));
+
+      //when
+      ResultActions result = mockMvc.perform(get("/api/books/{bookId}", mockId)
+          .accept(MediaType.APPLICATION_JSON));
+
+      //then
+      result.andExpect(status().isNotFound());
+
+    }
+
+
+    //픽스쳐
+    private BookDto createValidBookDto(UUID mockId) {
+      Instant at = Instant.now().minusSeconds(10);
+
+      return BookDto.builder()
+          .id(mockId)
+          .title("모비 딕")
+          .author("허먼 멜빌")
+          .description("『모비 딕』 완역본")
+          .publisher("작가정신")
+          .publishedDate(LocalDate.of(2024, 4, 9))
+          .thumbnailUrl("temp/url")
+          .reviewCount(2)
+          .rating(BigDecimal.valueOf(4.5))
+          .isbn("9791160263404")
+          .createdAt(at)
+          .updatedAt(at)
+          .build();
+    }
+
+
+  }
+
+
 }
