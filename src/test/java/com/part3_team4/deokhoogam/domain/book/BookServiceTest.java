@@ -36,14 +36,7 @@ class BookServiceTest {
   @DisplayName("새로운 도서를 성공적으로 등록한다")
   void createBook_Success() {
     // given
-    BookCreateRequest request = BookCreateRequest.builder()
-        .isbn("1234567890123")
-        .title("이펙티브 자바")
-        .author("조슈아 블로흐")
-        .description("자바 가이드")
-        .publisher("인사이트")
-        .publishedDate(LocalDate.of(2026, 5, 28))
-        .build();
+    BookCreateRequest request = createValidBookRequest();
 
     UUID mockId = UUID.randomUUID();
 
@@ -77,14 +70,7 @@ class BookServiceTest {
   @DisplayName("이미 존재하는 ISBN으로 도서를 등록하면 예외가 발생한다")
   void registerBook_WithAlreadyExistIsbn_ThrowsException() {
     // given
-    BookCreateRequest request = BookCreateRequest.builder()
-        .isbn("1234567890123")
-        .title("이펙티브 자바")
-        .author("조슈아 블로흐")
-        .description("자바 가이드")
-        .publisher("인사이트")
-        .publishedDate(LocalDate.of(2026, 5, 28))
-        .build();
+    BookCreateRequest request = createValidBookRequest();
 
     given(bookRepository.existsByIsbn(request.isbn())).willReturn(true);
 
@@ -94,5 +80,17 @@ class BookServiceTest {
 
     then(bookRepository).should().existsByIsbn(request.isbn());
     then(bookRepository).shouldHaveNoMoreInteractions();
+  }
+
+  // 픽스처 메서드
+  private BookCreateRequest createValidBookRequest() {
+    return BookCreateRequest.builder()
+        .isbn("1234567890123")
+        .title("이펙티브 자바")
+        .author("조슈아 블로흐")
+        .description("자바 가이드")
+        .publisher("인사이트")
+        .publishedDate(LocalDate.of(2026, 5, 28))
+        .build();
   }
 }
