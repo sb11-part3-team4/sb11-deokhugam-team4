@@ -8,6 +8,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
+import org.springframework.web.bind.MissingRequestHeaderException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 
@@ -48,6 +49,16 @@ public class GlobalExceptionHandler {
         .status(errorCode.getStatus())
         .body(response);
   }
+
+  @ExceptionHandler(MissingRequestHeaderException.class)
+  public ResponseEntity<ErrorResponse>
+  handleMissingHeader(MissingRequestHeaderException e) {
+    log.warn("Missing Header: {}", e.getHeaderName());
+    ErrorCode errorCode = ErrorCode.INVALID_INPUT_VALUE;
+    ErrorResponse response = ErrorResponse.of(errorCode, e);
+    return ResponseEntity.status(errorCode.getStatus()).body(response);
+  }
+
 
   // 나머지 모든 예외
   @ExceptionHandler(Exception.class)
