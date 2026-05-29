@@ -18,7 +18,7 @@ public class User extends BaseEntity {
   private String name;
   private String password;
 
-  @OneToOne(fetch = FetchType.LAZY, cascade = CascadeType.ALL, orphanRemoval = false)
+  @OneToOne(fetch = FetchType.LAZY, cascade = CascadeType.ALL, orphanRemoval = true)
   @JoinColumn(name = "profile_image_id")
   private UserProfileImage profileImage;
 

@@ -48,7 +48,7 @@ public class UserControllerTest {
     UserCreateRequestDto request = new UserCreateRequestDto(
         "test@deokhugam.com", "testUser", "password123!");
     UserDto responseDto = new UserDto(
-        userId, "test@deokhugam.com", "testUser", "password123!", null);
+        userId, "test@deokhugam.com", "testUser", null);
 
     MockMultipartFile requestPart = new MockMultipartFile(
         "request",
@@ -117,6 +117,7 @@ public class UserControllerTest {
         UserNotFoundException.withId(userId));
 
     mockMvc.perform(get("/api/users/{userId}", userId))
+        .andExpect(status().isNotFound())
         .andExpect(jsonPath("$.code").value("USER-001"));
   }
 
@@ -143,8 +144,8 @@ public class UserControllerTest {
   }
 
   @Test
-  @DisplayName("회원 정보 수정 실패 - 이름이 비어있는 경우 400 반환")
-  void updateUser_fail_invalidData() throws Exception {
+  @DisplayName("회원 정보 수정 실패 - 잘못된 형식의 이메일 400 반환")
+  void updateUser_fail_invalidEmail() throws Exception {
     UUID userId = UUID.randomUUID();
     UserUpdateRequestDto request = new UserUpdateRequestDto("invalid-email", "newTestUser", "newPassword123!");
 
