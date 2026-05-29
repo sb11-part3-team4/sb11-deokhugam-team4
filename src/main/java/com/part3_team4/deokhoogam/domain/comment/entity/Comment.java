@@ -2,6 +2,7 @@ package com.part3_team4.deokhoogam.domain.comment.entity;
 
 import com.part3_team4.deokhoogam.domain.comment.exception.CommentContentRequiredException;
 import com.part3_team4.deokhoogam.domain.comment.exception.CommentContentTooLongException;
+import com.part3_team4.deokhoogam.domain.comment.exception.CommentInvalidArgumentException;
 import com.part3_team4.deokhoogam.global.common.BaseEntity;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -38,6 +39,9 @@ public class Comment extends BaseEntity {
     }
 
     public static Comment create(UUID reviewId, UUID userId, String content) {
+        if (reviewId == null || userId == null) {
+            throw CommentInvalidArgumentException.create();
+        }
         validate(content);
         return new Comment(reviewId, userId, content);
     }

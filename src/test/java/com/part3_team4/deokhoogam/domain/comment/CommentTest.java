@@ -3,6 +3,7 @@ package com.part3_team4.deokhoogam.domain.comment;
 import com.part3_team4.deokhoogam.domain.comment.entity.Comment;
 import com.part3_team4.deokhoogam.domain.comment.exception.CommentContentRequiredException;
 import com.part3_team4.deokhoogam.domain.comment.exception.CommentContentTooLongException;
+import com.part3_team4.deokhoogam.domain.comment.exception.CommentInvalidArgumentException;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
@@ -27,6 +28,20 @@ class CommentTest {
         assertThat(comment.getReviewId()).isEqualTo(REVIEW_ID);
         assertThat(comment.getUserId()).isEqualTo(USER_ID);
         assertThat(comment.getContent()).isEqualTo(content);
+    }
+
+    @Test
+    @DisplayName("reviewId가 null이면 예외가 발생한다")
+    void createComment_nullReviewId_throwsException() {
+        assertThatThrownBy(() -> Comment.create(null, USER_ID, "댓글 내용"))
+                .isInstanceOf(CommentInvalidArgumentException.class);
+    }
+
+    @Test
+    @DisplayName("userId가 null이면 예외가 발생한다")
+    void createComment_nullUserId_throwsException() {
+        assertThatThrownBy(() -> Comment.create(REVIEW_ID, null, "댓글 내용"))
+                .isInstanceOf(CommentInvalidArgumentException.class);
     }
 
     @Test
