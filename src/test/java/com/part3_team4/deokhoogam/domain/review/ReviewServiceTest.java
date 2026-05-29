@@ -5,6 +5,7 @@ import com.part3_team4.deokhoogam.domain.book.repository.BookRepository;
 import com.part3_team4.deokhoogam.domain.review.dto.ReviewCreateRequest;
 import com.part3_team4.deokhoogam.domain.review.dto.ReviewResponse;
 import com.part3_team4.deokhoogam.domain.review.entity.Review;
+import com.part3_team4.deokhoogam.domain.review.exception.ReviewNotFoundException;
 import com.part3_team4.deokhoogam.domain.review.repository.ReviewLikeRepository;
 import com.part3_team4.deokhoogam.domain.review.repository.ReviewRepository;
 import com.part3_team4.deokhoogam.domain.review.service.ReviewServiceImpl;
@@ -115,6 +116,17 @@ public class ReviewServiceTest {
         assertThat(response.rating()).isEqualTo(4);
         assertThat(response.likedByMe()).isFalse();
 
+    }
+
+    @Test
+    @DisplayName("존재하지 않는 reviewId로 조회하면 ReviewNotFoundException을 던진다")
+    void getReview_reviewNotFound_throwsException() {
+        UUID userId = UUID.randomUUID();
+        UUID reviewId = UUID.randomUUID();
+
+        given(reviewRepository.findById(reviewId)).willReturn(Optional.empty());
+
+        assertThatThrownBy(() -> reviewService.getReview(reviewId, userId)).isInstanceOf(ReviewNotFoundException.class);
     }
 
 
