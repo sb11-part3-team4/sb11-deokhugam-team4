@@ -2,6 +2,7 @@ package com.part3_team4.deokhoogam.domain.book.controller;
 
 import com.part3_team4.deokhoogam.domain.book.dto.BookCreateRequest;
 import com.part3_team4.deokhoogam.domain.book.dto.BookDto;
+import com.part3_team4.deokhoogam.domain.book.dto.BookUpdateRequest;
 import com.part3_team4.deokhoogam.domain.book.service.BookService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -9,10 +10,13 @@ import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
+import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.PatchMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestPart;
@@ -38,5 +42,15 @@ public class BookController {
       @RequestPart("bookData") @Valid @Parameter(description = "도서 정보") BookCreateRequest request) {
     BookDto response = bookService.create(request);
     return ResponseEntity.status(HttpStatus.CREATED).body(response);
+  }
+
+
+  @PatchMapping(value = "/{bookId}", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+  public ResponseEntity<BookDto> updateBook(
+      @PathVariable UUID bookId,
+      @RequestPart("bookData") @Valid BookUpdateRequest request
+  ) {
+    BookDto response = bookService.update(bookId, request);
+    return ResponseEntity.ok(response);
   }
 }
