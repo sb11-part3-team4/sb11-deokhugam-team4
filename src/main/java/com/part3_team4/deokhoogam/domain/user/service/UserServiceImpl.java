@@ -72,12 +72,13 @@ public class UserServiceImpl implements UserService{
       user.updateName(request.newName());
     }
 
-    if (profileImage != null && profileImage.isEmpty()) {
+    if (profileImage != null && !profileImage.isEmpty()) {
       //새로운 프로필 이미지 덮어쓰기 로직 추가 예정
     }
   }
 
   @Override
+  @Transactional
   public void deleteUser(UUID userId) {
     User user = userRepository.findById(userId)
         .orElseThrow(() -> UserNotFoundException.withId(userId));
