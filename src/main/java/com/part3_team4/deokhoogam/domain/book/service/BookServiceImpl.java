@@ -42,6 +42,6 @@ public class BookServiceImpl implements BookService {
         .orElseThrow(() -> BookNotFoundException.withId(bookId));
 
     return BookDto.from(book);
-    
+
   }
 }
