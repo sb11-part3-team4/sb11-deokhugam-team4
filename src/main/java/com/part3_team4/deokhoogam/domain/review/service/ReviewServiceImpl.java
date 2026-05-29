@@ -53,11 +53,9 @@ public class ReviewServiceImpl implements ReviewService {
     @Override
     @Transactional(readOnly = true)
     public ReviewResponse getReview(UUID reviewId, UUID userId) {
-        Review review = reviewRepository.findById(reviewId)
-                .orElseThrow(() ->ReviewNotFoundException.withId(reviewId));
+        Review review = reviewRepository.findById(reviewId).orElseThrow(() -> ReviewNotFoundException.withId(reviewId));
 
-        boolean likedByMe =
-    reviewLikeRepository.existsByReviewIdAndUserId(reviewId, userId);
+        boolean likedByMe = reviewLikeRepository.existsByReviewIdAndUserId(reviewId, userId);
 
         return new ReviewResponse(
                 review.getId(), review.getUserId(), review.getBookId(),

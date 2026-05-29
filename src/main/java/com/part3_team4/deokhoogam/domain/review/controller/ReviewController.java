@@ -28,10 +28,8 @@ public class ReviewController {
 
     @GetMapping("/{reviewId}")
     public ResponseEntity<ReviewResponse> getReview(
-            @RequestHeader("Deokhugam-Request-User-ID")
-            UUID userId,
-            @PathVariable
-            UUID reviewId
+            @RequestHeader("Deokhugam-Request-User-ID") UUID userId,
+            @PathVariable UUID reviewId
     ) {
        ReviewResponse response = reviewService.getReview(reviewId, userId);
        return ResponseEntity.ok(response);
