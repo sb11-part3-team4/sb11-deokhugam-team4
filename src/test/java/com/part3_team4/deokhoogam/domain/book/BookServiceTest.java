@@ -21,6 +21,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.dao.DataIntegrityViolationException;
 
 @ExtendWith(MockitoExtension.class)
 @DisplayName("BookService 단위 테스트")
@@ -86,6 +87,29 @@ class BookServiceTest {
 
     then(bookRepository).should().existsByIsbn(request.isbn());
     then(bookRepository).shouldHaveNoMoreInteractions();
+  }
+
+  @Test
+  @DisplayName("도서 등록 중 동시성 이슈로 DB Unique 제약조건이 깨지면 예외가 발생한다")
+  void createBook_concurrentSave_throwsIsbnAlreadyExistsException() {
+    // given
+    BookCreateRequest request = createValidBookRequest();
+
+    given(bookRepository.existsByIsbn(request.isbn())).willReturn(false);
+    given(bookRepository.save(any(Book.class)))
+        .willThrow(new DataIntegrityViolationException("ISBN 동시 입력"));
+
+    // when & then
+    assertThatThrownBy(() -> bookService.create(request))
+        .isInstanceOf(IsbnAlreadyExistsException.class);
+
+    then(bookRepository).should().existsByIsbn(request.isbn());
+
+    org.mockito.ArgumentCaptor<Book> bookCaptor = org.mockito.ArgumentCaptor.forClass(Book.class);
+    then(bookRepository).should().save(bookCaptor.capture());
+
+    Book actualSavedBook = bookCaptor.getValue();
+    assertThat(actualSavedBook.getIsbn()).isEqualTo(request.isbn());
   }
 
   // 픽스처 메서드
