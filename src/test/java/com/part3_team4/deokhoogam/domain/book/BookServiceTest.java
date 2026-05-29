@@ -5,6 +5,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.BDDMockito.then;
+import static org.mockito.Mockito.never;
 import static org.springframework.test.util.ReflectionTestUtils.setField;
 
 import com.part3_team4.deokhoogam.domain.book.dto.BookCreateRequest;
@@ -21,6 +22,7 @@ import java.util.UUID;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -67,7 +69,7 @@ class BookServiceTest {
     assertThat(result.title()).isEqualTo(request.title());
 
     // ArgumentCaptor로 실제 save에 전달된 엔티티 필드 검증 수행
-    org.mockito.ArgumentCaptor<Book> bookCaptor = org.mockito.ArgumentCaptor.forClass(Book.class);
+    ArgumentCaptor<Book> bookCaptor = ArgumentCaptor.forClass(Book.class);
     then(bookRepository).should().save(bookCaptor.capture());
 
     Book actualSavedBook = bookCaptor.getValue();
@@ -108,7 +110,7 @@ class BookServiceTest {
 
     then(bookRepository).should().existsByIsbn(request.isbn());
 
-    org.mockito.ArgumentCaptor<Book> bookCaptor = org.mockito.ArgumentCaptor.forClass(Book.class);
+    ArgumentCaptor<Book> bookCaptor = ArgumentCaptor.forClass(Book.class);
     then(bookRepository).should().save(bookCaptor.capture());
 
     Book actualSavedBook = bookCaptor.getValue();
@@ -120,15 +122,16 @@ class BookServiceTest {
   void updateBook_Success() {
     // given
     UUID targetId = UUID.randomUUID();
-    BookUpdateRequest request = createValidBookUpdateRequest();
+    BookCreateRequest createRequest = createValidBookRequest();
+    BookUpdateRequest updateRequest = createValidBookUpdateRequest();
 
     Book existingBook = Book.builder()
-        .isbn("1234567890123")
-        .title("과거 제목")
-        .author("과거 저자")
-        .description("과거 설명")
-        .publisher("과거 출판사")
-        .publishedDate(LocalDate.of(2026, 5, 28))
+        .isbn(createRequest.isbn())
+        .title(createRequest.title())
+        .author(createRequest.author())
+        .description(createRequest.description())
+        .publisher(createRequest.publisher())
+        .publishedDate(createRequest.publishedDate())
         .build();
 
     setField(existingBook, "id", targetId);
@@ -136,15 +139,24 @@ class BookServiceTest {
     given(bookRepository.findById(targetId)).willReturn(Optional.of(existingBook));
 
     // when
-    BookDto result = bookService.update(targetId, request);
+    BookDto result = bookService.update(targetId, updateRequest);
 
     // then
     assertThat(result).isNotNull();
     assertThat(result.id()).isEqualTo(targetId);
-    assertThat(result.title()).isEqualTo(request.getTitle());
-    assertThat(result.author()).isEqualTo(request.getAuthor());
+    assertThat(result.title()).isEqualTo(updateRequest.title());
+    assertThat(result.author()).isEqualTo(updateRequest.author());
+
+    assertThat(existingBook.getTitle()).isEqualTo(updateRequest.title());
+    assertThat(existingBook.getAuthor()).isEqualTo(updateRequest.author());
+    assertThat(existingBook.getDescription()).isEqualTo(updateRequest.description());
+    assertThat(existingBook.getPublisher()).isEqualTo(updateRequest.publisher());
+    assertThat(existingBook.getPublishedDate()).isEqualTo(updateRequest.publishedDate());
 
     then(bookRepository).should().findById(targetId);
+
+    // @Transactional + 더티 체킹으로 save() 명시적 호출 없이 자동 반영
+    then(bookRepository).should(never()).save(any(Book.class));
   }
 
   @Test
@@ -154,7 +166,8 @@ class BookServiceTest {
     UUID nonExistentId = UUID.randomUUID();
     BookUpdateRequest request = createValidBookUpdateRequest();
 
-    given(bookRepository.findById(nonExistentId)).willReturn(java.util.Optional.empty());
+    given(bookRepository.findById(nonExistentId)).willReturn(
+        Optional.empty());
 
     // when & then
     assertThatThrownBy(() -> bookService.update(nonExistentId, request))

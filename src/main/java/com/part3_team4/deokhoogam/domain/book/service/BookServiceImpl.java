@@ -42,11 +42,11 @@ public class BookServiceImpl implements BookService {
         .orElseThrow(() -> BookNotFoundException.withId(id));
 
     book.updateBookInfo(
-        request.getTitle(),
-        request.getAuthor(),
-        request.getDescription(),
-        request.getPublisher(),
-        request.getPublishedDate(),
+        request.title(),
+        request.author(),
+        request.description(),
+        request.publisher(),
+        request.publishedDate(),
         book.getThumbnailUrl() // TODO: 추후 메서드 분리 및 관련 로직 추가 예정
     );
 
