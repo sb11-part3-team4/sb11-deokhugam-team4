@@ -104,6 +104,11 @@ class CommentRepositoryTest {
         assertThat(result.get(1).getContent()).isEqualTo("첫 번째 댓글");
     }
 
+    // TODO: 동일 createdAt + 서로 다른 id 시나리오 회귀 테스트 추가
+    //       현재 커서 테스트는 타임스탬프가 모두 달라 동일 createdAt 다건 시 페이지 누락/중복을 검증하지 못함
+    //       커서를 (createdAt, id) 복합키로 고도화한 뒤 아래 케이스를 작성할 것:
+    //       - 같은 createdAt을 가진 댓글 N개 중 절반을 1페이지로 조회했을 때 2페이지에서 나머지가 누락/중복 없이 반환되는지 검증
+
     @Test
     @DisplayName("다른 reviewId의 댓글은 조회되지 않는다")
     void findByReviewId_excludesOtherReviews() {
