@@ -137,6 +137,9 @@ class BookControllerTest {
         .isbn("1234567890abc")
         .title("이펙티브 자바")
         .author("조슈아 블로흐")
+        .description("자바 가이드")
+        .publisher("인사이트")
+        .publishedDate(LocalDate.of(2026, 5, 28))
         .build();
 
     MockMultipartFile bookDataPart = new MockMultipartFile(
@@ -161,6 +164,9 @@ class BookControllerTest {
         .isbn("123456789012345678901")
         .title("이펙티브 자바")
         .author("조슈아 블로흐")
+        .description("자바 가이드")
+        .publisher("인사이트")
+        .publishedDate(LocalDate.of(2026, 5, 28))
         .build();
 
     MockMultipartFile bookDataPart = new MockMultipartFile(
