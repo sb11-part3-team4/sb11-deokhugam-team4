@@ -37,7 +37,6 @@ class BookServiceTest {
   void createBook_Success() {
     // given
     BookCreateRequest request = createValidBookRequest();
-
     UUID mockId = UUID.randomUUID();
 
     Book mockSavedBook = Book.builder()
@@ -63,7 +62,14 @@ class BookServiceTest {
     assertThat(result.isbn()).isEqualTo(request.isbn());
     assertThat(result.title()).isEqualTo(request.title());
 
-    then(bookRepository).should().save(any(Book.class));
+    // ArgumentCaptor로 실제 save에 전달된 엔티티 필드 검증 수행
+    org.mockito.ArgumentCaptor<Book> bookCaptor = org.mockito.ArgumentCaptor.forClass(Book.class);
+    then(bookRepository).should().save(bookCaptor.capture());
+
+    Book actualSavedBook = bookCaptor.getValue();
+    assertThat(actualSavedBook.getIsbn()).isEqualTo(request.isbn());
+    assertThat(actualSavedBook.getTitle()).isEqualTo(request.title());
+    assertThat(actualSavedBook.getAuthor()).isEqualTo(request.author());
   }
 
   @Test
