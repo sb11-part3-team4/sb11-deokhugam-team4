@@ -49,13 +49,7 @@ class BookControllerTest {
   void createBook_validRequest_returnsCreatedBook() throws Exception {
     // given
     BookCreateRequest request = createValidBookRequest();
-
-    MockMultipartFile bookDataPart = new MockMultipartFile(
-        "bookData",
-        "",
-        MediaType.APPLICATION_JSON_VALUE,
-        objectMapper.writeValueAsBytes(request)
-    );
+    MockMultipartFile bookDataPart = createMockMultipartFile(request);
 
     UUID mockId = UUID.randomUUID();
     BookDto mockResponse = BookDto.builder()
@@ -83,13 +77,7 @@ class BookControllerTest {
   void createBook_alreadyIsbn_returnsConflict() throws Exception {
     // given
     BookCreateRequest request = createValidBookRequest();
-
-    MockMultipartFile bookDataPart = new MockMultipartFile(
-        "bookData",
-        "",
-        MediaType.APPLICATION_JSON_VALUE,
-        objectMapper.writeValueAsBytes(request)
-    );
+    MockMultipartFile bookDataPart = createMockMultipartFile(request);
 
     given(bookService.create(any(BookCreateRequest.class)))
         .willThrow(IsbnAlreadyExistsException.withIsbn(request.isbn()));
@@ -116,12 +104,7 @@ class BookControllerTest {
         .publishedDate(LocalDate.of(2026, 5, 28))
         .build();
 
-    MockMultipartFile bookDataPart = new MockMultipartFile(
-        "bookData",
-        "",
-        MediaType.APPLICATION_JSON_VALUE,
-        objectMapper.writeValueAsBytes(invalidRequest)
-    );
+    MockMultipartFile bookDataPart = createMockMultipartFile(invalidRequest);
 
     // when & then
     mockMvc.perform(multipart("/api/books")
@@ -145,10 +128,7 @@ class BookControllerTest {
         .publishedDate(LocalDate.of(2026, 5, 28))
         .build();
 
-    MockMultipartFile bookDataPart = new MockMultipartFile(
-        "bookData", "", MediaType.APPLICATION_JSON_VALUE,
-        objectMapper.writeValueAsBytes(invalidRequest)
-    );
+    MockMultipartFile bookDataPart = createMockMultipartFile(invalidRequest);
 
     // when & then
     mockMvc.perform(multipart("/api/books")
@@ -203,18 +183,8 @@ class BookControllerTest {
   void updateBook_validRequest_returnsOk() throws Exception {
     // given
     UUID targetId = UUID.randomUUID();
-    
-    BookUpdateRequest request = BookUpdateRequest.builder()
-        .title("클린 아키텍처")
-        .author("로버트 C. 마틴")
-        .description("소프트웨어 구조와 설계의 원칙")
-        .publisher("인사이트")
-        .publishedDate(LocalDate.of(2026, 5, 29))
-        .build();
-
-    MockMultipartFile bookDataPart = new MockMultipartFile(
-        "bookData", "", MediaType.APPLICATION_JSON_VALUE, objectMapper.writeValueAsBytes(request)
-    );
+    BookUpdateRequest request = createValidBookUpdateRequest();
+    MockMultipartFile bookDataPart = createMockMultipartFile(request);
 
     BookDto mockResponse = BookDto.builder()
         .id(targetId)
@@ -249,10 +219,7 @@ class BookControllerTest {
         .publishedDate(LocalDate.of(2026, 5, 29))
         .build();
 
-    MockMultipartFile bookDataPart = new MockMultipartFile(
-        "bookData", "", MediaType.APPLICATION_JSON_VALUE,
-        objectMapper.writeValueAsBytes(invalidRequest)
-    );
+    MockMultipartFile bookDataPart = createMockMultipartFile(invalidRequest);
 
     // when & then
     mockMvc.perform(multipart(HttpMethod.PATCH, "/api/books/{bookId}", targetId)
@@ -266,17 +233,8 @@ class BookControllerTest {
   void updateBook_nonExistentId_returnsNotFound() throws Exception {
     // given
     UUID nonExistentId = UUID.randomUUID();
-    BookUpdateRequest request = BookUpdateRequest.builder()
-        .title("클린 아키텍처")
-        .author("로버트 C. 마틴")
-        .description("소프트웨어 구조와 설계의 원칙")
-        .publisher("인사이트")
-        .publishedDate(LocalDate.of(2026, 5, 29))
-        .build();
-
-    MockMultipartFile bookDataPart = new MockMultipartFile(
-        "bookData", "", MediaType.APPLICATION_JSON_VALUE, objectMapper.writeValueAsBytes(request)
-    );
+    BookUpdateRequest request = createValidBookUpdateRequest();
+    MockMultipartFile bookDataPart = createMockMultipartFile(request);
 
     given(bookService.update(any(UUID.class), any(BookUpdateRequest.class)))
         .willThrow(BookNotFoundException.withId(nonExistentId));
@@ -293,17 +251,8 @@ class BookControllerTest {
   void updateBook_isbnConflict_returnsConflict() throws Exception {
     // given
     UUID targetId = UUID.randomUUID();
-    BookUpdateRequest request = BookUpdateRequest.builder()
-        .title("클린 아키텍처")
-        .author("로버트 C. 마틴")
-        .description("소프트웨어 구조와 설계의 원칙")
-        .publisher("인사이트")
-        .publishedDate(LocalDate.of(2026, 5, 29))
-        .build();
-
-    MockMultipartFile bookDataPart = new MockMultipartFile(
-        "bookData", "", MediaType.APPLICATION_JSON_VALUE, objectMapper.writeValueAsBytes(request)
-    );
+    BookUpdateRequest request = createValidBookUpdateRequest();
+    MockMultipartFile bookDataPart = createMockMultipartFile(request);
 
     given(bookService.update(any(UUID.class), any(BookUpdateRequest.class)))
         .willThrow(IsbnAlreadyExistsException.withIsbn("1234567890123"));
@@ -313,5 +262,26 @@ class BookControllerTest {
             .file(bookDataPart))
         .andDo(print())
         .andExpect(status().isConflict());
+  }
+
+  // 수정 픽스처 메서드
+  private BookUpdateRequest createValidBookUpdateRequest() {
+    return BookUpdateRequest.builder()
+        .title("클린 아키텍처")
+        .author("로버트 C. 마틴")
+        .description("소프트웨어 구조와 설계의 원칙")
+        .publisher("인사이트")
+        .publishedDate(LocalDate.of(2026, 5, 29))
+        .build();
+  }
+
+  // MultipartFile 생성 헬퍼 메서드
+  private MockMultipartFile createMockMultipartFile(Object request) throws Exception {
+    return new MockMultipartFile(
+        "bookData",
+        "",
+        MediaType.APPLICATION_JSON_VALUE,
+        objectMapper.writeValueAsBytes(request)
+    );
   }
 }
