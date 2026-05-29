@@ -9,11 +9,14 @@ import static org.springframework.test.util.ReflectionTestUtils.setField;
 
 import com.part3_team4.deokhoogam.domain.book.dto.BookCreateRequest;
 import com.part3_team4.deokhoogam.domain.book.dto.BookDto;
+import com.part3_team4.deokhoogam.domain.book.dto.BookUpdateRequest;
 import com.part3_team4.deokhoogam.domain.book.entity.Book;
+import com.part3_team4.deokhoogam.domain.book.exception.BookNotFoundException;
 import com.part3_team4.deokhoogam.domain.book.exception.IsbnAlreadyExistsException;
 import com.part3_team4.deokhoogam.domain.book.repository.BookRepository;
 import com.part3_team4.deokhoogam.domain.book.service.BookServiceImpl;
 import java.time.LocalDate;
+import java.util.Optional;
 import java.util.UUID;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -112,7 +115,57 @@ class BookServiceTest {
     assertThat(actualSavedBook.getIsbn()).isEqualTo(request.isbn());
   }
 
+  @Test
+  @DisplayName("기존 도서 정보를 요청에 따라 수정한다")
+  void updateBook_Success() {
+    // given
+    UUID targetId = UUID.randomUUID();
+    BookUpdateRequest request = createValidBookUpdateRequest();
+
+    Book existingBook = Book.builder()
+        .isbn("1234567890123")
+        .title("과거 제목")
+        .author("과거 저자")
+        .description("과거 설명")
+        .publisher("과거 출판사")
+        .publishedDate(LocalDate.of(2026, 5, 28))
+        .build();
+
+    setField(existingBook, "id", targetId);
+
+    given(bookRepository.findById(targetId)).willReturn(Optional.of(existingBook));
+
+    // when
+    BookDto result = bookService.update(targetId, request);
+
+    // then
+    assertThat(result).isNotNull();
+    assertThat(result.id()).isEqualTo(targetId);
+    assertThat(result.title()).isEqualTo(request.getTitle());
+    assertThat(result.author()).isEqualTo(request.getAuthor());
+
+    then(bookRepository).should().findById(targetId);
+  }
+
+  @Test
+  @DisplayName("존재하지 않는 도서 ID로 수정을 요청하면 예외가 발생한다")
+  void updateBook_WithNonExistentId_ThrowsException() {
+    // given
+    UUID nonExistentId = UUID.randomUUID();
+    BookUpdateRequest request = createValidBookUpdateRequest();
+
+    given(bookRepository.findById(nonExistentId)).willReturn(java.util.Optional.empty());
+
+    // when & then
+    assertThatThrownBy(() -> bookService.update(nonExistentId, request))
+        .isInstanceOf(BookNotFoundException.class);
+
+    then(bookRepository).should().findById(nonExistentId);
+    then(bookRepository).shouldHaveNoMoreInteractions();
+  }
+
   // 픽스처 메서드
+
   private BookCreateRequest createValidBookRequest() {
     return BookCreateRequest.builder()
         .isbn("1234567890123")
@@ -121,6 +174,16 @@ class BookServiceTest {
         .description("자바 가이드")
         .publisher("인사이트")
         .publishedDate(LocalDate.of(2026, 5, 28))
+        .build();
+  }
+
+  private BookUpdateRequest createValidBookUpdateRequest() {
+    return BookUpdateRequest.builder()
+        .title("클린 아키텍처")
+        .author("로버트 C. 마틴")
+        .description("소프트웨어 구조와 설계의 원칙")
+        .publisher("인사이트")
+        .publishedDate(LocalDate.of(2026, 5, 29))
         .build();
   }
 }
