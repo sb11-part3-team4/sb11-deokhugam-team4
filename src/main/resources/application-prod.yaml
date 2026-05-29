@@ -16,5 +16,5 @@ spring:
 logging:
   level:
     root: WARN
-    com.sprint.mission.discodeit: INFO
+    com.part3_team4.deokhoogam: INFO
 
