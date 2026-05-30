@@ -152,10 +152,7 @@ class BookControllerTest {
         .publishedDate(LocalDate.of(2026, 5, 28))
         .build();
 
-    MockMultipartFile bookDataPart = new MockMultipartFile(
-        "bookData", "", MediaType.APPLICATION_JSON_VALUE,
-        objectMapper.writeValueAsBytes(invalidRequest)
-    );
+    MockMultipartFile bookDataPart = createMockMultipartFile(invalidRequest);
 
     // when & then
     mockMvc.perform(multipart("/api/books")
