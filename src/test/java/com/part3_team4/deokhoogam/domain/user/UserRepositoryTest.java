@@ -11,12 +11,19 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.orm.jpa.DataJpaTest;
+import org.springframework.boot.test.context.TestConfiguration;
 import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.data.jpa.repository.config.EnableJpaAuditing;
 import org.springframework.test.context.ActiveProfiles;
 
 @DataJpaTest
 @ActiveProfiles("test")
 public class UserRepositoryTest {
+
+  @TestConfiguration
+  @EnableJpaAuditing
+  static class JpaAuditingConfig{}
+
   @Autowired
   private UserRepository userRepository;
 
@@ -90,7 +97,7 @@ public class UserRepositoryTest {
         "test@deokhugam.com", "testUser", "password123!");
     userRepository.save(user);
 
-    boolean exists = userRepository.existsByName("duplicate");
+    boolean exists = userRepository.existsByName("testUser");
 
     assertThat(exists).isTrue();
   }
