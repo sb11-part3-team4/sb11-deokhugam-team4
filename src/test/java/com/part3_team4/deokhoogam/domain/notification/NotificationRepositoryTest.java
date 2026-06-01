@@ -15,6 +15,8 @@ import org.springframework.boot.test.autoconfigure.orm.jpa.DataJpaTest;
 import org.springframework.context.annotation.Import;
 import org.springframework.data.domain.PageRequest;
 
+import org.springframework.test.context.ActiveProfiles;
+
 /**
  * NotificationRepository의 DB 조회 로직을 검증하는 테스트입니다.
  *
@@ -33,6 +35,7 @@ import org.springframework.data.domain.PageRequest;
  * id를 보조 정렬 기준으로 사용합니다.
  */
 @DataJpaTest
+@ActiveProfiles("test")
 @Import(JpaAuditingConfig.class)
 class NotificationRepositoryTest {
 
@@ -56,20 +59,20 @@ class NotificationRepositoryTest {
     // 목록 조회 결과에 섞이면 안 됩니다.
     UUID otherUserId = UUID.randomUUID();
 
-    Notification first = createNotification(userId, "첫 번째 알림");
-    notificationRepository.saveAndFlush(first);
+    Notification first = notificationRepository.saveAndFlush(
+        createNotification(userId, "첫 번째 알림"));
 
     // createdAt 차이를 확실하게 만들기 위한 짧은 대기입니다.
     // Repository 테스트에서 최신순 정렬을 검증하기 위해 사용합니다.
     Thread.sleep(5);
 
-    Notification second = createNotification(userId, "두 번째 알림");
-    notificationRepository.saveAndFlush(second);
+    Notification second = notificationRepository.saveAndFlush(
+        createNotification(userId, "두 번째 알림"));
 
     Thread.sleep(5);
 
-    Notification third = createNotification(userId, "세 번째 알림");
-    notificationRepository.saveAndFlush(third);
+    Notification third = notificationRepository.saveAndFlush(
+        createNotification(userId, "세 번째 알림"));
 
     // 다른 사용자의 알림도 저장합니다.
     // 조회 조건이 userId를 제대로 거는지 확인하기 위한 데이터입니다.
@@ -103,18 +106,21 @@ class NotificationRepositoryTest {
     // given
     UUID userId = UUID.randomUUID();
 
-    Notification first = createNotification(userId, "첫 번째 알림");
-    notificationRepository.saveAndFlush(first);
+    Notification first = notificationRepository.saveAndFlush(
+        createNotification(userId, "첫 번째 알림")
+    );
 
     Thread.sleep(5);
 
-    Notification second = createNotification(userId, "두 번째 알림");
-    notificationRepository.saveAndFlush(second);
+    Notification second = notificationRepository.saveAndFlush(
+        createNotification(userId, "두 번째 알림")
+    );
 
     Thread.sleep(5);
 
-    Notification third = createNotification(userId, "세 번째 알림");
-    notificationRepository.saveAndFlush(third);
+    Notification third = notificationRepository.saveAndFlush(
+        createNotification(userId, "세 번째 알림")
+    );
 
     // 최신순 전체 순서는 third -> second -> first 입니다.
     //
