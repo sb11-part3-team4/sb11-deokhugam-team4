@@ -7,11 +7,17 @@ import com.part3_team4.deokhoogam.domain.comment.exception.CommentNotFoundExcept
 import com.part3_team4.deokhoogam.domain.comment.exception.CommentNotOwnerException;
 import com.part3_team4.deokhoogam.domain.comment.repository.CommentRepository;
 import com.part3_team4.deokhoogam.domain.comment.repository.DeletedCommentRepository;
+import com.part3_team4.deokhoogam.domain.review.entity.Review;
+import com.part3_team4.deokhoogam.domain.review.exception.ReviewNotFoundException;
 import com.part3_team4.deokhoogam.domain.review.repository.ReviewRepository;
 import com.part3_team4.deokhoogam.domain.user.entity.User;
+import com.part3_team4.deokhoogam.domain.user.exception.UserNotFoundException;
 import com.part3_team4.deokhoogam.domain.user.repository.UserRepository;
 import java.time.Instant;
+import java.util.stream.Collectors;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.PageRequest;
@@ -31,18 +37,13 @@ public class CommentServiceImpl implements CommentService {
     @Override
     @Transactional
     public CommentDto.CommentResponse createComment(UUID reviewId, UUID userId, String content) {
-        if (!reviewRepository.existsById(reviewId)) {
-            // TODO: Review 도메인 팀 작업 후 ReviewNotFoundException.withId(reviewId)로 교체
-            throw new IllegalArgumentException("존재하지 않는 리뷰입니다.");
-        }
-        if (!userRepository.existsById(userId)) {
-            // TODO: User 도메인 팀 작업 후 UserNotFoundException.withId(userId)로 교체
-            throw new IllegalArgumentException("존재하지 않는 유저입니다.");
-        }
-        Comment saved = commentRepository.save(Comment.create(reviewId, userId, content));
+        Review review = reviewRepository.findById(reviewId)
+                .orElseThrow(() -> ReviewNotFoundException.withId(reviewId));
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> UserNotFoundException.withId(userId));
+        Comment saved = commentRepository.save(Comment.create(review, user, content));
         // TODO: 알림 담당 팀원 코드 연결 후 구현
-        // TODO: createComment에서도 userNickname 채우기 필요 - User 도메인 연결 후 구현
-        return CommentDto.CommentResponse.from(saved, null);
+        return CommentDto.CommentResponse.from(saved, user.getName());
     }
 
     @Override
@@ -54,8 +55,7 @@ public class CommentServiceImpl implements CommentService {
             throw CommentNotOwnerException.forUser(userId);
         }
         comment.updateContent(content);
-        // TODO: updateComment에서도 userNickname 채우기 필요 - User 도메인 연결 후 구현
-        return CommentDto.CommentResponse.from(comment, null);
+        return CommentDto.CommentResponse.from(comment, comment.getUser().getName());
     }
 
     @Override
@@ -85,8 +85,7 @@ public class CommentServiceImpl implements CommentService {
     @Override
     public CommentDto.CommentsResponse getComments(UUID reviewId, String direction, Instant cursor, Instant after, int limit) {
         if (!reviewRepository.existsById(reviewId)) {
-            // TODO: Review 도메인 팀 작업 후 ReviewNotFoundException.withId(reviewId)로 교체
-            throw new IllegalArgumentException("존재하지 않는 리뷰입니다.");
+            throw ReviewNotFoundException.withId(reviewId);
         }
         PageRequest pageable = PageRequest.of(0, limit);
         boolean isAsc = "ASC".equalsIgnoreCase(direction);
@@ -100,12 +99,17 @@ public class CommentServiceImpl implements CommentService {
                     ? commentRepository.findByReviewIdOrderByCreatedAtDesc(reviewId, pageable)
                     : commentRepository.findByReviewIdAndCreatedAtBeforeOrderByCreatedAtDesc(reviewId, cursor, pageable);
         }
-        // TODO: N+1 문제 개선 필요 - userId를 일괄 수집 후 배치 조회로 전환
+
+        Set<UUID> userIds = comments.stream().map(Comment::getUserId).collect(Collectors.toSet());
+        Map<UUID, User> userMap = userRepository.findAllById(userIds).stream()
+                .collect(Collectors.toMap(u -> u.getId(), u -> u));
+
         List<CommentDto.CommentResponse> content = comments.stream().map(comment -> {
-            // TODO: User 조회 실패 시 처리 방식 팀 협의 필요 (현재: null 반환)
-            String userNickname = userRepository.findById(comment.getUserId())
-                    .map(User::getName).orElse(null);
-            return CommentDto.CommentResponse.from(comment, userNickname);
+            User commentUser = userMap.get(comment.getUserId());
+            if (commentUser == null) {
+                throw UserNotFoundException.withId(comment.getUserId());
+            }
+            return CommentDto.CommentResponse.from(comment, commentUser.getName());
         }).toList();
 
         int size = content.size();
@@ -127,9 +131,6 @@ public class CommentServiceImpl implements CommentService {
     public CommentDto.CommentResponse getComment(UUID commentId) {
         Comment comment = commentRepository.findById(commentId)
                 .orElseThrow(() -> CommentNotFoundException.withId(commentId));
-        // TODO: User 조회 실패 시 처리 방식 팀 협의 필요 (현재: null 반환)
-        String userNickname = userRepository.findById(comment.getUserId())
-                .map(User::getName).orElse(null);
-        return CommentDto.CommentResponse.from(comment, userNickname);
+        return CommentDto.CommentResponse.from(comment, comment.getUser().getName());
     }
 }
