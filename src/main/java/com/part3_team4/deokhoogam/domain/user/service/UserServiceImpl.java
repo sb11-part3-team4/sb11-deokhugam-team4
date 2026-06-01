@@ -80,7 +80,7 @@ public class UserServiceImpl implements UserService{
     }
 
     if (request.newEmail() != null && !user.getEmail().equals(request.newEmail())) {
-      if (userRepository.existsByEmail(request.newEmail())) {
+      if (userRepository.existsByEmail(request.newEmail()) || deleteUserRepository.existsByEmail(request.newEmail())) {
         throw UserAlreadyExistsException.withEmail();
       }
       user.updateEmail(request.newEmail());

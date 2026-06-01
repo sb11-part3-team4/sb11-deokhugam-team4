@@ -55,7 +55,7 @@ public class UserControllerTest {
     given(userService.createUser(any(UserCreateRequestDto.class), isNull()))
         .willReturn(responseDto);
 
-    mockMvc.perform(multipart("/api/users/signup")
+    mockMvc.perform(post("/api/users/signup")
             .contentType(MediaType.APPLICATION_JSON)
             .content(objectMapper.writeValueAsString(request)))
         .andExpect(status().isCreated())
