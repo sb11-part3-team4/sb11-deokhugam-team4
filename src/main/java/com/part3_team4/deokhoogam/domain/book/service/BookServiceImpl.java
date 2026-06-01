@@ -39,10 +39,13 @@ public class BookServiceImpl implements BookService {
           .build();
       return BookDto.from(bookRepository.save(book));
     } catch (DataIntegrityViolationException e) {
-      Throwable cause = e.getCause();
-      if (cause instanceof ConstraintViolationException cve
-          && "uk_book_isbn".equalsIgnoreCase(cve.getConstraintName())) {
-        throw IsbnAlreadyExistsException.withIsbn(request.isbn());
+      Throwable cause = e;
+      while (cause != null) {
+        if (cause instanceof ConstraintViolationException cve
+            && "uk_book_isbn".equalsIgnoreCase(cve.getConstraintName())) {
+          throw IsbnAlreadyExistsException.withIsbn(request.isbn());
+        }
+        cause = cause.getCause();
       }
       throw e;
     }
