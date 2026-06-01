@@ -41,6 +41,19 @@ public class UserRepositoryTest {
   }
 
   @Test
+  @DisplayName("유저 저장 실패 - 이름 중복")
+  void saveUser_fail_duplicateName() {
+    User user1 = new User(
+        "duplicate1@deokhugam.com", "user", "password123!");
+    userRepository.save(user1);
+
+    User user2 = new User(
+        "duplicate2@deokhugam.com", "user", "password456!");
+    assertThrows(DataIntegrityViolationException.class, () ->
+        userRepository.saveAndFlush(user2));
+  }
+
+  @Test
   @DisplayName("유저 저장 실패 - 이메일 중복")
   void saveUser_fail_duplicateEmail() {
     User user1 = new User(
