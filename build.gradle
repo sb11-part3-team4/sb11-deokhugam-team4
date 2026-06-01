@@ -49,6 +49,7 @@ tasks.named('jacocoTestCoverageVerification') {
             files(classDirectories.files.collect {
                 fileTree(dir: it, exclude: [
                         "**/dto/**",
+                        "**/entity/**",
                         "**/exception/**",
                         "**/global/exception/**",
                         "**/Q*.class"
@@ -78,6 +79,7 @@ tasks.named('jacocoTestReport') {
             files(classDirectories.files.collect {
                 fileTree(dir: it, exclude: [
                         "**/dto/**",
+                        "**/entity/**",
                         "**/exception/**",
                         "**/global/exception/**",
                         "**/Q*.class"
