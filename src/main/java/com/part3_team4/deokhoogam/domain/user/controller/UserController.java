@@ -3,10 +3,12 @@ package com.part3_team4.deokhoogam.domain.user.controller;
 import com.part3_team4.deokhoogam.domain.user.dto.PasswordUpdateRequestDto;
 import com.part3_team4.deokhoogam.domain.user.dto.UserCreateRequestDto;
 import com.part3_team4.deokhoogam.domain.user.dto.UserDto;
+import com.part3_team4.deokhoogam.domain.user.dto.UserLoginRequestDto;
 import com.part3_team4.deokhoogam.domain.user.dto.UserUpdateRequestDto;
 import com.part3_team4.deokhoogam.domain.user.dto.response.UserResponse;
 import com.part3_team4.deokhoogam.domain.user.service.UserService;
 import jakarta.validation.Valid;
+import java.util.Map;
 import java.util.UUID;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -71,5 +73,14 @@ public class UserController {
     userService.deleteUser(userId);
 
     return ResponseEntity.noContent().build();
+  }
+
+  @PostMapping("/login")
+  public ResponseEntity<Map<String, String>> login(
+      @Valid @RequestBody UserLoginRequestDto request) {
+
+    String token = userService.login(request.email(), request.password());
+
+    return ResponseEntity.ok(Map.of("accessToken", token));
   }
 }
