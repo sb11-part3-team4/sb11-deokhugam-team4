@@ -20,6 +20,7 @@ import java.util.UUID;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -48,7 +49,7 @@ public class ReviewControllerTest {
         ReviewCreateRequest request = new ReviewCreateRequest(bookId, 4, "종은 책이에요");
 
         ReviewResponse response = new ReviewResponse(
-                reviewId, userId, bookId, 4, "좋은 책이에요", 0,0, false, Instant.now(), Instant.now()
+                reviewId, userId, bookId, 4, "좋은 책이에요", 0, 0, false, Instant.now(), Instant.now()
         );
 
         given(reviewService.createReview(eq(userId),
@@ -56,9 +57,9 @@ public class ReviewControllerTest {
                 .willReturn(response);
 
         mockMvc.perform(post("/api/reviews")
-                .header("Deokhugam-Request-User-ID", userId.toString())
-                .contentType(MediaType.APPLICATION_JSON)
-                .content(objectMapper.writeValueAsString(request)))
+                        .header("Deokhugam-Request-User-ID", userId.toString())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.id").value(reviewId.toString()));
 
@@ -77,9 +78,9 @@ public class ReviewControllerTest {
                 .willThrow(ReviewAlreadyExistsException.withUserIdAndBookId(userId, bookId));
 
         mockMvc.perform(post("/api/reviews")
-                .header("Deokhugam-Request-User-ID", userId.toString())
-                .contentType(MediaType.APPLICATION_JSON)
-                .content(objectMapper.writeValueAsString(request)))
+                        .header("Deokhugam-Request-User-ID", userId.toString())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isConflict());
     }
 
@@ -96,9 +97,9 @@ public class ReviewControllerTest {
                 .willThrow(BookNotFoundException.withId(bookId));
 
         mockMvc.perform(post("/api/reviews")
-                .header("Deokhugam-Request-User-ID", userId.toString())
-                .contentType(MediaType.APPLICATION_JSON)
-                .content(objectMapper.writeValueAsString(request)))
+                        .header("Deokhugam-Request-User-ID", userId.toString())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isNotFound());
     }
 
@@ -107,13 +108,13 @@ public class ReviewControllerTest {
     void overchecking_rating() throws Exception {
         UUID userId = UUID.randomUUID();
         UUID bookId = UUID.randomUUID();
-                ReviewCreateRequest request = new ReviewCreateRequest(bookId, 6, "좋은 책이에요");
+        ReviewCreateRequest request = new ReviewCreateRequest(bookId, 6, "좋은 책이에요");
 
-                mockMvc.perform(post("/api/reviews")
+        mockMvc.perform(post("/api/reviews")
                         .header("Deokhugam-Request-User-ID", userId.toString())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
-                        .andExpect(status().isBadRequest());
+                .andExpect(status().isBadRequest());
     }
 
     @Test
@@ -125,9 +126,9 @@ public class ReviewControllerTest {
         ReviewCreateRequest request = new ReviewCreateRequest(bookId, 4, "");
 
         mockMvc.perform(post("/api/reviews")
-                 .header("Deokhugam-Request-User-ID", userId.toString())
-                 .contentType(MediaType.APPLICATION_JSON)
-                 .content(objectMapper.writeValueAsString(request)))
+                        .header("Deokhugam-Request-User-ID", userId.toString())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isBadRequest());
 
     }
@@ -139,10 +140,40 @@ public class ReviewControllerTest {
         ReviewCreateRequest request = new ReviewCreateRequest(bookId, 4, "좋은 책이에요");
 
         mockMvc.perform(post("/api/reviews")
-                // header 없음
-                .contentType(MediaType.APPLICATION_JSON)
-                .content(objectMapper.writeValueAsString(request)))
+                        // header 없음
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isBadRequest());
     }
+
+    @Test
+    @DisplayName("헤더가 없으면 400을 반환한다")
+    void getReview_missingHeader_returns400() throws Exception {
+        UUID reviewId = UUID.randomUUID();
+
+        mockMvc.perform(get("/api/reviews/" + reviewId))
+                .andExpect(status().isBadRequest());
+
+    }
+
+    @Test
+    @DisplayName("리뷰 상세 조회 성공시 200과 likedByMe를 반환한다")
+    void getReview_success() throws Exception {
+        UUID userId = UUID.randomUUID();
+        UUID reviewId = UUID.randomUUID();
+        UUID bookId = UUID.randomUUID();
+
+        ReviewResponse response = new ReviewResponse(
+                reviewId, userId, bookId, 4, "좋은 책이에요", 0, 0, true, Instant.now(), Instant.now()
+                );
+
+        given(reviewService.getReview(eq(reviewId), eq(userId))).willReturn(response);
+
+        mockMvc.perform(get("/api/reviews/" + reviewId)
+                .header("Deokhugam-Request-User-ID", userId.toString()))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.likedByMe").value(true));
+    }
+
 
 }

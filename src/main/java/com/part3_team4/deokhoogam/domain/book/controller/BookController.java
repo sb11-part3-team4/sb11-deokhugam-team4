@@ -3,6 +3,7 @@ package com.part3_team4.deokhoogam.domain.book.controller;
 import com.part3_team4.deokhoogam.domain.book.controller.api.BookAPI;
 import com.part3_team4.deokhoogam.domain.book.dto.BookCreateRequest;
 import com.part3_team4.deokhoogam.domain.book.dto.BookDto;
+import com.part3_team4.deokhoogam.domain.book.dto.BookUpdateRequest;
 import com.part3_team4.deokhoogam.domain.book.service.BookService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -16,6 +17,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -44,6 +46,25 @@ public class BookController implements BookAPI {
     return ResponseEntity.status(HttpStatus.CREATED).body(response);
   }
 
+
+  @Operation(summary = "도서 정보 수정", description = "도서 정보를 수정합니다.")
+  @ApiResponses({
+      @ApiResponse(responseCode = "200", description = "도서 정보 수정 성공"),
+      @ApiResponse(responseCode = "400", description = "잘못된 요청 (입력값 검증 실패, ISBN 형식 오류 등)"),
+      @ApiResponse(responseCode = "404", description = "도서 정보 없음"),
+      @ApiResponse(responseCode = "409", description = "ISBN 중복"),
+      @ApiResponse(responseCode = "500", description = "서버 내부 오류")
+  })
+  @PatchMapping(value = "/{bookId}", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+  public ResponseEntity<BookDto> updateBook(
+      @Parameter(description = "도서 ID", example = "123e4567-e89b-12d3-a456-426614174000") @PathVariable UUID bookId,
+      @Parameter(description = "수정할 도서 정보") @RequestPart("bookData") @Valid BookUpdateRequest request
+  ) {
+    BookDto response = bookService.update(bookId, request);
+    return ResponseEntity.ok(response);
+
+  }
+
   @Override
   @GetMapping(value = "{bookId}")
   public ResponseEntity<BookDto> getDetails(@PathVariable UUID bookId) {
@@ -51,5 +72,7 @@ public class BookController implements BookAPI {
     BookDto response = bookService.getDetails(bookId);
 
     return ResponseEntity.ok().body(response);
+
+
   }
 }

@@ -30,6 +30,8 @@ public enum ErrorKey {
 
   // 리뷰
   REVIEW_ID("reviewId"),
+  REVIEW_RATING("rating"),
+  REVIEW_CONTENT("content"),
 
   // 댓글
   COMMENT_ID("commentId"),

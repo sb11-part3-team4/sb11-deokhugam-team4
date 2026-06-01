@@ -7,4 +7,5 @@ import java.util.UUID;
 public interface ReviewService {
 
     ReviewResponse createReview(UUID userId, ReviewCreateRequest request);
+    ReviewResponse getReview(UUID reviewId, UUID userId);
 }
