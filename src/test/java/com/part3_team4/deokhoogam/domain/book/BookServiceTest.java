@@ -17,8 +17,8 @@ import com.part3_team4.deokhoogam.domain.book.exception.BookNotFoundException;
 import com.part3_team4.deokhoogam.domain.book.exception.IsbnAlreadyExistsException;
 import com.part3_team4.deokhoogam.domain.book.repository.BookRepository;
 import com.part3_team4.deokhoogam.domain.book.service.BookServiceImpl;
+import com.part3_team4.deokhoogam.global.fixture.BookFixtures;
 import java.sql.SQLException;
-import java.time.LocalDate;
 import java.util.Optional;
 import java.util.UUID;
 import org.hibernate.exception.ConstraintViolationException;
@@ -45,7 +45,7 @@ class BookServiceTest {
   @DisplayName("새로운 도서를 성공적으로 등록한다")
   void createBook_Success() {
     // given
-    BookCreateRequest request = createValidBookRequest();
+    BookCreateRequest request = BookFixtures.validBookCreateRequest();
     UUID mockId = UUID.randomUUID();
 
     Book mockSavedBook = Book.builder()
@@ -85,7 +85,7 @@ class BookServiceTest {
   @DisplayName("이미 존재하는 ISBN으로 도서를 등록하면 예외가 발생한다")
   void registerBook_WithAlreadyExistIsbn_ThrowsException() {
     // given
-    BookCreateRequest request = createValidBookRequest();
+    BookCreateRequest request = BookFixtures.validBookCreateRequest();
 
     given(bookRepository.existsByIsbn(request.isbn())).willReturn(true);
 
@@ -101,7 +101,7 @@ class BookServiceTest {
   @DisplayName("ISBN 제약 위반시 IsbnAlreadyExistsException으로 변환")
   void create_uniqueViolationOnIsbn_throwsBusinessException() {
     // given
-    BookCreateRequest request = createValidBookRequest();
+    BookCreateRequest request = BookFixtures.validBookCreateRequest();
     given(bookRepository.existsByIsbn(request.isbn())).willReturn(false);
 
     ConstraintViolationException cause = new ConstraintViolationException(
@@ -122,7 +122,7 @@ class BookServiceTest {
   @DisplayName("ISBN 외 제약 위반 발생 시 원본 예외 그대로 전파한다")
   void create_dataIntegrityViolationOnOtherConstraint_propagates() {
     // given
-    BookCreateRequest request = createValidBookRequest();
+    BookCreateRequest request = BookFixtures.validBookCreateRequest();
     given(bookRepository.existsByIsbn(request.isbn())).willReturn(false);
 
     ConstraintViolationException cause = new ConstraintViolationException(
@@ -143,8 +143,8 @@ class BookServiceTest {
   void updateBook_Success() {
     // given
     UUID targetId = UUID.randomUUID();
-    BookCreateRequest createRequest = createValidBookRequest();
-    BookUpdateRequest updateRequest = createValidBookUpdateRequest();
+    BookCreateRequest createRequest = BookFixtures.validBookCreateRequest();
+    BookUpdateRequest updateRequest = BookFixtures.validBookUpdateRequest();
 
     Book existingBook = Book.builder()
         .isbn(createRequest.isbn())
@@ -185,7 +185,7 @@ class BookServiceTest {
   void updateBook_WithNonExistentId_ThrowsException() {
     // given
     UUID nonExistentId = UUID.randomUUID();
-    BookUpdateRequest request = createValidBookUpdateRequest();
+    BookUpdateRequest request = BookFixtures.validBookUpdateRequest();
 
     given(bookRepository.findById(nonExistentId)).willReturn(
         Optional.empty());
@@ -196,28 +196,5 @@ class BookServiceTest {
 
     then(bookRepository).should().findById(nonExistentId);
     then(bookRepository).shouldHaveNoMoreInteractions();
-  }
-
-  // 픽스처 메서드
-
-  private BookCreateRequest createValidBookRequest() {
-    return BookCreateRequest.builder()
-        .isbn("1234567890123")
-        .title("이펙티브 자바")
-        .author("조슈아 블로흐")
-        .description("자바 가이드")
-        .publisher("인사이트")
-        .publishedDate(LocalDate.of(2026, 5, 28))
-        .build();
-  }
-
-  private BookUpdateRequest createValidBookUpdateRequest() {
-    return BookUpdateRequest.builder()
-        .title("클린 아키텍처")
-        .author("로버트 C. 마틴")
-        .description("소프트웨어 구조와 설계의 원칙")
-        .publisher("인사이트")
-        .publishedDate(LocalDate.of(2026, 5, 29))
-        .build();
   }
 }

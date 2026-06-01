@@ -7,7 +7,7 @@ import java.time.LocalDate;
 import lombok.Builder;
 import org.hibernate.validator.constraints.Length;
 
-@Builder
+@Builder(toBuilder = true)
 public record BookCreateRequest(
 
     @NotBlank(message = "제목은 필수입니다")
