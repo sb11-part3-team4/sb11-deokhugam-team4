@@ -1,8 +1,12 @@
 package com.part3_team4.deokhoogam.global.common;
 
-import java.time.Instant;
 import java.util.List;
+import lombok.Builder;
+import lombok.Getter;
 
+
+@Getter
+@Builder
 public class PageResponse<T> {
 
   private final List<T> content;

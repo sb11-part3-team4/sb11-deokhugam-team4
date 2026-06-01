@@ -9,16 +9,19 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.part3_team4.deokhoogam.domain.book.Factory.BookFixtureFactory;
 import com.part3_team4.deokhoogam.domain.book.controller.BookController;
 import com.part3_team4.deokhoogam.domain.book.dto.BookCreateRequest;
 import com.part3_team4.deokhoogam.domain.book.dto.BookDto;
 import com.part3_team4.deokhoogam.domain.book.exception.BookNotFoundException;
 import com.part3_team4.deokhoogam.domain.book.exception.IsbnAlreadyExistsException;
 import com.part3_team4.deokhoogam.domain.book.service.BookService;
+import com.part3_team4.deokhoogam.global.common.PageResponse;
 import com.part3_team4.deokhoogam.global.exception.ErrorCode;
 import java.math.BigDecimal;
 import java.time.Instant;
 import java.time.LocalDate;
+import java.util.List;
 import java.util.UUID;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
@@ -189,19 +192,6 @@ class BookControllerTest {
         .andExpect(jsonPath("$.details.isbn").exists());
   }
 
-  // 픽스처 메소드
-  private BookCreateRequest createValidBookRequest() {
-    return BookCreateRequest.builder()
-        .isbn("1234567890123")
-        .title("이펙티브 자바")
-        .author("조슈아 블로흐")
-        .description("자바 가이드")
-        .publisher("인사이트")
-        .publishedDate(LocalDate.of(2026, 5, 28))
-        .build();
-  }
-
-
   @Nested
   @DisplayName("getBookDetails() API에서")
   class TestGetBookDetails {
@@ -246,28 +236,113 @@ class BookControllerTest {
     }
 
 
-    //픽스쳐
-    private BookDto createValidBookDto(UUID mockId) {
-      Instant at = Instant.now().minusSeconds(10);
+  }
 
-      return BookDto.builder()
-          .id(mockId)
-          .title("모비 딕")
-          .author("허먼 멜빌")
-          .description("『모비 딕』 완역본")
-          .publisher("작가정신")
-          .publishedDate(LocalDate.of(2024, 4, 9))
-          .thumbnailUrl("temp/url")
-          .reviewCount(2)
-          .rating(BigDecimal.valueOf(4.5))
-          .isbn("9791160263404")
-          .createdAt(at)
-          .updatedAt(at)
-          .build();
+
+  @Nested
+  @DisplayName("도서 목록 조회 에서")
+  class TestGetBooks {
+
+    @Nested
+    @DisplayName("유효한 데이터가 들어오는 경우")
+    class TestGetBooks_ValidData {
+
+      @Test
+      @DisplayName("최소한의 데이터가 들어올때 200을 리턴하고 디폴트 옵션으로 도서 목록을 리턴한다")
+      void return_200_when_minimum_valid_data() throws Exception {
+        //given
+        List<BookDto> books = BookFixtureFactory.createBookList();
+
+        PageResponse<BookDto> response = PageResponse.<BookDto>builder()
+            .content(books)
+            .hasNext(false)
+            .size(50)
+            .afterCursor("Cursor")
+            .totalElements(4L)
+            .build();
+
+        given(bookService.getBooks(any())).willReturn(response);
+
+        //when
+        ResultActions result = mockMvc.perform(get("/api/books")
+            .accept(MediaType.APPLICATION_JSON));
+
+        //then
+
+        result.andExpect(status().isOk());
+        result.andExpect(jsonPath("$.content[0].id").exists());
+        result.andExpect(jsonPath("$.content[0].id").value(books.get(0).id().toString()));
+        result.andExpect(jsonPath("$.content[0].title").exists());
+        result.andExpect(jsonPath("$.content[0].title").value("모비 딕"));
+        result.andExpect(jsonPath("$.content[0].isbn").exists());
+        result.andExpect(jsonPath("$.content[0].isbn").value("9791160263404"));
+        result.andExpect(jsonPath("$.content[1].id").exists());
+        result.andExpect(jsonPath("$.content[2].id").exists());
+        result.andExpect(jsonPath("$.content[3].id").exists());
+
+
+      }
+
+
+    }
+
+    @Nested
+    @DisplayName("유효하지 않은 데이터가 들어온 경우")
+    class TestGetBooks_InvalidData {
+
+      @Test
+      @DisplayName("잘못된 입력 데이터가 들어왔을때 400 에러 코드를 반환한다")
+      void return_400_when_invalid_data() throws Exception {
+
+        //given & when
+        ResultActions result = mockMvc.perform(get("/api/books")
+            .param("limit", "-10") //페이지 수 음수
+            .accept(MediaType.APPLICATION_JSON));
+
+        // then
+        result.andExpect(status().isBadRequest())
+            .andExpect(jsonPath("$.errorCode").value(ErrorCode.INVALID_INPUT_VALUE.name()))
+            .andExpect(jsonPath("$.message").exists());
+
+
+      }
+
+
     }
 
 
   }
 
+
+  // 픽스처 메소드
+  private BookCreateRequest createValidBookRequest() {
+    return BookCreateRequest.builder()
+        .isbn("1234567890123")
+        .title("이펙티브 자바")
+        .author("조슈아 블로흐")
+        .description("자바 가이드")
+        .publisher("인사이트")
+        .publishedDate(LocalDate.of(2026, 5, 28))
+        .build();
+  }
+
+  private BookDto createValidBookDto(UUID mockId) {
+    Instant at = Instant.now().minusSeconds(10);
+
+    return BookDto.builder()
+        .id(mockId)
+        .title("모비 딕")
+        .author("허먼 멜빌")
+        .description("『모비 딕』 완역본")
+        .publisher("작가정신")
+        .publishedDate(LocalDate.of(2024, 4, 9))
+        .thumbnailUrl("temp/url")
+        .reviewCount(2)
+        .rating(BigDecimal.valueOf(4.5))
+        .isbn("9791160263404")
+        .createdAt(at)
+        .updatedAt(at)
+        .build();
+  }
 
 }
