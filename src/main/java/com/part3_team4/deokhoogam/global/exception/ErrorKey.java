@@ -35,7 +35,10 @@ public enum ErrorKey {
   COMMENT_ID("commentId"),
 
   // 알림
-  NOTIFICATION_ID("notificationId");
+  NOTIFICATION_ID("notificationId"),
+
+  // 공용
+  WrongCursor("cursor");
 
   private final String value;
 }

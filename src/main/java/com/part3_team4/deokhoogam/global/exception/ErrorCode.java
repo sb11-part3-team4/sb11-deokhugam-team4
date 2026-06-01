@@ -33,7 +33,10 @@ public enum ErrorCode {
 
   // 6. 공용 예외
   INTERNAL_SERVER_ERROR(HttpStatus.INTERNAL_SERVER_ERROR, "COMMON-001", "서버 내부 오류가 발생했습니다."),
-  INVALID_INPUT_VALUE(HttpStatus.BAD_REQUEST, "COMMON-002", "잘못된 입력값입니다.");
+  INVALID_INPUT_VALUE(HttpStatus.BAD_REQUEST, "COMMON-002", "잘못된 입력값입니다."),
+  BASE64_ENCODING_ERROR(HttpStatus.INTERNAL_SERVER_ERROR, "COMMON-004", "커서 인코딩 중 오류가 발생했습니다."),
+  BASE64_DECODING_ERROR(HttpStatus.BAD_REQUEST, "COMMON-004", "잘못된 커서로 인해 디코딩에 실패했습니다.");
+
 
   private final HttpStatus status;
   private final String code;

@@ -1,0 +1,40 @@
+package com.part3_team4.deokhoogam.global.util;
+
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.part3_team4.deokhoogam.domain.book.dto.BookCursor;
+import com.part3_team4.deokhoogam.global.exception.Base64Exception;
+import java.nio.charset.StandardCharsets;
+import java.util.Base64;
+import org.springframework.stereotype.Component;
+
+@Component
+public class CursorUtils {
+
+  private static final ObjectMapper objectMapper = new ObjectMapper();
+
+  // 인코딩 메서드
+  public static String encodeCursor(BookCursor cursor) {
+    if (cursor == null) {
+      return null;
+    }
+    try {
+      String json = objectMapper.writeValueAsString(cursor);
+      return Base64.getEncoder().encodeToString(json.getBytes(StandardCharsets.UTF_8));
+    } catch (JsonProcessingException e) {
+      throw Base64Exception.EncodingError();
+    }
+  }
+
+  // 디코딩 메서드
+  public static BookCursor decodeCursor(String base64Cursor) {
+    if (base64Cursor == null || base64Cursor.isBlank()) return null;
+    try {
+      byte[] decodedBytes = Base64.getDecoder().decode(base64Cursor);
+      String json = new String(decodedBytes, StandardCharsets.UTF_8);
+      return objectMapper.readValue(json, BookCursor.class);
+    } catch (Exception e) {
+      throw Base64Exception.DecodingError();
+    }
+  }
+}
