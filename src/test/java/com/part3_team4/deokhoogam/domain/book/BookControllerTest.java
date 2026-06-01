@@ -301,8 +301,9 @@ class BookControllerTest {
 
         // then
         result.andExpect(status().isBadRequest())
-            .andExpect(jsonPath("$.errorCode").value(ErrorCode.INVALID_INPUT_VALUE.name()))
-            .andExpect(jsonPath("$.message").exists());
+            .andExpect(jsonPath("$.code").value(ErrorCode.INVALID_INPUT_VALUE.getCode()))
+            .andExpect(jsonPath("$.message").exists())
+            .andExpect(jsonPath("$.details.limit").exists());;
 
 
       }
