@@ -9,6 +9,7 @@ import com.part3_team4.deokhoogam.domain.comment.repository.CommentRepository;
 import com.part3_team4.deokhoogam.domain.comment.repository.DeletedCommentRepository;
 import com.part3_team4.deokhoogam.domain.comment.service.CommentServiceImpl;
 import com.part3_team4.deokhoogam.domain.review.repository.ReviewRepository;
+import com.part3_team4.deokhoogam.domain.user.entity.User;
 import com.part3_team4.deokhoogam.domain.user.repository.UserRepository;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
@@ -32,6 +33,7 @@ import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.BDDMockito.then;
 import static org.mockito.Mockito.inOrder;
+import static org.mockito.Mockito.mock;
 
 @ExtendWith(MockitoExtension.class)
 class CommentServiceTest {
@@ -191,14 +193,25 @@ class CommentServiceTest {
     class HardDeleteComment {
 
         @Test
-        @DisplayName("deleted_comment를 정상적으로 물리 삭제한다")
+        @DisplayName("본인 deleted_comment를 정상적으로 물리 삭제한다")
         void hardDeleteComment_success() {
             DeletedComment deletedComment = DeletedComment.from(Comment.create(REVIEW_ID, USER_ID, "물리 삭제될 댓글입니다."));
             given(deletedCommentRepository.findById(COMMENT_ID)).willReturn(Optional.of(deletedComment));
 
-            commentService.hardDeleteComment(COMMENT_ID);
+            commentService.hardDeleteComment(COMMENT_ID, USER_ID);
 
             then(deletedCommentRepository).should().delete(deletedComment);
+        }
+
+        @Test
+        @DisplayName("다른 사람의 댓글을 물리 삭제하면 예외가 발생한다")
+        void hardDeleteComment_notOwner_throwsException() {
+            UUID otherUserId = UUID.randomUUID();
+            DeletedComment deletedComment = DeletedComment.from(Comment.create(REVIEW_ID, USER_ID, "물리 삭제될 댓글입니다."));
+            given(deletedCommentRepository.findById(COMMENT_ID)).willReturn(Optional.of(deletedComment));
+
+            assertThatThrownBy(() -> commentService.hardDeleteComment(COMMENT_ID, otherUserId))
+                    .isInstanceOf(CommentNotOwnerException.class);
         }
 
         @Test
@@ -206,7 +219,7 @@ class CommentServiceTest {
         void hardDeleteComment_notFound_throwsException() {
             given(deletedCommentRepository.findById(COMMENT_ID)).willReturn(Optional.empty());
 
-            assertThatThrownBy(() -> commentService.hardDeleteComment(COMMENT_ID))
+            assertThatThrownBy(() -> commentService.hardDeleteComment(COMMENT_ID, USER_ID))
                     .isInstanceOf(CommentNotFoundException.class);
         }
     }
@@ -219,47 +232,133 @@ class CommentServiceTest {
     class GetComments {
 
         @Test
-        @DisplayName("review_id로 댓글 목록을 시간 역순(createdAt DESC)으로 조회한다")
-        void getComments_byReviewId_orderedByCreatedAt() {
+        @DisplayName("direction=DESC, cursor 없으면 시간 역순 첫 페이지를 닉네임과 함께 반환한다")
+        void getComments_desc_noCursor_returnsFirstPage() {
             Comment comment1 = Comment.create(REVIEW_ID, USER_ID, "첫 번째 댓글");
             Comment comment2 = Comment.create(REVIEW_ID, USER_ID, "두 번째 댓글");
+            User user = new User("test@email.com", "테스트유저", "password");
             given(reviewRepository.existsById(REVIEW_ID)).willReturn(true);
             given(commentRepository.findByReviewIdOrderByCreatedAtDesc(eq(REVIEW_ID), any(Pageable.class)))
                     .willReturn(List.of(comment1, comment2));
+            given(userRepository.findById(USER_ID)).willReturn(Optional.of(user));
+            given(commentRepository.countByReviewId(REVIEW_ID)).willReturn(2L);
 
-            List<CommentDto.CommentResponse> result = commentService.getComments(REVIEW_ID, null, 10);
+            CommentDto.CommentsResponse result = commentService.getComments(REVIEW_ID, "DESC", null, null, 50);
 
-            assertThat(result).hasSize(2);
-            assertThat(result.get(0).content()).isEqualTo("첫 번째 댓글");
-            assertThat(result.get(1).content()).isEqualTo("두 번째 댓글");
+            assertThat(result.content()).hasSize(2);
+            assertThat(result.content().get(0).content()).isEqualTo("첫 번째 댓글");
+            assertThat(result.content().get(0).userNickname()).isEqualTo("테스트유저");
+            assertThat(result.content().get(1).content()).isEqualTo("두 번째 댓글");
+            assertThat(result.size()).isEqualTo(2);
+            assertThat(result.totalElements()).isEqualTo(2L);
+            assertThat(result.hasNext()).isFalse();
+            assertThat(result.nextCursor()).isNull();
         }
 
         @Test
-        @DisplayName("커서 기반 페이지네이션이 정상적으로 동작한다")
-        void getComments_withCursor_returnsPaginatedResults() {
+        @DisplayName("반환 건수가 limit과 같으면 hasNext가 true이고 nextCursor/nextAfter가 채워진다")
+        void getComments_sizeEqualsLimit_hasNextTrue() {
+            Instant createdAt = Instant.now().minusSeconds(5);
+            // 비영속 엔티티는 @CreatedDate가 적용되지 않아 createdAt이 null이므로 mock 사용
+            Comment comment = mock(Comment.class);
+            given(comment.getUserId()).willReturn(USER_ID);
+            given(comment.getCreatedAt()).willReturn(createdAt);
+            given(comment.getUpdatedAt()).willReturn(createdAt);
+            given(comment.getId()).willReturn(COMMENT_ID);
+            given(comment.getReviewId()).willReturn(REVIEW_ID);
+            given(comment.getContent()).willReturn("마지막 댓글");
+
+            User user = new User("test@email.com", "테스트유저", "password");
+            given(reviewRepository.existsById(REVIEW_ID)).willReturn(true);
+            given(commentRepository.findByReviewIdOrderByCreatedAtDesc(eq(REVIEW_ID), any(Pageable.class)))
+                    .willReturn(List.of(comment));
+            given(userRepository.findById(USER_ID)).willReturn(Optional.of(user));
+            given(commentRepository.countByReviewId(REVIEW_ID)).willReturn(10L);
+
+            CommentDto.CommentsResponse result = commentService.getComments(REVIEW_ID, "DESC", null, null, 1);
+
+            assertThat(result.hasNext()).isTrue();
+            assertThat(result.nextCursor()).isEqualTo(createdAt.toString());
+            assertThat(result.nextAfter()).isEqualTo(createdAt);
+        }
+
+        @Test
+        @DisplayName("direction=DESC, cursor 있으면 해당 커서 이전 데이터를 반환한다")
+        void getComments_desc_withCursor_returnsPaginatedResults() {
             Instant cursor = Instant.now().minusSeconds(1);
             Comment comment = Comment.create(REVIEW_ID, USER_ID, "커서 이전 댓글");
+            User user = new User("test@email.com", "테스트유저", "password");
             given(reviewRepository.existsById(REVIEW_ID)).willReturn(true);
             given(commentRepository.findByReviewIdAndCreatedAtBeforeOrderByCreatedAtDesc(
                     eq(REVIEW_ID), eq(cursor), any(Pageable.class)))
                     .willReturn(List.of(comment));
+            given(userRepository.findById(USER_ID)).willReturn(Optional.of(user));
+            given(commentRepository.countByReviewId(REVIEW_ID)).willReturn(5L);
 
-            List<CommentDto.CommentResponse> result = commentService.getComments(REVIEW_ID, cursor, 10);
+            CommentDto.CommentsResponse result = commentService.getComments(REVIEW_ID, "DESC", cursor, null, 50);
 
-            assertThat(result).hasSize(1);
-            assertThat(result.get(0).content()).isEqualTo("커서 이전 댓글");
+            assertThat(result.content()).hasSize(1);
+            assertThat(result.content().get(0).content()).isEqualTo("커서 이전 댓글");
+            assertThat(result.content().get(0).userNickname()).isEqualTo("테스트유저");
+            assertThat(result.totalElements()).isEqualTo(5L);
         }
 
         @Test
-        @DisplayName("결과 없을 때 빈 리스트를 반환한다")
-        void getComments_noResults_returnsEmptyList() {
+        @DisplayName("direction=ASC, after 없으면 시간 오름차순 첫 페이지를 반환한다")
+        void getComments_asc_noAfter_returnsFirstPage() {
+            Comment comment1 = Comment.create(REVIEW_ID, USER_ID, "오래된 댓글");
+            Comment comment2 = Comment.create(REVIEW_ID, USER_ID, "최신 댓글");
+            User user = new User("test@email.com", "테스트유저", "password");
+            given(reviewRepository.existsById(REVIEW_ID)).willReturn(true);
+            given(commentRepository.findByReviewIdOrderByCreatedAtAsc(eq(REVIEW_ID), any(Pageable.class)))
+                    .willReturn(List.of(comment1, comment2));
+            given(userRepository.findById(USER_ID)).willReturn(Optional.of(user));
+            given(commentRepository.countByReviewId(REVIEW_ID)).willReturn(2L);
+
+            CommentDto.CommentsResponse result = commentService.getComments(REVIEW_ID, "ASC", null, null, 50);
+
+            assertThat(result.content()).hasSize(2);
+            assertThat(result.content().get(0).content()).isEqualTo("오래된 댓글");
+            assertThat(result.content().get(0).userNickname()).isEqualTo("테스트유저");
+            assertThat(result.content().get(1).content()).isEqualTo("최신 댓글");
+        }
+
+        @Test
+        @DisplayName("direction=ASC, after 있으면 해당 시간 이후 데이터를 반환한다")
+        void getComments_asc_withAfter_returnsPaginatedResults() {
+            Instant after = Instant.now().minusSeconds(1);
+            Comment comment = Comment.create(REVIEW_ID, USER_ID, "after 이후 댓글");
+            User user = new User("test@email.com", "테스트유저", "password");
+            given(reviewRepository.existsById(REVIEW_ID)).willReturn(true);
+            given(commentRepository.findByReviewIdAndCreatedAtAfterOrderByCreatedAtAsc(
+                    eq(REVIEW_ID), eq(after), any(Pageable.class)))
+                    .willReturn(List.of(comment));
+            given(userRepository.findById(USER_ID)).willReturn(Optional.of(user));
+            given(commentRepository.countByReviewId(REVIEW_ID)).willReturn(3L);
+
+            CommentDto.CommentsResponse result = commentService.getComments(REVIEW_ID, "ASC", null, after, 50);
+
+            assertThat(result.content()).hasSize(1);
+            assertThat(result.content().get(0).content()).isEqualTo("after 이후 댓글");
+            assertThat(result.content().get(0).userNickname()).isEqualTo("테스트유저");
+        }
+
+        @Test
+        @DisplayName("결과 없을 때 빈 content와 hasNext=false를 반환한다")
+        void getComments_noResults_returnsEmptyContent() {
             given(reviewRepository.existsById(REVIEW_ID)).willReturn(true);
             given(commentRepository.findByReviewIdOrderByCreatedAtDesc(eq(REVIEW_ID), any(Pageable.class)))
                     .willReturn(List.of());
+            given(commentRepository.countByReviewId(REVIEW_ID)).willReturn(0L);
 
-            List<CommentDto.CommentResponse> result = commentService.getComments(REVIEW_ID, null, 10);
+            CommentDto.CommentsResponse result = commentService.getComments(REVIEW_ID, "DESC", null, null, 50);
 
-            assertThat(result).isEmpty();
+            assertThat(result.content()).isEmpty();
+            assertThat(result.size()).isEqualTo(0);
+            assertThat(result.totalElements()).isEqualTo(0L);
+            assertThat(result.hasNext()).isFalse();
+            assertThat(result.nextCursor()).isNull();
+            assertThat(result.nextAfter()).isNull();
         }
 
         @Test
@@ -268,7 +367,7 @@ class CommentServiceTest {
             given(reviewRepository.existsById(REVIEW_ID)).willReturn(false);
 
             // TODO: Review 도메인 팀 작업 후 ReviewNotFoundException으로 교체
-            assertThatThrownBy(() -> commentService.getComments(REVIEW_ID, null, 10))
+            assertThatThrownBy(() -> commentService.getComments(REVIEW_ID, "DESC", null, null, 50))
                     .isInstanceOf(IllegalArgumentException.class);
         }
     }
@@ -281,16 +380,31 @@ class CommentServiceTest {
     class GetComment {
 
         @Test
-        @DisplayName("commentId로 댓글 상세 정보를 조회한다")
+        @DisplayName("commentId로 댓글 상세 정보를 닉네임과 함께 조회한다")
         void getComment_success() {
             Comment comment = Comment.create(REVIEW_ID, USER_ID, "상세 조회할 댓글입니다.");
+            User user = new User("test@email.com", "테스트유저", "password");
             given(commentRepository.findById(COMMENT_ID)).willReturn(Optional.of(comment));
+            given(userRepository.findById(USER_ID)).willReturn(Optional.of(user));
 
             CommentDto.CommentResponse response = commentService.getComment(COMMENT_ID);
 
             assertThat(response.reviewId()).isEqualTo(REVIEW_ID);
             assertThat(response.userId()).isEqualTo(USER_ID);
             assertThat(response.content()).isEqualTo("상세 조회할 댓글입니다.");
+            assertThat(response.userNickname()).isEqualTo("테스트유저");
+        }
+
+        @Test
+        @DisplayName("댓글 작성자를 찾지 못하면 userNickname이 null이다")
+        void getComment_userNotFound_userNicknameIsNull() {
+            Comment comment = Comment.create(REVIEW_ID, USER_ID, "상세 조회할 댓글입니다.");
+            given(commentRepository.findById(COMMENT_ID)).willReturn(Optional.of(comment));
+            given(userRepository.findById(USER_ID)).willReturn(Optional.empty());
+
+            CommentDto.CommentResponse response = commentService.getComment(COMMENT_ID);
+
+            assertThat(response.userNickname()).isNull();
         }
 
         @Test

@@ -8,6 +8,7 @@ import com.part3_team4.deokhoogam.domain.comment.exception.CommentNotOwnerExcept
 import com.part3_team4.deokhoogam.domain.comment.repository.CommentRepository;
 import com.part3_team4.deokhoogam.domain.comment.repository.DeletedCommentRepository;
 import com.part3_team4.deokhoogam.domain.review.repository.ReviewRepository;
+import com.part3_team4.deokhoogam.domain.user.entity.User;
 import com.part3_team4.deokhoogam.domain.user.repository.UserRepository;
 import java.time.Instant;
 import java.util.List;
@@ -40,7 +41,8 @@ public class CommentServiceImpl implements CommentService {
         }
         Comment saved = commentRepository.save(Comment.create(reviewId, userId, content));
         // TODO: 알림 담당 팀원 코드 연결 후 구현
-        return CommentDto.CommentResponse.from(saved);
+        // TODO: createComment에서도 userNickname 채우기 필요 - User 도메인 연결 후 구현
+        return CommentDto.CommentResponse.from(saved, null);
     }
 
     @Override
@@ -52,7 +54,8 @@ public class CommentServiceImpl implements CommentService {
             throw CommentNotOwnerException.forUser(userId);
         }
         comment.updateContent(content);
-        return CommentDto.CommentResponse.from(comment);
+        // TODO: updateComment에서도 userNickname 채우기 필요 - User 도메인 연결 후 구현
+        return CommentDto.CommentResponse.from(comment, null);
     }
 
     @Override
@@ -70,29 +73,63 @@ public class CommentServiceImpl implements CommentService {
 
     @Override
     @Transactional
-    public void hardDeleteComment(UUID commentId) {
+    public void hardDeleteComment(UUID commentId, UUID userId) {
         DeletedComment deletedComment = deletedCommentRepository.findById(commentId)
                 .orElseThrow(() -> CommentNotFoundException.withId(commentId));
+        if (!deletedComment.getUserId().equals(userId)) {
+            throw CommentNotOwnerException.forUser(userId);
+        }
         deletedCommentRepository.delete(deletedComment);
     }
 
     @Override
-    public List<CommentDto.CommentResponse> getComments(UUID reviewId, Instant cursor, int limit) {
+    public CommentDto.CommentsResponse getComments(UUID reviewId, String direction, Instant cursor, Instant after, int limit) {
         if (!reviewRepository.existsById(reviewId)) {
             // TODO: Review 도메인 팀 작업 후 ReviewNotFoundException.withId(reviewId)로 교체
             throw new IllegalArgumentException("존재하지 않는 리뷰입니다.");
         }
         PageRequest pageable = PageRequest.of(0, limit);
-        List<Comment> comments = (cursor == null)
-                ? commentRepository.findByReviewIdOrderByCreatedAtDesc(reviewId, pageable)
-                : commentRepository.findByReviewIdAndCreatedAtBeforeOrderByCreatedAtDesc(reviewId, cursor, pageable);
-        return comments.stream().map(CommentDto.CommentResponse::from).toList();
+        boolean isAsc = "ASC".equalsIgnoreCase(direction);
+        List<Comment> comments;
+        if (isAsc) {
+            comments = (after == null)
+                    ? commentRepository.findByReviewIdOrderByCreatedAtAsc(reviewId, pageable)
+                    : commentRepository.findByReviewIdAndCreatedAtAfterOrderByCreatedAtAsc(reviewId, after, pageable);
+        } else {
+            comments = (cursor == null)
+                    ? commentRepository.findByReviewIdOrderByCreatedAtDesc(reviewId, pageable)
+                    : commentRepository.findByReviewIdAndCreatedAtBeforeOrderByCreatedAtDesc(reviewId, cursor, pageable);
+        }
+        // TODO: N+1 문제 개선 필요 - userId를 일괄 수집 후 배치 조회로 전환
+        List<CommentDto.CommentResponse> content = comments.stream().map(comment -> {
+            // TODO: User 조회 실패 시 처리 방식 팀 협의 필요 (현재: null 반환)
+            String userNickname = userRepository.findById(comment.getUserId())
+                    .map(User::getName).orElse(null);
+            return CommentDto.CommentResponse.from(comment, userNickname);
+        }).toList();
+
+        int size = content.size();
+        boolean hasNext = size == limit;
+        long totalElements = commentRepository.countByReviewId(reviewId);
+
+        String nextCursor = null;
+        Instant nextAfter = null;
+        if (hasNext) {
+            Instant lastCreatedAt = comments.get(size - 1).getCreatedAt();
+            nextCursor = lastCreatedAt.toString();
+            nextAfter = lastCreatedAt;
+        }
+
+        return new CommentDto.CommentsResponse(content, nextCursor, nextAfter, size, totalElements, hasNext);
     }
 
     @Override
     public CommentDto.CommentResponse getComment(UUID commentId) {
         Comment comment = commentRepository.findById(commentId)
                 .orElseThrow(() -> CommentNotFoundException.withId(commentId));
-        return CommentDto.CommentResponse.from(comment);
+        // TODO: User 조회 실패 시 처리 방식 팀 협의 필요 (현재: null 반환)
+        String userNickname = userRepository.findById(comment.getUserId())
+                .map(User::getName).orElse(null);
+        return CommentDto.CommentResponse.from(comment, userNickname);
     }
 }

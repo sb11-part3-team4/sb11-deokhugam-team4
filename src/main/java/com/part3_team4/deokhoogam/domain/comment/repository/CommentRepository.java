@@ -16,6 +16,10 @@ public interface CommentRepository extends JpaRepository<Comment, UUID> {
     // TODO: 커서 조건을 (createdAt, id) 복합키 기반(createdAt < cursor OR (createdAt = cursor AND id < cursorId))으로 전환
     List<Comment> findByReviewIdAndCreatedAtBeforeOrderByCreatedAtDesc(UUID reviewId, Instant before, Pageable pageable);
 
+    List<Comment> findByReviewIdOrderByCreatedAtAsc(UUID reviewId, Pageable pageable);
+
+    List<Comment> findByReviewIdAndCreatedAtAfterOrderByCreatedAtAsc(UUID reviewId, Instant after, Pageable pageable);
+
     void deleteByReviewId(UUID reviewId);
 
     long countByReviewId(UUID reviewId);

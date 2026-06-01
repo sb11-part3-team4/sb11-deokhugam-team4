@@ -2,7 +2,6 @@ package com.part3_team4.deokhoogam.domain.comment.service;
 
 import com.part3_team4.deokhoogam.domain.comment.dto.CommentDto;
 import java.time.Instant;
-import java.util.List;
 import java.util.UUID;
 
 public interface CommentService {
@@ -13,9 +12,9 @@ public interface CommentService {
 
     void softDeleteComment(UUID commentId, UUID userId);
 
-    void hardDeleteComment(UUID commentId);
+    void hardDeleteComment(UUID commentId, UUID userId);
 
-    List<CommentDto.CommentResponse> getComments(UUID reviewId, Instant cursor, int limit);
+    CommentDto.CommentsResponse getComments(UUID reviewId, String direction, Instant cursor, Instant after, int limit);
 
     CommentDto.CommentResponse getComment(UUID commentId);
 }
