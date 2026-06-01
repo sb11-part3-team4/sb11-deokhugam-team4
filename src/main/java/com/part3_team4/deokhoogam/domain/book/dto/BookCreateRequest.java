@@ -4,7 +4,6 @@ import com.fasterxml.jackson.annotation.JsonFormat;
 import com.part3_team4.deokhoogam.domain.book.entity.Book;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
-import jakarta.validation.constraints.Pattern;
 import java.time.LocalDate;
 import lombok.Builder;
 import org.hibernate.validator.constraints.Length;
@@ -32,10 +31,6 @@ public record BookCreateRequest(
     LocalDate publishedDate,
 
     @NotBlank(message = "ISBN은 필수입니다.")
-    @Pattern(
-        regexp = "^\\d{1,20}$",
-        message = "ISBN은 숫자만 입력 가능하며, 최대 20자까지 가능합니다."
-    )
     String isbn
 ) {
 

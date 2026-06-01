@@ -9,7 +9,7 @@ CREATE TABLE book
     description    TEXT          NOT NULL,
     publisher      VARCHAR(100)  NOT NULL,
     published_date DATE          NOT NULL,
-    isbn           VARCHAR(20),
+    isbn           TEXT,
     thumbnail_url  VARCHAR(512),
     review_count   INTEGER       NOT NULL,
     rating         DECIMAL(3, 2) NOT NULL,
