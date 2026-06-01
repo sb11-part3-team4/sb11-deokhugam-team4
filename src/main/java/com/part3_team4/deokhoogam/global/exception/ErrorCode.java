@@ -26,9 +26,11 @@ public enum ErrorCode {
   // 4. 리뷰 예외
   REVIEW_NOT_FOUND(HttpStatus.NOT_FOUND, "REVIEW-001", "존재하지 않는 리뷰입니다."),
   REVIEW_ALREADY_EXISTS(HttpStatus.CONFLICT, "REVIEW-002", "이미 해당 도서에 작성한 리뷰가 존재합니다."),
+  REVIEW_INVALID_INPUT(HttpStatus.BAD_REQUEST, "REVIEW-003", "올바르지 않은 리뷰 정보입니다."),
 
   // 5. 알림 예외
   NOTIFICATION_NOT_FOUND(HttpStatus.NOT_FOUND, "NOTIFICATION-001", "존재하지 않는 알림입니다."),
+  NOTIFICATION_ACCESS_DENIED(HttpStatus.FORBIDDEN, "NOTIFICATION-002", "알림에 접근할 권한이 없습니다."),
 
   // 6. 공용 예외
   INTERNAL_SERVER_ERROR(HttpStatus.INTERNAL_SERVER_ERROR, "COMMON-001", "서버 내부 오류가 발생했습니다."),

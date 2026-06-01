@@ -1,6 +1,8 @@
 package com.part3_team4.deokhoogam.domain.review.entity;
 
+import com.part3_team4.deokhoogam.domain.review.exception.InvalidReviewException;
 import com.part3_team4.deokhoogam.global.common.BaseEntity;
+import com.part3_team4.deokhoogam.global.exception.ErrorKey;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.Table;
@@ -34,6 +36,13 @@ public class Review extends BaseEntity {
     private int commentCount;
 
     public static Review create(UUID userId, UUID bookId, int rating, String content) {
+        if (rating < 1 || rating > 5) {
+            throw InvalidReviewException.withFieldAndValue(ErrorKey.REVIEW_RATING, rating, "rating은 1~5 사이여야 합니다.");
+        }
+        if (content == null || content.isBlank()) {
+            throw InvalidReviewException.withField(ErrorKey.REVIEW_CONTENT, "content는 필수입니다.");
+        }
+
         Review review = new Review();
         review.userId = userId;
         review.bookId = bookId;
@@ -43,4 +52,6 @@ public class Review extends BaseEntity {
         review.commentCount = 0;
         return review;
     }
+
+
 }
