@@ -1,11 +1,14 @@
 package com.part3_team4.deokhoogam.domain.user;
 
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.isNull;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.BDDMockito.willThrow;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.multipart;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -27,7 +30,6 @@ import org.springframework.http.MediaType;
 import org.springframework.mock.web.MockMultipartFile;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
-import org.springframework.web.multipart.MultipartFile;
 
 @WebMvcTest(UserController.class)
 public class UserControllerTest {
@@ -50,26 +52,15 @@ public class UserControllerTest {
     UserDto responseDto = new UserDto(
         userId, "test@deokhugam.com", "testUser", null);
 
-    MockMultipartFile requestPart = new MockMultipartFile(
-        "request",
-        "",
-        "application/json",
-        objectMapper.writeValueAsString(request).getBytes(StandardCharsets.UTF_8));
-
-    MockMultipartFile profileImagePart = new MockMultipartFile(
-        "profileImage",
-        "test.jpg",
-        "image/jpeg",
-        "dummy image data".getBytes());
-
-    given(userService.createUser(any(UserCreateRequestDto.class), any(MultipartFile.class)))
+    given(userService.createUser(any(UserCreateRequestDto.class), isNull()))
         .willReturn(responseDto);
 
     mockMvc.perform(multipart("/api/users/signup")
-            .file(requestPart)
-            .file(profileImagePart)
-            .contentType(MediaType.MULTIPART_FORM_DATA))
-        .andExpect(status().isCreated());
+            .contentType(MediaType.APPLICATION_JSON)
+            .content(objectMapper.writeValueAsString(request)))
+        .andExpect(status().isCreated())
+        .andExpect(jsonPath("$.email").value("test@deokhugam.com"))
+        .andExpect(jsonPath("$.name").value("testUser"));
   }
 
   @Test
@@ -78,15 +69,9 @@ public class UserControllerTest {
     UserCreateRequestDto request = new UserCreateRequestDto(
         "test-email", "testUser", "password123!");
 
-    MockMultipartFile requestPart = new MockMultipartFile(
-        "request",
-        "",
-        "application/json",
-        objectMapper.writeValueAsString(request).getBytes(StandardCharsets.UTF_8));
-
-    mockMvc.perform(multipart("/api/users/signup")
-            .file(requestPart)
-            .contentType(MediaType.MULTIPART_FORM_DATA))
+    mockMvc.perform(post("/api/users/signup")
+            .contentType(MediaType.APPLICATION_JSON)
+            .content(objectMapper.writeValueAsString(request)))
         .andExpect(status().isBadRequest())
         .andExpect(jsonPath("$.code").value("COMMON-002"));
   }
@@ -105,7 +90,6 @@ public class UserControllerTest {
         .andExpect(status().isOk())
         .andExpect(jsonPath("$.email").value("test@deokhugam.com"))
         .andExpect(jsonPath("$.name").value("testUser"));
-
   }
 
   @Test
@@ -125,21 +109,11 @@ public class UserControllerTest {
   @DisplayName("회원 정보 수정 성공 - 200 반환")
   void updateUser_success() throws Exception {
     UUID userId = UUID.randomUUID();
-    UserUpdateRequestDto request = new UserUpdateRequestDto("newTest@deokhugam.com", "newTestUser", "newPassword123!");
+    UserUpdateRequestDto request = new UserUpdateRequestDto("newTest@deokhugam.com", "newTestUser");
 
-    MockMultipartFile requestPart = new MockMultipartFile(
-        "request",
-        "",
-        "application/json",
-        objectMapper.writeValueAsString(request).getBytes(StandardCharsets.UTF_8));
-
-    mockMvc.perform(multipart("/api/users/{userId}", userId)
-            .file(requestPart)
-            .with(req -> {
-              req.setMethod("PATCH");
-              return req;
-            })
-            .contentType(MediaType.MULTIPART_FORM_DATA))
+    mockMvc.perform(patch("/api/users/{userId}", userId)
+            .contentType(MediaType.APPLICATION_JSON)
+            .content(objectMapper.writeValueAsString(request)))
         .andExpect(status().isOk());
   }
 
@@ -147,21 +121,11 @@ public class UserControllerTest {
   @DisplayName("회원 정보 수정 실패 - 잘못된 형식의 이메일 400 반환")
   void updateUser_fail_invalidEmail() throws Exception {
     UUID userId = UUID.randomUUID();
-    UserUpdateRequestDto request = new UserUpdateRequestDto("invalid-email", "newTestUser", "newPassword123!");
+    UserUpdateRequestDto request = new UserUpdateRequestDto("invalid-email", "newTestUser");
 
-    MockMultipartFile requestPart = new MockMultipartFile(
-        "request",
-        "",
-        "application/json",
-        objectMapper.writeValueAsString(request).getBytes(StandardCharsets.UTF_8));
-
-    mockMvc.perform(multipart("/api/users/{userId}", userId)
-            .file(requestPart)
-            .with(req -> {
-              req.setMethod("PATCH");
-              return req;
-            })
-            .contentType(MediaType.MULTIPART_FORM_DATA))
+    mockMvc.perform(patch("/api/users/{userId}", userId)
+            .contentType(MediaType.APPLICATION_JSON)
+            .content(objectMapper.writeValueAsString(request)))
         .andExpect(status().isBadRequest())
         .andExpect(jsonPath("$.code").value("COMMON-002"));
   }

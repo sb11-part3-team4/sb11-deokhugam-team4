@@ -11,12 +11,12 @@ import com.part3_team4.deokhoogam.domain.user.dto.UserCreateRequestDto;
 import com.part3_team4.deokhoogam.domain.user.dto.UserDto;
 import com.part3_team4.deokhoogam.domain.user.dto.response.UserResponse;
 import com.part3_team4.deokhoogam.domain.user.dto.UserUpdateRequestDto;
-import com.part3_team4.deokhoogam.domain.user.entity.DeleteUser;
+import com.part3_team4.deokhoogam.domain.user.entity.DeletedUser;
 import com.part3_team4.deokhoogam.domain.user.entity.User;
 import com.part3_team4.deokhoogam.domain.user.exception.UserAlreadyExistsException;
 import com.part3_team4.deokhoogam.domain.user.exception.UserNotFoundException;
 import com.part3_team4.deokhoogam.domain.user.mapper.UserMapper;
-import com.part3_team4.deokhoogam.domain.user.repository.DeleteUserRepository;
+import com.part3_team4.deokhoogam.domain.user.repository.DeletedUserRepository;
 import com.part3_team4.deokhoogam.domain.user.repository.UserRepository;
 import com.part3_team4.deokhoogam.domain.user.service.UserServiceImpl;
 import java.util.Optional;
@@ -27,6 +27,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.security.crypto.password.PasswordEncoder;
 
 @ExtendWith(MockitoExtension.class)
 public class UserServiceTest {
@@ -37,10 +38,13 @@ public class UserServiceTest {
   private UserRepository userRepository;
 
   @Mock
-  private DeleteUserRepository deleteUserRepository;
+  private DeletedUserRepository deleteUserRepository;
 
   @Mock
   private UserMapper userMapper;
+
+  @Mock
+  private PasswordEncoder passwordEncoder;
 
   @Test
   @DisplayName("회원가입 성공")
@@ -53,6 +57,8 @@ public class UserServiceTest {
 
     given(userRepository.existsByName(request.name())).willReturn(false);
     given(userRepository.existsByEmail(request.email())).willReturn(false);
+    given(deleteUserRepository.existsByEmail(request.email())).willReturn(false);
+    given(passwordEncoder.encode(any(CharSequence.class))).willReturn("encodedPassword");
     given(userMapper.toDto(any(User.class))).willReturn(mockDto);
 
     UserDto savedUserDto = userService.createUser(request, null);
@@ -127,7 +133,7 @@ public class UserServiceTest {
         "test@deokhugam.com", "testUser", "password123!");
 
     UserUpdateRequestDto request = new UserUpdateRequestDto(
-        "newEmail@deokhugam.com","newName", "newPassword123!");
+        "newEmail@deokhugam.com","newName");
 
     given(userRepository.findById(userId)).willReturn(Optional.of(user));
 
@@ -143,7 +149,7 @@ public class UserServiceTest {
     User user = new User("test@deokhugam.com", "oldName", "password123!");
 
     UserUpdateRequestDto request = new UserUpdateRequestDto(
-        "newEmail@deokhugam.com","newName", "newPassword123!");
+        "newEmail@deokhugam.com","newName");
 
     given(userRepository.findById(userId)).willReturn(Optional.of(user));
     given(userRepository.existsByName(request.newName())).willReturn(true);
@@ -165,7 +171,7 @@ public class UserServiceTest {
     userService.deleteUser(userId);
 
     then(userRepository).should().delete(user);
-    then(deleteUserRepository).should().save(any(DeleteUser.class));
+    then(deleteUserRepository).should().save(any(DeletedUser.class));
   }
 
   @Test
@@ -179,7 +185,7 @@ public class UserServiceTest {
       userService.deleteUser(userId);
     });
 
-    then(deleteUserRepository).should(never()).save(any(DeleteUser.class));
+    then(deleteUserRepository).should(never()).save(any(DeletedUser.class));
     then(userRepository).should(never()).delete(any(User.class));
   }
 }
