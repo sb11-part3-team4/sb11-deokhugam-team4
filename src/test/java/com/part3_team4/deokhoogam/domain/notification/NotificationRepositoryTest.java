@@ -48,6 +48,10 @@ class NotificationRepositoryTest {
   @Autowired
   private NotificationRepository notificationRepository;
 
+  /**
+   * 커서가 없는 첫 페이지 조회 시,
+   * 특정 사용자의 알림만 최신순으로 반환하는지 검증합니다.
+   */
   @Test
   @DisplayName("커서가 없으면 사용자의 알림을 최신순으로 조회한다")
   void findFirstPageOrderByCreatedAtDesc() throws Exception {
@@ -100,6 +104,10 @@ class NotificationRepositoryTest {
         .containsOnly(userId);
   }
 
+  /**
+   * 이전 페이지의 마지막 알림을 커서로 전달했을 때,
+   * 해당 커서 이후의 알림만 최신순으로 조회하는지 검증합니다.
+   */
   @Test
   @DisplayName("커서가 있으면 커서 다음 알림 목록을 최신순으로 조회한다")
   void findNextPageByCursorOrderByCreatedAtDesc() throws Exception {

@@ -39,6 +39,10 @@ public interface NotificationRepository extends JpaRepository<Notification, UUID
   /**
    * 특정 사용자의 알림 첫 페이지를 최신순으로 조회합니다.
    *
+   *  * @param userId 알림을 조회할 사용자 ID
+   *  * @param pageable 조회 개수 제한 정보
+   *  * @return 최신순으로 정렬된 알림 목록
+   *
    * 사용처:
    * - GET /api/notifications 첫 페이지 조회
    *
@@ -72,6 +76,16 @@ public interface NotificationRepository extends JpaRepository<Notification, UUID
         )
       order by n.createdAt desc, n.id desc
       """)
+
+  /**
+   * 커서 기준 다음 알림 페이지를 최신순으로 조회합니다.
+   *
+   * @param userId 알림을 조회할 사용자 ID
+   * @param after 이전 페이지 마지막 알림의 생성 시각
+   * @param cursor 이전 페이지 마지막 알림 ID
+   * @param pageable 조회 개수 제한 정보
+   * @return 커서 이후의 알림 목록
+   */
   List<Notification> findNextPageDesc(
       UUID userId,
       Instant after,
