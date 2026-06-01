@@ -11,6 +11,7 @@ import com.part3_team4.deokhoogam.domain.review.entity.Review;
 import com.part3_team4.deokhoogam.domain.review.exception.ReviewNotFoundException;
 import com.part3_team4.deokhoogam.domain.review.repository.ReviewRepository;
 import com.part3_team4.deokhoogam.domain.user.entity.User;
+import com.part3_team4.deokhoogam.domain.notification.service.NotificationService;
 import com.part3_team4.deokhoogam.domain.user.exception.UserNotFoundException;
 import com.part3_team4.deokhoogam.domain.user.repository.UserRepository;
 import java.time.Instant;
@@ -20,10 +21,12 @@ import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 @Transactional(readOnly = true)
@@ -33,6 +36,7 @@ public class CommentServiceImpl implements CommentService {
     private final DeletedCommentRepository deletedCommentRepository;
     private final UserRepository userRepository;
     private final ReviewRepository reviewRepository;
+    private final NotificationService notificationService;
 
     @Override
     @Transactional
@@ -42,7 +46,17 @@ public class CommentServiceImpl implements CommentService {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> UserNotFoundException.withId(userId));
         Comment saved = commentRepository.save(Comment.create(review, user, content));
-        // TODO: 알림 담당 팀원 코드 연결 후 구현
+        try {
+            notificationService.createNotification(
+                    review.getUserId(),
+                    review.getId(),
+                    review.getContent(),
+                    user.getName(),
+                    user.getId()
+            );
+        } catch (Exception e) {
+            log.warn("알림 생성 실패 - reviewId: {}, actorId: {}", review.getId(), user.getId(), e);
+        }
         return CommentDto.CommentResponse.from(saved, user.getName());
     }
 

@@ -8,6 +8,7 @@ import com.part3_team4.deokhoogam.domain.comment.exception.CommentNotOwnerExcept
 import com.part3_team4.deokhoogam.domain.comment.repository.CommentRepository;
 import com.part3_team4.deokhoogam.domain.comment.repository.DeletedCommentRepository;
 import com.part3_team4.deokhoogam.domain.comment.service.CommentServiceImpl;
+import com.part3_team4.deokhoogam.domain.notification.service.NotificationService;
 import com.part3_team4.deokhoogam.domain.review.entity.Review;
 import com.part3_team4.deokhoogam.domain.review.exception.ReviewNotFoundException;
 import com.part3_team4.deokhoogam.domain.review.repository.ReviewRepository;
@@ -34,8 +35,10 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyCollection;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.ArgumentMatchers.isNull;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.BDDMockito.then;
+import static org.mockito.BDDMockito.willThrow;
 import static org.mockito.Mockito.inOrder;
 import static org.mockito.Mockito.mock;
 
@@ -57,6 +60,9 @@ class CommentServiceTest {
     @Mock
     private ReviewRepository reviewRepository;
 
+    @Mock
+    private NotificationService notificationService;
+
     private static final UUID REVIEW_ID = UUID.randomUUID();
     private static final UUID USER_ID = UUID.randomUUID();
     private static final UUID COMMENT_ID = UUID.randomUUID();
@@ -69,11 +75,14 @@ class CommentServiceTest {
     class CreateComment {
 
         @Test
-        @DisplayName("댓글을 정상적으로 등록한다")
+        @DisplayName("댓글을 정상적으로 등록하고 알림을 생성한다")
         void createComment_success() {
             String content = "정말 좋은 리뷰입니다.";
+            UUID reviewOwnerId = UUID.randomUUID();
             Review mockReview = mock(Review.class);
             given(mockReview.getId()).willReturn(REVIEW_ID);
+            given(mockReview.getUserId()).willReturn(reviewOwnerId);
+            given(mockReview.getContent()).willReturn("리뷰 내용");
             User mockUser = mock(User.class);
             given(mockUser.getId()).willReturn(USER_ID);
             given(mockUser.getName()).willReturn("테스트유저");
@@ -91,7 +100,34 @@ class CommentServiceTest {
             assertThat(response.content()).isEqualTo(content);
             assertThat(response.userNickname()).isEqualTo("테스트유저");
             then(commentRepository).should().save(any(Comment.class));
-            // TODO: 알림 담당 팀원 코드 연결 후 구현
+            then(notificationService).should().createNotification(
+                    eq(reviewOwnerId), eq(REVIEW_ID), eq("리뷰 내용"), eq("테스트유저"), eq(USER_ID));
+        }
+
+        @Test
+        @DisplayName("알림 생성이 실패해도 댓글 등록은 성공한다")
+        void createComment_notificationFailure_commentStillCreated() {
+            String content = "정말 좋은 리뷰입니다.";
+            Review mockReview = mock(Review.class);
+            given(mockReview.getId()).willReturn(REVIEW_ID);
+            given(mockReview.getUserId()).willReturn(UUID.randomUUID());
+            given(mockReview.getContent()).willReturn("리뷰 내용");
+            User mockUser = mock(User.class);
+            given(mockUser.getId()).willReturn(USER_ID);
+            given(mockUser.getName()).willReturn("테스트유저");
+
+            given(reviewRepository.findById(REVIEW_ID)).willReturn(Optional.of(mockReview));
+            given(userRepository.findById(USER_ID)).willReturn(Optional.of(mockUser));
+            Comment saved = Comment.create(mockReview, mockUser, content);
+            given(commentRepository.save(any(Comment.class))).willReturn(saved);
+            willThrow(new RuntimeException("알림 서버 오류"))
+                    .given(notificationService).createNotification(any(), any(), any(), any(), any());
+
+            CommentDto.CommentResponse response = commentService.createComment(REVIEW_ID, USER_ID, content);
+
+            assertThat(response).isNotNull();
+            assertThat(response.content()).isEqualTo(content);
+            then(commentRepository).should().save(any(Comment.class));
         }
 
         @Test
