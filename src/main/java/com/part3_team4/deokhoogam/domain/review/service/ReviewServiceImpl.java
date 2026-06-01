@@ -4,6 +4,7 @@ import com.part3_team4.deokhoogam.domain.book.exception.BookNotFoundException;
 import com.part3_team4.deokhoogam.domain.book.repository.BookRepository;
 import com.part3_team4.deokhoogam.domain.review.dto.ReviewCreateRequest;
 import com.part3_team4.deokhoogam.domain.review.dto.ReviewResponse;
+import com.part3_team4.deokhoogam.domain.review.dto.ReviewUpdateRequest;
 import com.part3_team4.deokhoogam.domain.review.entity.Review;
 import com.part3_team4.deokhoogam.domain.review.exception.ReviewAlreadyExistsException;
 import com.part3_team4.deokhoogam.domain.review.exception.ReviewNotFoundException;
@@ -63,6 +64,12 @@ public class ReviewServiceImpl implements ReviewService {
                 review.getLikeCount(), review.getCommentCount(),
                 likedByMe, review.getCreatedAt(), review.getUpdatedAt()
         );
+    }
+
+    @Override
+    @Transactional
+    public ReviewResponse updateReview(UUID reviewId, UUID userId, ReviewUpdateRequest request) {
+        throw new UnsupportedOperationException();
     }
 
 
