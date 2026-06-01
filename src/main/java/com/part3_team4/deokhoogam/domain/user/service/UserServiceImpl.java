@@ -12,6 +12,7 @@ import com.part3_team4.deokhoogam.domain.user.exception.UserNotFoundException;
 import com.part3_team4.deokhoogam.domain.user.mapper.UserMapper;
 import com.part3_team4.deokhoogam.domain.user.repository.DeletedUserRepository;
 import com.part3_team4.deokhoogam.domain.user.repository.UserRepository;
+import com.part3_team4.deokhoogam.global.jwt.JwtProvider;
 import java.util.UUID;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -25,12 +26,14 @@ public class UserServiceImpl implements UserService{
   private final DeletedUserRepository deleteUserRepository;
   private final UserMapper userMapper;
   private final PasswordEncoder passwordEncoder;
+  private final JwtProvider jwtProvider;
 
-  public UserServiceImpl(UserRepository userRepository, DeletedUserRepository deleteUserRepository, UserMapper userMapper, PasswordEncoder passwordEncoder) {
+  public UserServiceImpl(UserRepository userRepository, DeletedUserRepository deleteUserRepository, UserMapper userMapper, PasswordEncoder passwordEncoder, JwtProvider jwtProvider) {
     this.userRepository = userRepository;
     this.deleteUserRepository = deleteUserRepository;
     this.userMapper = userMapper;
     this.passwordEncoder = passwordEncoder;
+    this.jwtProvider = jwtProvider;
   }
 
   @Override
@@ -116,5 +119,18 @@ public class UserServiceImpl implements UserService{
     deleteUserRepository.save(deletedUser);
 
     userRepository.delete(user);
+  }
+
+  @Override
+  @Transactional(readOnly = true)
+  public String login(String email, String password) {
+    User user = userRepository.findByEmail(email)
+        .orElseThrow(() -> new IllegalArgumentException("가입되지 않은 이메일입니다."));
+
+    if (!passwordEncoder.matches(password, user.getPassword())) {
+      throw new IllegalArgumentException("비밀번호가 일치하지 않습니다.");
+    }
+
+    return jwtProvider.createAccessToken(user.getEmail());
   }
 }

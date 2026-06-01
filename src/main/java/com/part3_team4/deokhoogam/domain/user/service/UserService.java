@@ -19,4 +19,6 @@ public interface UserService {
   void updatePassword(UUID userId, PasswordUpdateRequestDto request);
 
   void deleteUser(UUID userId);
+
+  String login(String email, String password)
 }
