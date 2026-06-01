@@ -14,6 +14,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.part3_team4.deokhoogam.domain.notification.controller.NotificationController;
 import com.part3_team4.deokhoogam.domain.notification.dto.NotificationDto;
 import com.part3_team4.deokhoogam.domain.notification.service.NotificationService;
+import com.part3_team4.deokhoogam.domain.notification.dto.NotificationUpdateRequest;
 import java.time.Instant;
 import java.util.UUID;
 import org.junit.jupiter.api.DisplayName;
@@ -99,13 +100,17 @@ class NotificationControllerTest {
 
     // notificationService.updateConfirmed(...)가 호출되면
     // 위에서 만든 response를 반환하도록 설정합니다.
-    given(notificationService.updateConfirmed(eq(notificationId), eq(requesterId), any()))
-        .willReturn(response);
+    given(notificationService.updateConfirmed(
+        eq(notificationId),
+        eq(requesterId),
+        any(NotificationUpdateRequest.class)
+    )).willReturn(response);
 
     // PATCH 요청 body입니다.
-    // Swagger 명세의 예시와 동일하게 confirmed 값을 전달합니다.
+    // 실제 API 요청 DTO인 NotificationUpdateRequest를 JSON으로 변환합니다.
+    // 생성되는 JSON은 Swagger 명세의 예시와 동일하게 { "confirmed": true } 형태입니다.
     String requestBody = objectMapper.writeValueAsString(
-        new UpdateConfirmedRequest(true)
+        new NotificationUpdateRequest(true)
     );
 
     // when & then
@@ -132,7 +137,11 @@ class NotificationControllerTest {
     // Controller가 Service를 정확한 인자로 호출했는지 검증합니다.
     then(notificationService)
         .should()
-        .updateConfirmed(eq(notificationId), eq(requesterId), any());
+        .updateConfirmed(
+            eq(notificationId),
+            eq(requesterId),
+            any(NotificationUpdateRequest.class)
+        );
   }
 
   @Test
@@ -157,20 +166,4 @@ class NotificationControllerTest {
         .readAll(requesterId);
   }
 
-  /**
-   * 테스트 요청 body 생성을 위한 내부 record입니다.
-   *
-   * main 코드의 NotificationUpdateRequest를 직접 사용해도 되지만,
-   * Controller 테스트에서는 HTTP 요청 body의 모양만 중요하므로
-   * 테스트 안에 작은 요청 객체를 둬도 괜찮습니다.
-   *
-   * 생성되는 JSON:
-   * {
-   *   "confirmed": true
-   * }
-   */
-  private record UpdateConfirmedRequest(
-      boolean confirmed
-  ) {
-  }
 }
