@@ -23,8 +23,8 @@ class BookRepositoryTest {
   private BookRepository bookRepository;
 
   @Test
-  @DisplayName("ISBN 존재 여부를 확인한다")
-  void existsByIsbn_WhenBookExists_ReturnsTrue() {
+  @DisplayName("저장된 ISBN으로 조회 시 true를 반환한다")
+  void existsByIsbn_savedIsbn_returnsTrue() {
     // given
     String targetIsbn = "1234567890123";
     Book book = createFixtureBook(targetIsbn);
@@ -32,10 +32,21 @@ class BookRepositoryTest {
 
     // when
     boolean exists = bookRepository.existsByIsbn(targetIsbn);
-    boolean notExists = bookRepository.existsByIsbn("0000000000000");
 
     // then
     assertThat(exists).isTrue();
+  }
+
+  @Test
+  @DisplayName("저장되지 않은 ISBN으로 조회 시 false를 반환한다")
+  void existsByIsbn_notSavedIsbn_returnsFalse() {
+    // given
+    String notSavedIsbn = "0000000000000";
+
+    // when
+    boolean notExists = bookRepository.existsByIsbn(notSavedIsbn);
+
+    // then
     assertThat(notExists).isFalse();
   }
 
