@@ -2,6 +2,7 @@ package com.part3_team4.deokhoogam.domain.user.entity;
 
 import com.part3_team4.deokhoogam.global.common.BaseEntity;
 import jakarta.persistence.CascadeType;
+import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.FetchType;
 import jakarta.persistence.JoinColumn;
@@ -14,7 +15,11 @@ import lombok.Getter;
 @Table(name = "\"user\"")
 @Getter
 public class User extends BaseEntity {
+
+  @Column(unique = true, nullable = false)
   private String email;
+
+  @Column(unique = true, nullable = false)
   private String name;
   private String password;
 
