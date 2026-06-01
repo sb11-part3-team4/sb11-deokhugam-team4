@@ -251,7 +251,7 @@ class BookControllerTest {
       @DisplayName("최소한의 데이터가 들어올때 200을 리턴하고 디폴트 옵션으로 도서 목록을 리턴한다")
       void return_200_when_minimum_valid_data() throws Exception {
         //given
-        List<BookDto> books = BookFixtureFactory.createBookList();
+        List<BookDto> books = BookFixtureFactory.createBookDtoList();
 
         PageResponse<BookDto> response = PageResponse.<BookDto>builder()
             .content(books)
