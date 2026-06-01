@@ -2,10 +2,12 @@ package com.part3_team4.deokhoogam.domain.book.service;
 
 import com.part3_team4.deokhoogam.domain.book.dto.BookCreateRequest;
 import com.part3_team4.deokhoogam.domain.book.dto.BookDto;
+import com.part3_team4.deokhoogam.domain.book.dto.BookGetListRequest;
 import com.part3_team4.deokhoogam.domain.book.entity.Book;
 import com.part3_team4.deokhoogam.domain.book.exception.BookNotFoundException;
 import com.part3_team4.deokhoogam.domain.book.exception.IsbnAlreadyExistsException;
 import com.part3_team4.deokhoogam.domain.book.repository.BookRepository;
+import com.part3_team4.deokhoogam.global.common.PageResponse;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import org.springframework.dao.DataIntegrityViolationException;
@@ -43,5 +45,11 @@ public class BookServiceImpl implements BookService {
 
     return BookDto.from(book);
 
+  }
+
+
+  @Override
+  public PageResponse<BookDto> getBooks(BookGetListRequest request) {
+    return null;
   }
 }
