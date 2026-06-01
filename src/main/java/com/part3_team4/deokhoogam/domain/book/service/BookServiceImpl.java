@@ -29,7 +29,14 @@ public class BookServiceImpl implements BookService {
 
     // 동시성 문제 방지
     try {
-      Book book = request.toEntity();
+      Book book = Book.builder()
+          .isbn(request.isbn())
+          .title(request.title())
+          .author(request.author())
+          .description(request.description())
+          .publisher(request.publisher())
+          .publishedDate(request.publishedDate())
+          .build();
       return BookDto.from(bookRepository.save(book));
     } catch (DataIntegrityViolationException e) {
       Throwable cause = e.getCause();

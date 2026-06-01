@@ -1,7 +1,6 @@
 package com.part3_team4.deokhoogam.domain.book.dto;
 
 import com.fasterxml.jackson.annotation.JsonFormat;
-import com.part3_team4.deokhoogam.domain.book.entity.Book;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import java.time.LocalDate;
@@ -34,14 +33,4 @@ public record BookCreateRequest(
     String isbn
 ) {
 
-  public Book toEntity() {
-    return Book.builder()
-        .isbn(this.isbn)
-        .title(this.title)
-        .author(this.author)
-        .description(this.description)
-        .publisher(this.publisher)
-        .publishedDate(this.publishedDate)
-        .build();
-  }
 }
