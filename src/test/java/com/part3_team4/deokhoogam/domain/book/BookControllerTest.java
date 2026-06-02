@@ -16,11 +16,14 @@ import com.part3_team4.deokhoogam.domain.book.exception.BookNotFoundException;
 import com.part3_team4.deokhoogam.domain.book.exception.IsbnAlreadyExistsException;
 import com.part3_team4.deokhoogam.domain.book.service.BookService;
 import com.part3_team4.deokhoogam.global.exception.ErrorCode;
+import com.part3_team4.deokhoogam.global.jwt.JwtFilter;
+import java.time.LocalDate;
 import com.part3_team4.deokhoogam.global.fixture.BookFixtures;
 import java.util.UUID;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.MediaType;
@@ -32,6 +35,7 @@ import org.springframework.test.web.servlet.MockMvc;
 @WebMvcTest(BookController.class)
 @ActiveProfiles("test")
 @DisplayName("BookController 단위 테스트")
+@AutoConfigureMockMvc(addFilters = false)
 class BookControllerTest {
 
   @Autowired
@@ -43,6 +47,8 @@ class BookControllerTest {
   @MockitoBean
   private BookService bookService;
 
+  @MockitoBean
+  private JwtFilter jwtFilter;
 
   @Test
   @DisplayName("올바른 도서 정보로 생성 요청 시에 201 Created를 반환한다")
