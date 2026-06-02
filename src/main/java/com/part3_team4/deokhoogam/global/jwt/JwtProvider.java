@@ -1,11 +1,15 @@
 package com.part3_team4.deokhoogam.global.jwt;
 
+import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.io.Decoders;
 import io.jsonwebtoken.security.Keys;
+import java.util.Collections;
 import java.util.Date;
 import javax.crypto.SecretKey;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Component;
 
 @Component
@@ -31,5 +35,22 @@ public class JwtProvider {
         .expiration(expiration)
         .signWith(key)
         .compact();
+  }
+
+  public boolean validateToken(String token) {
+    try {
+      Jwts.parser().verifyWith(key).build().parseSignedClaims(token);
+      return true;
+    } catch (Exception e) {
+      return false;
+    }
+  }
+
+  public Authentication getAuthentication(String token) {
+    Claims claims = Jwts.parser().verifyWith(key).build().parseSignedClaims(token).getPayload();
+
+    String email = claims.getSubject();
+
+    return new UsernamePasswordAuthenticationToken(email, "", Collections.emptyList());
   }
 }
