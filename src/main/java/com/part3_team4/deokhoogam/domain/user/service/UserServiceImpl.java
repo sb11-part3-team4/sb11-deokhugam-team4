@@ -7,6 +7,7 @@ import com.part3_team4.deokhoogam.domain.user.dto.UserUpdateRequestDto;
 import com.part3_team4.deokhoogam.domain.user.dto.response.UserResponse;
 import com.part3_team4.deokhoogam.domain.user.entity.DeletedUser;
 import com.part3_team4.deokhoogam.domain.user.entity.User;
+import com.part3_team4.deokhoogam.domain.user.exception.EmailNotFoundException;
 import com.part3_team4.deokhoogam.domain.user.exception.PasswordMismatchException;
 import com.part3_team4.deokhoogam.domain.user.exception.UserAlreadyExistsException;
 import com.part3_team4.deokhoogam.domain.user.exception.UserNotFoundException;
@@ -126,10 +127,10 @@ public class UserServiceImpl implements UserService{
   @Transactional(readOnly = true)
   public String login(String email, String password) {
     User user = userRepository.findByEmail(email)
-        .orElseThrow(() -> new IllegalArgumentException("가입되지 않은 이메일입니다."));
+        .orElseThrow(EmailNotFoundException::new);
 
     if (!passwordEncoder.matches(password, user.getPassword())) {
-      throw new IllegalArgumentException("비밀번호가 일치하지 않습니다.");
+      throw new PasswordMismatchException();
     }
 
     return jwtProvider.createAccessToken(user.getEmail());

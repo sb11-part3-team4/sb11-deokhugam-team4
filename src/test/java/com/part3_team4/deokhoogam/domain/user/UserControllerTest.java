@@ -16,6 +16,7 @@ import com.part3_team4.deokhoogam.domain.user.controller.UserController;
 import com.part3_team4.deokhoogam.domain.user.dto.PasswordUpdateRequestDto;
 import com.part3_team4.deokhoogam.domain.user.dto.UserCreateRequestDto;
 import com.part3_team4.deokhoogam.domain.user.dto.UserDto;
+import com.part3_team4.deokhoogam.domain.user.dto.UserLoginRequestDto;
 import com.part3_team4.deokhoogam.domain.user.dto.UserUpdateRequestDto;
 import com.part3_team4.deokhoogam.domain.user.dto.response.UserResponse;
 import com.part3_team4.deokhoogam.domain.user.exception.PasswordMismatchException;
@@ -178,5 +179,34 @@ public class UserControllerTest {
 
     mockMvc.perform(delete("/api/users/{userId}", userId))
         .andExpect(status().isNotFound());
+  }
+
+  @Test
+  @DisplayName("로그인 성공 - 200반환 및 토큰 발급")
+  void login_success() throws Exception {
+    UserLoginRequestDto request = new UserLoginRequestDto(
+        "test@deokhugam.com", "password123!");
+
+    given(userService.login(request.email(), request.password()))
+        .willReturn("eyjh...fakeToken");
+
+    mockMvc.perform(post("/api/users/login")
+        .contentType(MediaType.APPLICATION_JSON)
+        .content(objectMapper.writeValueAsString(request)))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.accessToken").value("eyjh...fakeToken"));
+  }
+
+  @Test
+  @DisplayName("로그인 실패 - 이메일 형식 오류  400 반환")
+  void login_fail_invalidEmail() throws Exception {
+    UserLoginRequestDto request = new UserLoginRequestDto(
+        "invalid-email-format", "password123!");
+
+    mockMvc.perform(post("/api/users/login")
+        .contentType(MediaType.APPLICATION_JSON)
+        .content(objectMapper.writeValueAsString(request)))
+        .andExpect(status().isBadRequest())
+        .andExpect(jsonPath("$.code").value("COMMON-002"));
   }
 }

@@ -14,6 +14,7 @@ import com.part3_team4.deokhoogam.domain.user.dto.response.UserResponse;
 import com.part3_team4.deokhoogam.domain.user.dto.UserUpdateRequestDto;
 import com.part3_team4.deokhoogam.domain.user.entity.DeletedUser;
 import com.part3_team4.deokhoogam.domain.user.entity.User;
+import com.part3_team4.deokhoogam.domain.user.exception.EmailNotFoundException;
 import com.part3_team4.deokhoogam.domain.user.exception.PasswordMismatchException;
 import com.part3_team4.deokhoogam.domain.user.exception.UserAlreadyExistsException;
 import com.part3_team4.deokhoogam.domain.user.exception.UserNotFoundException;
@@ -21,6 +22,7 @@ import com.part3_team4.deokhoogam.domain.user.mapper.UserMapper;
 import com.part3_team4.deokhoogam.domain.user.repository.DeletedUserRepository;
 import com.part3_team4.deokhoogam.domain.user.repository.UserRepository;
 import com.part3_team4.deokhoogam.domain.user.service.UserServiceImpl;
+import com.part3_team4.deokhoogam.global.jwt.JwtProvider;
 import java.util.Optional;
 import java.util.UUID;
 import org.junit.jupiter.api.DisplayName;
@@ -47,6 +49,9 @@ public class UserServiceTest {
 
   @Mock
   private PasswordEncoder passwordEncoder;
+
+  @Mock
+  private JwtProvider jwtProvider;
 
   @Test
   @DisplayName("회원가입 성공")
@@ -276,5 +281,48 @@ public class UserServiceTest {
 
     then(deleteUserRepository).should(never()).save(any(DeletedUser.class));
     then(userRepository).should(never()).delete(any(User.class));
+  }
+
+  @Test
+  @DisplayName("로그인 성공 - 토큰 발급")
+  void login_success() {
+    String email = "test@deokhugam.com";
+    String rawPassword = "password123!";
+    User user = new User(email, "testUser", "encodedPassword");
+
+    given(userRepository.findByEmail(email)).willReturn(Optional.of(user));
+    given(passwordEncoder.matches(rawPassword, user.getPassword())).willReturn(true);
+    given(jwtProvider.createAccessToken(email)).willReturn("eyjh...fakeToken");
+
+    String token = userService.login(email, rawPassword);
+
+    assertThat(token).isEqualTo("eyjh...fakeToken");
+  }
+
+  @Test
+  @DisplayName("로그인 실패 - 존재하지 않는 이메일")
+  void login_fail_emailNotFound() {
+    String email = "notfound@deokhugam.com";
+
+    given(userRepository.findByEmail(email)).willReturn(Optional.empty());
+
+    assertThrows(EmailNotFoundException.class, () -> {
+      userService.login(email, "password123!");
+    });
+  }
+
+  @Test
+  @DisplayName("로그인 실패 - 비밀번호 불일치")
+  void login_fail_passwordMismatch() {
+    String email = "test@deokhugam.com";
+    String rawPassword = "wrongPassword";
+    User user = new User(email, "testUser", "encodedPassword");
+
+    given(userRepository.findByEmail(email)).willReturn(Optional.of(user));
+    given(passwordEncoder.matches(rawPassword, user.getPassword())).willReturn(false);
+
+    assertThrows(PasswordMismatchException.class, () -> {
+      userService.login(email, rawPassword);
+    });
   }
 }
