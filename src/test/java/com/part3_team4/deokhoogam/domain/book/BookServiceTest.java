@@ -2,7 +2,6 @@ package com.part3_team4.deokhoogam.domain.book;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
@@ -48,6 +47,9 @@ class BookServiceTest {
   @Mock
   private FileUploader fileUploader;
 
+  private static final String BOOK_THUMBNAIL_DIR = "books";
+  private static final String ISBN_UNIQUE_CONSTRAINT = "uk_book_isbn";
+
   @Test
   @DisplayName("새로운 도서를 성공적으로 등록한다")
   void createBook_Success() {
@@ -78,7 +80,6 @@ class BookServiceTest {
     assertThat(result.isbn()).isEqualTo(request.isbn());
     assertThat(result.title()).isEqualTo(request.title());
 
-    // ArgumentCaptor로 실제 save에 전달된 엔티티 필드 검증 수행
     ArgumentCaptor<Book> bookCaptor = ArgumentCaptor.forClass(Book.class);
     then(bookRepository).should().save(bookCaptor.capture());
 
@@ -103,7 +104,8 @@ class BookServiceTest {
     UUID mockId = UUID.randomUUID();
 
     given(bookRepository.existsByIsbn(request.isbn())).willReturn(false);
-    given(fileUploader.upload(any(MultipartFile.class), eq("books"))).willReturn(mockUploadedUrl);
+    given(fileUploader.upload(any(MultipartFile.class), eq(BOOK_THUMBNAIL_DIR))).willReturn(
+        mockUploadedUrl);
 
     Book mockSavedBook = Book.builder()
         .isbn(request.isbn())
@@ -125,7 +127,6 @@ class BookServiceTest {
     assertThat(result).isNotNull();
     assertThat(result.thumbnailUrl()).isEqualTo(mockUploadedUrl);
 
-    // Repository에 실제 넘어간 엔티티의 thumbnailUrl 검증
     ArgumentCaptor<Book> bookCaptor = ArgumentCaptor.forClass(Book.class);
     then(bookRepository).should().save(bookCaptor.capture());
     assertThat(bookCaptor.getValue().getThumbnailUrl()).isEqualTo(mockUploadedUrl);
@@ -143,7 +144,7 @@ class BookServiceTest {
         "test_content".getBytes());
 
     given(bookRepository.existsByIsbn(request.isbn())).willReturn(false);
-    given(fileUploader.upload(any(MultipartFile.class), eq("books")))
+    given(fileUploader.upload(any(MultipartFile.class), eq(BOOK_THUMBNAIL_DIR)))
         .willThrow(new RuntimeException("S3 업로드 에러 발생"));
 
     // when & then
@@ -156,10 +157,9 @@ class BookServiceTest {
 
   @Test
   @DisplayName("이미 존재하는 ISBN으로 도서를 등록하면 예외가 발생한다")
-  void registerBook_WithAlreadyExistIsbn_ThrowsException() {
+  void createBook_WithAlreadyExistIsbn_ThrowsException() {
     // given
     BookCreateRequest request = BookFixtures.validBookCreateRequest();
-
     given(bookRepository.existsByIsbn(request.isbn())).willReturn(true);
 
     // when & then
@@ -171,49 +171,39 @@ class BookServiceTest {
   }
 
   @Test
-  @DisplayName("ISBN 제약 위반시 IsbnAlreadyExistsException으로 변환")
-  void create_uniqueViolationOnIsbn_throwsBusinessException() {
+  @DisplayName("ISBN 제약 위반시 IsbnAlreadyExistsException으로 변환한다")
+  void createBook_UniqueViolationOnIsbn_ThrowsBusinessException() {
     // given
     BookCreateRequest request = BookFixtures.validBookCreateRequest();
     given(bookRepository.existsByIsbn(request.isbn())).willReturn(false);
 
-    ConstraintViolationException cause = new ConstraintViolationException(
-        "제약조건명 검증",
-        new SQLException(),
-        "uk_book_isbn"
-    );
-    DataIntegrityViolationException exception = new DataIntegrityViolationException("예외 발생", cause);
-
+    DataIntegrityViolationException exception = createDataIntegrityViolation(
+        ISBN_UNIQUE_CONSTRAINT);
     given(bookRepository.save(any(Book.class))).willThrow(exception);
 
     // when & then
-    assertThrows(IsbnAlreadyExistsException.class,
-        () -> bookService.create(request, null));
+    assertThatThrownBy(() -> bookService.create(request, null))
+        .isInstanceOf(IsbnAlreadyExistsException.class);
   }
 
   @Test
   @DisplayName("ISBN 외 제약 위반 발생 시 원본 예외 그대로 전파한다")
-  void create_dataIntegrityViolationOnOtherConstraint_propagates() {
+  void createBook_DataIntegrityViolationOnOtherConstraint_Propagates() {
     // given
     BookCreateRequest request = BookFixtures.validBookCreateRequest();
     given(bookRepository.existsByIsbn(request.isbn())).willReturn(false);
 
-    ConstraintViolationException cause = new ConstraintViolationException(
-        "제약조건명 검증",
-        new SQLException(),
-        "other_constraint"
-    );
-    DataIntegrityViolationException exception = new DataIntegrityViolationException("예외 발생", cause);
-
+    DataIntegrityViolationException exception = createDataIntegrityViolation("other_constraint");
     given(bookRepository.save(any(Book.class))).willThrow(exception);
 
-    assertThrows(DataIntegrityViolationException.class,
-        () -> bookService.create(request, null));
+    // when & then
+    assertThatThrownBy(() -> bookService.create(request, null))
+        .isInstanceOf(DataIntegrityViolationException.class);
   }
 
   @Test
   @DisplayName("원인이 ConstraintViolationException이 아닌 DataIntegrityViolationException 발생 시 원본 예외를 전파한다")
-  void create_dataIntegrityViolation_withDifferentCause_propagates() {
+  void createBook_DataIntegrityViolationWithDifferentCause_Propagates() {
     // given
     BookCreateRequest request = BookFixtures.validBookCreateRequest();
     given(bookRepository.existsByIsbn(request.isbn())).willReturn(false);
@@ -225,8 +215,8 @@ class BookServiceTest {
     given(bookRepository.save(any(Book.class))).willThrow(exception);
 
     // when & then
-    assertThrows(DataIntegrityViolationException.class,
-        () -> bookService.create(request, null));
+    assertThatThrownBy(() -> bookService.create(request, null))
+        .isInstanceOf(DataIntegrityViolationException.class);
   }
 
   @Test
@@ -266,8 +256,6 @@ class BookServiceTest {
     assertThat(existingBook.getPublishedDate()).isEqualTo(updateRequest.publishedDate());
 
     then(bookRepository).should().findById(targetId);
-
-    // @Transactional + 더티 체킹으로 save() 명시적 호출 없이 자동 반영
     then(bookRepository).should(never()).save(any(Book.class));
   }
 
@@ -287,5 +275,13 @@ class BookServiceTest {
 
     then(bookRepository).should().findById(nonExistentId);
     then(bookRepository).shouldHaveNoMoreInteractions();
+  }
+
+  private DataIntegrityViolationException createDataIntegrityViolation(String constraintName) {
+    ConstraintViolationException cause = new ConstraintViolationException(
+        "제약조건명 검증",
+        new SQLException(),
+        constraintName);
+    return new DataIntegrityViolationException("데이터 무결성 예외 발생", cause);
   }
 }

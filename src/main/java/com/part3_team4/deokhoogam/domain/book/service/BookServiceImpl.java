@@ -20,22 +20,20 @@ import org.springframework.web.multipart.MultipartFile;
 @RequiredArgsConstructor
 public class BookServiceImpl implements BookService {
 
+  private static final String BOOK_THUMBNAIL_DIR = "books";
+  private static final String ISBN_UNIQUE_CONSTRAINT = "uk_book_isbn";
+
   private final BookRepository bookRepository;
   private final FileUploader fileUploader;
 
+  /// TODO: S3 업로드 후 DB 저장 실패 시 orphan file 정리 필요
   @Override
   @Transactional
   public BookDto create(BookCreateRequest request, MultipartFile thumbnailFile) {
-    if (bookRepository.existsByIsbn(request.isbn())) {
-      throw IsbnAlreadyExistsException.withIsbn(request.isbn());
-    }
+    validateDuplicateIsbn(request.isbn());
 
-    String thumbnailUrl = null;
-    if (thumbnailFile != null && !thumbnailFile.isEmpty()) {
-      thumbnailUrl = fileUploader.upload(thumbnailFile, "books");
-    }
+    String thumbnailUrl = uploadThumbnail(thumbnailFile);
 
-    // 동시성 문제 방지
     try {
       Book book = Book.builder()
           .isbn(request.isbn())
@@ -49,13 +47,8 @@ public class BookServiceImpl implements BookService {
 
       return BookDto.from(bookRepository.save(book));
     } catch (DataIntegrityViolationException e) {
-      Throwable cause = e;
-      while (cause != null) {
-        if (cause instanceof ConstraintViolationException cve
-            && "uk_book_isbn".equalsIgnoreCase(cve.getConstraintName())) {
-          throw IsbnAlreadyExistsException.withIsbn(request.isbn());
-        }
-        cause = cause.getCause();
+      if (isDuplicateIsbnViolation(e)) {
+        throw IsbnAlreadyExistsException.withIsbn(request.isbn());
       }
       throw e;
     }
@@ -77,5 +70,30 @@ public class BookServiceImpl implements BookService {
     );
 
     return BookDto.from(book);
+  }
+
+  private void validateDuplicateIsbn(String isbn) {
+    if (bookRepository.existsByIsbn(isbn)) {
+      throw IsbnAlreadyExistsException.withIsbn(isbn);
+    }
+  }
+
+  private String uploadThumbnail(MultipartFile thumbnailFile) {
+    if (thumbnailFile == null || thumbnailFile.isEmpty()) {
+      return null;
+    }
+    return fileUploader.upload(thumbnailFile, BOOK_THUMBNAIL_DIR);
+  }
+
+  private boolean isDuplicateIsbnViolation(DataIntegrityViolationException e) {
+    Throwable cause = e;
+    while (cause != null) {
+      if (cause instanceof ConstraintViolationException cve
+          && ISBN_UNIQUE_CONSTRAINT.equalsIgnoreCase(cve.getConstraintName())) {
+        return true;
+      }
+      cause = cause.getCause();
+    }
+    return false;
   }
 }
