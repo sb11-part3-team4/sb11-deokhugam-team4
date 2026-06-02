@@ -8,6 +8,8 @@ import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
 
 /**
  * 알림 관련 HTTP API를 처리하는 Controller입니다.
@@ -48,10 +50,26 @@ public class NotificationController {
    * - 200 OK
    * - 수정된 NotificationDto 반환
    */
+  @Operation(
+      summary = "알림 읽음 상태 업데이트",
+      description = "특정 알림의 상태를 업데이트 합니다."
+  )
   @PatchMapping("/{notificationId}")
   public ResponseEntity<NotificationDto> updateConfirmed(
+      @Parameter(
+          description = "알림 ID",
+          required = true,
+          example = "123e4567-e89b-12d3-a456-426614174000"
+      )
       @PathVariable UUID notificationId,
+
+      @Parameter(
+          description = "요청자 ID",
+          required = true,
+          example = "123e4567-e89b-12d3-a456-426614174000"
+      )
       @RequestHeader("Deokhugam-Request-User-ID") UUID requesterId,
+
       @Valid @RequestBody NotificationUpdateRequest request
   ) {
     NotificationDto response = notificationService.updateConfirmed(
@@ -76,8 +94,17 @@ public class NotificationController {
    * - 204 No Content
    * - 응답 body 없음
    */
+  @Operation(
+      summary = "모든 알림 읽음 처리",
+      description = "사용자의 모든 알림을 읽음 상태로 처리합니다."
+  )
   @PatchMapping("/read-all")
   public ResponseEntity<Void> readAll(
+      @Parameter(
+          description = "요청자 ID",
+          required = true,
+          example = "123e4567-e89b-12d3-a456-426614174000"
+      )
       @RequestHeader("Deokhugam-Request-User-ID") UUID requesterId
   ) {
     notificationService.readAll(requesterId);
