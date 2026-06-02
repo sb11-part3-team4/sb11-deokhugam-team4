@@ -4,6 +4,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.BDDMockito.then;
 import static org.mockito.Mockito.never;
@@ -18,6 +19,7 @@ import com.part3_team4.deokhoogam.domain.book.exception.IsbnAlreadyExistsExcepti
 import com.part3_team4.deokhoogam.domain.book.repository.BookRepository;
 import com.part3_team4.deokhoogam.domain.book.service.BookServiceImpl;
 import com.part3_team4.deokhoogam.global.fixture.BookFixtures;
+import com.part3_team4.deokhoogam.global.storage.FileUploader;
 import java.sql.SQLException;
 import java.util.Optional;
 import java.util.UUID;
@@ -30,6 +32,8 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.mock.web.MockMultipartFile;
+import org.springframework.web.multipart.MultipartFile;
 
 @ExtendWith(MockitoExtension.class)
 @DisplayName("BookService 단위 테스트")
@@ -40,6 +44,9 @@ class BookServiceTest {
 
   @Mock
   private BookRepository bookRepository;
+
+  @Mock
+  private FileUploader fileUploader;
 
   @Test
   @DisplayName("새로운 도서를 성공적으로 등록한다")
@@ -63,7 +70,7 @@ class BookServiceTest {
     given(bookRepository.save(any(Book.class))).willReturn(mockSavedBook);
 
     // when
-    BookDto result = bookService.create(request);
+    BookDto result = bookService.create(request, null);
 
     // then
     assertThat(result).isNotNull();
@@ -82,6 +89,72 @@ class BookServiceTest {
   }
 
   @Test
+  @DisplayName("도서 등록 시 썸네일 파일이 주어지면 파일 저장소에 업로드 후 반환된 URL을 포함하여 저장한다")
+  void createBook_WithThumbnail_Success() {
+    // given
+    BookCreateRequest request = BookFixtures.validBookCreateRequest();
+    MockMultipartFile thumbnailFile = new MockMultipartFile(
+        "thumbnailFile",
+        "image.png",
+        "image/png",
+        "test_content".getBytes());
+
+    String mockUploadedUrl = "https://s3.deokhugam.com/books/test-image.png";
+    UUID mockId = UUID.randomUUID();
+
+    given(bookRepository.existsByIsbn(request.isbn())).willReturn(false);
+    given(fileUploader.upload(any(MultipartFile.class), eq("books"))).willReturn(mockUploadedUrl);
+
+    Book mockSavedBook = Book.builder()
+        .isbn(request.isbn())
+        .title(request.title())
+        .author(request.author())
+        .description(request.description())
+        .publisher(request.publisher())
+        .publishedDate(request.publishedDate())
+        .thumbnailUrl(mockUploadedUrl)
+        .build();
+    setField(mockSavedBook, "id", mockId);
+
+    given(bookRepository.save(any(Book.class))).willReturn(mockSavedBook);
+
+    // when
+    BookDto result = bookService.create(request, thumbnailFile);
+
+    // then
+    assertThat(result).isNotNull();
+    assertThat(result.thumbnailUrl()).isEqualTo(mockUploadedUrl);
+
+    // Repository에 실제 넘어간 엔티티의 thumbnailUrl 검증
+    ArgumentCaptor<Book> bookCaptor = ArgumentCaptor.forClass(Book.class);
+    then(bookRepository).should().save(bookCaptor.capture());
+    assertThat(bookCaptor.getValue().getThumbnailUrl()).isEqualTo(mockUploadedUrl);
+  }
+
+  @Test
+  @DisplayName("파일 스토리지 업로드 중 예외가 발생하면 도서 등록이 실패하고 예외가 상위로 전파된다")
+  void createBook_ThumbnailUploadFail_ThrowsException() {
+    // given
+    BookCreateRequest request = BookFixtures.validBookCreateRequest();
+    MockMultipartFile thumbnailFile = new MockMultipartFile(
+        "thumbnailFile",
+        "image.png",
+        "image/png",
+        "test_content".getBytes());
+
+    given(bookRepository.existsByIsbn(request.isbn())).willReturn(false);
+    given(fileUploader.upload(any(MultipartFile.class), eq("books")))
+        .willThrow(new RuntimeException("S3 업로드 에러 발생"));
+
+    // when & then
+    assertThatThrownBy(() -> bookService.create(request, thumbnailFile))
+        .isInstanceOf(RuntimeException.class)
+        .hasMessageContaining("S3 업로드 에러 발생");
+
+    then(bookRepository).should(never()).save(any(Book.class));
+  }
+
+  @Test
   @DisplayName("이미 존재하는 ISBN으로 도서를 등록하면 예외가 발생한다")
   void registerBook_WithAlreadyExistIsbn_ThrowsException() {
     // given
@@ -90,7 +163,7 @@ class BookServiceTest {
     given(bookRepository.existsByIsbn(request.isbn())).willReturn(true);
 
     // when & then
-    assertThatThrownBy(() -> bookService.create(request))
+    assertThatThrownBy(() -> bookService.create(request, null))
         .isInstanceOf(IsbnAlreadyExistsException.class);
 
     then(bookRepository).should().existsByIsbn(request.isbn());
@@ -115,7 +188,7 @@ class BookServiceTest {
 
     // when & then
     assertThrows(IsbnAlreadyExistsException.class,
-        () -> bookService.create(request));
+        () -> bookService.create(request, null));
   }
 
   @Test
@@ -135,7 +208,7 @@ class BookServiceTest {
     given(bookRepository.save(any(Book.class))).willThrow(exception);
 
     assertThrows(DataIntegrityViolationException.class,
-        () -> bookService.create(request));
+        () -> bookService.create(request, null));
   }
 
   @Test
@@ -153,7 +226,7 @@ class BookServiceTest {
 
     // when & then
     assertThrows(DataIntegrityViolationException.class,
-        () -> bookService.create(request));
+        () -> bookService.create(request, null));
   }
 
   @Test
