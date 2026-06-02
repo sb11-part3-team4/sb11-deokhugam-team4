@@ -7,6 +7,7 @@ import com.part3_team4.deokhoogam.domain.user.dto.UserUpdateRequestDto;
 import com.part3_team4.deokhoogam.domain.user.dto.response.UserResponse;
 import com.part3_team4.deokhoogam.domain.user.entity.DeletedUser;
 import com.part3_team4.deokhoogam.domain.user.entity.User;
+import com.part3_team4.deokhoogam.domain.user.exception.InvalidCredentialsException;
 import com.part3_team4.deokhoogam.domain.user.exception.PasswordMismatchException;
 import com.part3_team4.deokhoogam.domain.user.exception.UserAlreadyExistsException;
 import com.part3_team4.deokhoogam.domain.user.exception.UserNotFoundException;
@@ -117,10 +118,10 @@ public class UserServiceImpl implements UserService{
   @Transactional(readOnly = true)
   public String login(String email, String password) {
     User user = userRepository.findByEmail(email)
-        .orElseThrow(PasswordMismatchException::new);
+        .orElseThrow(InvalidCredentialsException::new);
 
     if (!passwordEncoder.matches(password, user.getPassword())) {
-      throw new PasswordMismatchException();
+      throw new InvalidCredentialsException();
     }
 
     return jwtProvider.createAccessToken(user.getEmail());

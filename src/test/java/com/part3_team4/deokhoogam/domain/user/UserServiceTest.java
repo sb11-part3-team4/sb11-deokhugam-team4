@@ -14,6 +14,7 @@ import com.part3_team4.deokhoogam.domain.user.dto.response.UserResponse;
 import com.part3_team4.deokhoogam.domain.user.dto.UserUpdateRequestDto;
 import com.part3_team4.deokhoogam.domain.user.entity.DeletedUser;
 import com.part3_team4.deokhoogam.domain.user.entity.User;
+import com.part3_team4.deokhoogam.domain.user.exception.InvalidCredentialsException;
 import com.part3_team4.deokhoogam.domain.user.exception.PasswordMismatchException;
 import com.part3_team4.deokhoogam.domain.user.exception.UserAlreadyExistsException;
 import com.part3_team4.deokhoogam.domain.user.exception.UserNotFoundException;
@@ -305,7 +306,7 @@ public class UserServiceTest {
 
     given(userRepository.findByEmail(email)).willReturn(Optional.empty());
 
-    assertThrows(PasswordMismatchException.class, () -> {
+    assertThrows(InvalidCredentialsException.class, () -> {
       userService.login(email, "password123!");
     });
   }
@@ -320,7 +321,7 @@ public class UserServiceTest {
     given(userRepository.findByEmail(email)).willReturn(Optional.of(user));
     given(passwordEncoder.matches(rawPassword, user.getPassword())).willReturn(false);
 
-    assertThrows(PasswordMismatchException.class, () -> {
+    assertThrows(InvalidCredentialsException.class, () -> {
       userService.login(email, rawPassword);
     });
   }
