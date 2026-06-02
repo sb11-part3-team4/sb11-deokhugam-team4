@@ -227,4 +227,45 @@ public class ReviewServiceTest {
 
     }
 
+    @Test
+    @DisplayName("타인의 reviewId를 삭제하려하면 ReviewNotOwnerException을 던진다")
+    void deleteReview_reviewNotOwner_throwsException() {
+        UUID ownerUserId = UUID.randomUUID();
+        UUID anotherUserId = UUID.randomUUID();
+        UUID bookId = UUID.randomUUID();
+        UUID reviewId = UUID.randomUUID();
+        Review review = Review.create(ownerUserId, bookId, 4, "내용");
+
+
+        given(reviewRepository.findById(reviewId)).willReturn(Optional.of(review));
+
+        assertThatThrownBy(() -> reviewService.deleteReview(reviewId, anotherUserId)).isInstanceOf(ReviewNotOwnerException.class);
+
+    }
+
+    @Test
+    @DisplayName("존재하지 않는 reviewId로 삭제를 시도하면 ReviewNotFoundException을 던진다")
+    void deleteReview_reviewNotFound_throwsException() {
+        UUID userId = UUID.randomUUID();
+        UUID reviewId = UUID.randomUUID();
+
+        given(reviewRepository.findById(reviewId)).willReturn(Optional.empty());
+
+        assertThatThrownBy(() -> reviewService.deleteReview(reviewId, userId)).isInstanceOf(ReviewNotFoundException.class);
+    }
+
+    @Test
+    @DisplayName("리뷰를 삭제하면 ReviewLike도 함께 삭제된다")
+    void deleteReview_success_deleteReviewLike() {
+        UUID ownerUserId = UUID.randomUUID();
+        UUID bookId = UUID.randomUUID();
+        Review review = Review.create(ownerUserId, bookId, 4, "내용");
+
+        given(reviewRepository.findById(any(UUID.class))).willReturn(Optional.of(review));
+
+        reviewService.deleteReview(review.getId(), ownerUserId);
+
+        then(reviewLikeRepository).should().deleteAllByReviewId(review.getId());
+    }
+
 }
