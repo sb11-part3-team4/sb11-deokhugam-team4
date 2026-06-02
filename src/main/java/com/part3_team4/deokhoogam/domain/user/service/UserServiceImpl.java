@@ -7,6 +7,7 @@ import com.part3_team4.deokhoogam.domain.user.dto.UserUpdateRequestDto;
 import com.part3_team4.deokhoogam.domain.user.dto.response.UserResponse;
 import com.part3_team4.deokhoogam.domain.user.entity.DeletedUser;
 import com.part3_team4.deokhoogam.domain.user.entity.User;
+import com.part3_team4.deokhoogam.domain.user.exception.PasswordMismatchException;
 import com.part3_team4.deokhoogam.domain.user.exception.UserAlreadyExistsException;
 import com.part3_team4.deokhoogam.domain.user.exception.UserNotFoundException;
 import com.part3_team4.deokhoogam.domain.user.mapper.UserMapper;
@@ -101,7 +102,7 @@ public class UserServiceImpl implements UserService{
         .orElseThrow(() -> UserNotFoundException.withId(userId));
 
     if (!passwordEncoder.matches(request.currentPassword(), user.getPassword())) {
-      throw new IllegalArgumentException("비밀번호가 일치하지 않습니다.");
+      throw new PasswordMismatchException();
     }
 
     String encodedNewPassword = passwordEncoder.encode(request.newPassword());

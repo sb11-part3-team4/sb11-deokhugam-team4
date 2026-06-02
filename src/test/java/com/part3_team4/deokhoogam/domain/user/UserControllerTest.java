@@ -13,10 +13,12 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.part3_team4.deokhoogam.domain.user.controller.UserController;
+import com.part3_team4.deokhoogam.domain.user.dto.PasswordUpdateRequestDto;
 import com.part3_team4.deokhoogam.domain.user.dto.UserCreateRequestDto;
 import com.part3_team4.deokhoogam.domain.user.dto.UserDto;
 import com.part3_team4.deokhoogam.domain.user.dto.UserUpdateRequestDto;
 import com.part3_team4.deokhoogam.domain.user.dto.response.UserResponse;
+import com.part3_team4.deokhoogam.domain.user.exception.PasswordMismatchException;
 import com.part3_team4.deokhoogam.domain.user.exception.UserNotFoundException;
 import com.part3_team4.deokhoogam.domain.user.service.UserService;
 import java.util.UUID;
@@ -125,6 +127,36 @@ public class UserControllerTest {
             .content(objectMapper.writeValueAsString(request)))
         .andExpect(status().isBadRequest())
         .andExpect(jsonPath("$.code").value("COMMON-002"));
+  }
+
+  @Test
+  @DisplayName("비밀번호 수정 성공 - 200반환")
+  void updatePassword_success() throws Exception {
+    UUID userId = UUID.randomUUID();
+    PasswordUpdateRequestDto request = new PasswordUpdateRequestDto(
+        "oldPassword", "newPassword");
+
+    mockMvc.perform(patch("/api/users/{userId}/password", userId)
+        .contentType(MediaType.APPLICATION_JSON)
+        .content(objectMapper.writeValueAsString(request)))
+        .andExpect(status().isOk());
+  }
+
+  @Test
+  @DisplayName("비밀번호 수정 실패 - 비밀번호 불일치 400반환")
+  void updatePassword_fail_passwordMismatch() throws Exception {
+    UUID userId = UUID.randomUUID();
+    PasswordUpdateRequestDto request = new PasswordUpdateRequestDto(
+        "oldPassword", "newPassword");
+
+    willThrow(new PasswordMismatchException())
+        .given(userService).updatePassword(userId, request);
+
+    mockMvc.perform(patch("/api/users/{userId}/password", userId)
+            .contentType(MediaType.APPLICATION_JSON)
+            .content(objectMapper.writeValueAsString(request)))
+        .andExpect(status().isBadRequest())
+        .andExpect(jsonPath("$.code").value("USER-003"));
   }
 
   @Test
