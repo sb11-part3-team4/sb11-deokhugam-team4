@@ -1,6 +1,7 @@
 package com.part3_team4.deokhoogam.domain.book;
 
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.isNull;
 import static org.mockito.BDDMockito.given;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.multipart;
 import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.print;
@@ -21,6 +22,7 @@ import java.util.UUID;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.MediaType;
@@ -32,6 +34,7 @@ import org.springframework.test.web.servlet.MockMvc;
 @WebMvcTest(BookController.class)
 @ActiveProfiles("test")
 @DisplayName("BookController 단위 테스트")
+@AutoConfigureMockMvc(addFilters = false)
 class BookControllerTest {
 
   @Autowired
@@ -59,8 +62,9 @@ class BookControllerTest {
         .author(request.author())
         .build();
 
-    given(bookService.create(any(BookCreateRequest.class))).willReturn(mockResponse);
-
+    given(bookService.create(any(BookCreateRequest.class), isNull()))
+        .willReturn(mockResponse);
+    
     // when & then
     mockMvc.perform(multipart("/api/books")
             .file(bookDataPart))
@@ -71,6 +75,41 @@ class BookControllerTest {
         .andExpect(jsonPath("$.title").value(request.title()));
   }
 
+  @Test
+  @DisplayName("썸네일 파일과 함께 도서 생성 요청 시 201 Created를 반환한다")
+  void createBook_withThumbnail_returnsCreatedBook() throws Exception {
+    // given
+    BookCreateRequest request = BookFixtures.validBookCreateRequest();
+    MockMultipartFile bookDataPart = createMockMultipartFile(request);
+
+    MockMultipartFile thumbnailPart = new MockMultipartFile(
+        "thumbnail",
+        "thumbnail.jpg",
+        MediaType.IMAGE_JPEG_VALUE,
+        "dummy-image".getBytes()
+    );
+
+    UUID mockId = UUID.randomUUID();
+
+    BookDto mockResponse = BookDto.builder()
+        .id(mockId)
+        .title(request.title())
+        .isbn(request.isbn())
+        .author(request.author())
+        .build();
+
+    given(bookService.create(any(BookCreateRequest.class), any()))
+        .willReturn(mockResponse);
+
+    // when & then
+    mockMvc.perform(multipart("/api/books")
+            .file(bookDataPart)
+            .file(thumbnailPart))
+        .andDo(print())
+        .andExpect(status().isCreated())
+        .andExpect(jsonPath("$.id").value(mockId.toString()))
+        .andExpect(jsonPath("$.title").value(request.title()));
+  }
 
   @Test
   @DisplayName("이미 존재하는 ISBN으로 도서를 등록 시에 409 Conflict를 반환한다")
@@ -79,7 +118,7 @@ class BookControllerTest {
     BookCreateRequest request = BookFixtures.validBookCreateRequest();
     MockMultipartFile bookDataPart = createMockMultipartFile(request);
 
-    given(bookService.create(any(BookCreateRequest.class)))
+    given(bookService.create(any(BookCreateRequest.class), isNull()))
         .willThrow(IsbnAlreadyExistsException.withIsbn(request.isbn()));
 
     // when & then
