@@ -21,6 +21,7 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestPart;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.multipart.MultipartFile;
 
 @Tag(name = "도서 관리", description = "도서 관련 API")
 @RestController
@@ -39,8 +40,11 @@ public class BookController {
   })
   @PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
   public ResponseEntity<BookDto> createBook(
-      @RequestPart("bookData") @Valid @Schema(description = "도서 정보") BookCreateRequest request) {
-    BookDto response = bookService.create(request);
+      @RequestPart("bookData") @Valid @Schema(description = "도서 정보") BookCreateRequest request,
+      @RequestPart(value = "thumbnailImage", required = false) @Schema(description = "도서 썸네일 이미지")
+      MultipartFile thumbnailImage
+  ) {
+    BookDto response = bookService.create(request, thumbnailImage);
     return ResponseEntity.status(HttpStatus.CREATED).body(response);
   }
 
