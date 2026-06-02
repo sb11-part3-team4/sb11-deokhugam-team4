@@ -9,6 +9,7 @@ import com.part3_team4.deokhoogam.domain.book.exception.IsbnAlreadyExistsExcepti
 import com.part3_team4.deokhoogam.domain.book.repository.BookRepository;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
+import org.hibernate.exception.ConstraintViolationException;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -28,10 +29,25 @@ public class BookServiceImpl implements BookService {
 
     // 동시성 문제 방지
     try {
-      Book book = request.toEntity();
+      Book book = Book.builder()
+          .isbn(request.isbn())
+          .title(request.title())
+          .author(request.author())
+          .description(request.description())
+          .publisher(request.publisher())
+          .publishedDate(request.publishedDate())
+          .build();
       return BookDto.from(bookRepository.save(book));
     } catch (DataIntegrityViolationException e) {
-      throw IsbnAlreadyExistsException.withIsbn(request.isbn());
+      Throwable cause = e;
+      while (cause != null) {
+        if (cause instanceof ConstraintViolationException cve
+            && "uk_book_isbn".equalsIgnoreCase(cve.getConstraintName())) {
+          throw IsbnAlreadyExistsException.withIsbn(request.isbn());
+        }
+        cause = cause.getCause();
+      }
+      throw e;
     }
   }
 
