@@ -3,9 +3,12 @@ package com.part3_team4.deokhoogam.domain.notification.controller;
 import com.part3_team4.deokhoogam.domain.notification.dto.NotificationDto;
 import com.part3_team4.deokhoogam.domain.notification.dto.NotificationUpdateRequest;
 import com.part3_team4.deokhoogam.domain.notification.service.NotificationService;
+import com.part3_team4.deokhoogam.global.common.PageResponse;
 import jakarta.validation.Valid;
 import java.util.UUID;
+import java.time.Instant;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Sort;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import io.swagger.v3.oas.annotations.Operation;
@@ -110,5 +113,43 @@ public class NotificationController {
     notificationService.readAll(requesterId);
 
     return ResponseEntity.noContent().build();
+  }
+
+  /**
+   * 사용자의 알림 목록을 조회합니다.
+   *
+   * Swagger 명세:
+   * GET /api/notifications
+   */
+  @Operation(
+      summary = "알림 목록 조회",
+      description = "사용자의 알림 목록을 최근 시간 순으로 조회합니다."
+  )
+  @GetMapping
+  public ResponseEntity<PageResponse<NotificationDto>> findAll(
+      @Parameter(description = "사용자 ID", required = true)
+      @RequestParam UUID userId,
+
+      @Parameter(description = "정렬 방향", example = "DESC")
+      @RequestParam(defaultValue = "DESC") Sort.Direction direction,
+
+      @Parameter(description = "커서 페이지네이션 커서")
+      @RequestParam(required = false) UUID cursor,
+
+      @Parameter(description = "보조 커서(createdAt)")
+      @RequestParam(required = false) Instant after,
+
+      @Parameter(description = "페이지 크기", example = "20")
+      @RequestParam(defaultValue = "20") int limit
+  ) {
+    PageResponse<NotificationDto> response = notificationService.findAll(
+        userId,
+        direction,
+        cursor,
+        after,
+        limit
+    );
+
+    return ResponseEntity.ok(response);
   }
 }
