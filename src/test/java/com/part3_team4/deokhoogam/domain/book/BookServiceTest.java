@@ -139,6 +139,24 @@ class BookServiceTest {
   }
 
   @Test
+  @DisplayName("원인이 ConstraintViolationException이 아닌 DataIntegrityViolationException 발생 시 원본 예외를 전파한다")
+  void create_dataIntegrityViolation_withDifferentCause_propagates() {
+    // given
+    BookCreateRequest request = BookFixtures.validBookCreateRequest();
+    given(bookRepository.existsByIsbn(request.isbn())).willReturn(false);
+
+    SQLException differentCause = new SQLException("일반적인 SQL 문법 에러 등");
+    DataIntegrityViolationException exception = new DataIntegrityViolationException("예외 발생",
+        differentCause);
+
+    given(bookRepository.save(any(Book.class))).willThrow(exception);
+
+    // when & then
+    assertThrows(DataIntegrityViolationException.class,
+        () -> bookService.create(request));
+  }
+
+  @Test
   @DisplayName("기존 도서 정보를 요청에 따라 수정한다")
   void updateBook_Success() {
     // given
