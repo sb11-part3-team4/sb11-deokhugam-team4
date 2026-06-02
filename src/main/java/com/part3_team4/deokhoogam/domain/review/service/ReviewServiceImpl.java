@@ -8,6 +8,7 @@ import com.part3_team4.deokhoogam.domain.review.dto.ReviewUpdateRequest;
 import com.part3_team4.deokhoogam.domain.review.entity.Review;
 import com.part3_team4.deokhoogam.domain.review.exception.ReviewAlreadyExistsException;
 import com.part3_team4.deokhoogam.domain.review.exception.ReviewNotFoundException;
+import com.part3_team4.deokhoogam.domain.review.exception.ReviewNotOwnerException;
 import com.part3_team4.deokhoogam.domain.review.repository.ReviewLikeRepository;
 import com.part3_team4.deokhoogam.domain.review.repository.ReviewRepository;
 import java.util.UUID;
@@ -66,11 +67,25 @@ public class ReviewServiceImpl implements ReviewService {
         );
     }
 
+
     @Override
     @Transactional
     public ReviewResponse updateReview(UUID reviewId, UUID userId, ReviewUpdateRequest request) {
-        throw new UnsupportedOperationException();
-    }
+        Review review = reviewRepository.findById(reviewId)
+                .orElseThrow(() -> ReviewNotFoundException.withId(reviewId));
 
+        if (!review.getUserId().equals(userId)) {
+            throw ReviewNotOwnerException.withUserId(userId);
+        }
+
+        review.update(request.rating(), request.content());
+
+        boolean likedByMe = reviewLikeRepository.existsByReviewIdAndUserId(reviewId, userId);
+
+        return new ReviewResponse(
+                review.getId(), review.getUserId(), review.getBookId(), review.getRating(), review.getContent(),
+                review.getLikeCount(), review.getCommentCount(), likedByMe, review.getCreatedAt(), review.getUpdatedAt()
+        );
+    }
 
 }
