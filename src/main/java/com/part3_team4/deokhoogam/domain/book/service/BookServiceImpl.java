@@ -26,13 +26,14 @@ public class BookServiceImpl implements BookService {
   private final BookRepository bookRepository;
   private final FileUploader fileUploader;
 
-  /// TODO: S3 업로드 후 DB 저장 실패 시 orphan file 정리 필요
   @Override
   @Transactional
   public BookDto create(BookCreateRequest request, MultipartFile thumbnailFile) {
     validateDuplicateIsbn(request.isbn());
 
     String thumbnailUrl = uploadThumbnail(thumbnailFile);
+
+    // TODO: S3 업로드 후 DB 저장 실패 시 고아 파일 처리 정책
 
     try {
       Book book = Book.builder()
@@ -61,15 +62,17 @@ public class BookServiceImpl implements BookService {
         .orElseThrow(() -> BookNotFoundException.withId(id));
 
     String newThumbnailUrl = uploadThumbnail(thumbnailFile);
-    String finalThumbnailUrl = (newThumbnailUrl != null) ? newThumbnailUrl : book.getThumbnailUrl();
+    if (newThumbnailUrl != null) {
+      // TODO: 기존 파일 삭제 정책
+      book.updateThumbnail(newThumbnailUrl);
+    }
 
     book.updateBookInfo(
         request.title(),
         request.author(),
         request.description(),
         request.publisher(),
-        request.publishedDate(),
-        finalThumbnailUrl
+        request.publishedDate()
     );
 
     return BookDto.from(book);

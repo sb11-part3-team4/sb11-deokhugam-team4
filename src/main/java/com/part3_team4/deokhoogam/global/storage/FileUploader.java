@@ -12,4 +12,6 @@ public interface FileUploader {
    * @return 저장된 객체 URL 경로
    */
   String upload(MultipartFile file, String domainPath);
+
+  void delete(String fileUrl);
 }

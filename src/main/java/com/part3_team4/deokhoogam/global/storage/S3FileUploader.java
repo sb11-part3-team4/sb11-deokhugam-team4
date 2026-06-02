@@ -50,6 +50,12 @@ public class S3FileUploader implements FileUploader {
     }
   }
 
+  @Override
+  public void delete(String fileUrl) {
+    log.info("S3 파일 삭제 로직 실행: {}", fileUrl);
+    // 실제 삭제 로직은 추후 구현 예정입니다.
+  }
+
   private void validateFile(MultipartFile file) {
     if (file == null) {
       throw InvalidFileException.withField(ErrorKey.FILE, "파일이 존재하지 않습니다.");
