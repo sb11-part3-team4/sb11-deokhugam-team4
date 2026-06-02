@@ -37,6 +37,10 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Slice;
+import org.springframework.data.domain.SliceImpl;
 import org.springframework.test.util.ReflectionTestUtils;
 
 @ExtendWith(MockitoExtension.class)
@@ -216,8 +220,9 @@ class BookServiceTest {
             .build();
 
         List<Book> mockBooks = BookFixtureFactory.createBookList();
+        Slice<Book> mockSlice = new SliceImpl<>(mockBooks);
 
-        given(bookRepository.getBooks(any())).willReturn(mockBooks);
+        given(bookRepository.getBooks(any(),any())).willReturn(mockSlice);
 
         //when
         PageResponse<BookDto> result = bookService.getBooks(request);
@@ -229,7 +234,7 @@ class BookServiceTest {
         assertThat(result.isHasNext()).isFalse();
         assertThat(result.getNextCursor()).isNull();
 
-        verify(bookRepository, times(1)).getBooks(any());
+        verify(bookRepository, times(1)).getBooks(any(),any());
       }
 
 
@@ -242,12 +247,13 @@ class BookServiceTest {
             .limit(1)
             .build();
 
-        //책 두개만 포함 -> limit+1 때문에
-        List<Book> mockBooks = List.of(BookFixtureFactory.createBook1(),
-            BookFixtureFactory.createBook4());
+        List<Book> mockBooks = List.of(BookFixtureFactory.createBook1());
+
+        Pageable pageable = PageRequest.of(0, request.limit());
+        Slice<Book> mockSlice = new SliceImpl<>(mockBooks,pageable,true);
 
         //when
-        given(bookRepository.getBooks(any())).willReturn(mockBooks);
+        given(bookRepository.getBooks(any(),any())).willReturn(mockSlice);
         PageResponse<BookDto> result = bookService.getBooks(request);
 
         //then
@@ -269,7 +275,9 @@ class BookServiceTest {
             .limit(50)
             .build();
 
-        given(bookRepository.getBooks(any())).willReturn(List.of());
+        Slice<Book> mockSlice = new SliceImpl<>(List.of());
+
+        given(bookRepository.getBooks(any(),any())).willReturn(mockSlice);
 
         // when
         PageResponse<BookDto> result = bookService.getBooks(request);
@@ -303,7 +311,9 @@ class BookServiceTest {
         List<Book> mockBooks = List.of(BookFixtureFactory.createBook2(),
             BookFixtureFactory.createBook3());
 
-        given(bookRepository.getBooks(any())).willReturn(mockBooks);
+        Slice<Book> mockSlice = new SliceImpl<>(mockBooks);
+
+        given(bookRepository.getBooks(any(),any())).willReturn(mockSlice);
 
         // when
         PageResponse<BookDto> result = bookService.getBooks(request);
@@ -311,7 +321,7 @@ class BookServiceTest {
         // then
         assertThat(result.getContent()).isNotEmpty();
 
-        verify(bookRepository, times(1)).getBooks(any());
+        verify(bookRepository, times(1)).getBooks(any(),any());
       }
     }
 
@@ -334,7 +344,7 @@ class BookServiceTest {
             .hasMessageContaining("잘못된 입력값입니다.");
 
         // 커서 디코딩 중 예외 발생 -> 리포지토리 접근 X
-        verify(bookRepository, never()).getBooks(any());
+        verify(bookRepository, never()).getBooks(any(),any());
       }
 
       @Test
@@ -354,13 +364,11 @@ class BookServiceTest {
             .hasMessageContaining("잘못된 커서로 인해 디코딩에 실패했습니다");
 
         // 커서 디코딩 중 예외 발생 -> 리포지토리 접근 X
-        verify(bookRepository, never()).getBooks(any());
+        verify(bookRepository, never()).getBooks(any(),any());
       }
 
     }
 
-
   }
-
 
 }
