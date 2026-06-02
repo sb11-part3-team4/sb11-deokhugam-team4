@@ -56,9 +56,12 @@ public class BookServiceImpl implements BookService {
 
   @Override
   @Transactional
-  public BookDto update(UUID id, BookUpdateRequest request) {
+  public BookDto update(UUID id, BookUpdateRequest request, MultipartFile thumbnailFile) {
     Book book = bookRepository.findById(id)
         .orElseThrow(() -> BookNotFoundException.withId(id));
+
+    String newThumbnailUrl = uploadThumbnail(thumbnailFile);
+    String finalThumbnailUrl = (newThumbnailUrl != null) ? newThumbnailUrl : book.getThumbnailUrl();
 
     book.updateBookInfo(
         request.title(),
@@ -66,7 +69,7 @@ public class BookServiceImpl implements BookService {
         request.description(),
         request.publisher(),
         request.publishedDate(),
-        book.getThumbnailUrl() // TODO: 추후 메서드 분리 및 관련 로직 추가 예정
+        finalThumbnailUrl
     );
 
     return BookDto.from(book);

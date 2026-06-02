@@ -270,7 +270,7 @@ class BookServiceTest {
         "thumbnailFile", "image.png", "image/png", "test_content".getBytes());
     String newMockUrl = "https://s3.deokhugam.com/books/new-image.png";
 
-    Book existingBook = Book.builder().title("old").build();
+    Book existingBook = BookFixtures.validBook("1234567890123");
     setField(existingBook, "id", targetId);
 
     given(bookRepository.findById(targetId)).willReturn(Optional.of(existingBook));
@@ -285,6 +285,7 @@ class BookServiceTest {
     assertThat(existingBook.getThumbnailUrl()).isEqualTo(newMockUrl);
 
     then(fileUploader).should(times(1)).upload(any(), eq(BOOK_THUMBNAIL_DIR));
+    then(bookRepository).should(never()).save(any(Book.class));
   }
 
   @Test
@@ -296,7 +297,7 @@ class BookServiceTest {
     MockMultipartFile thumbnailFile = new MockMultipartFile(
         "thumbnailFile", "image.png", "image/png", "test_content".getBytes());
 
-    Book existingBook = Book.builder().build();
+    Book existingBook = BookFixtures.validBook("1234567890123");
     given(bookRepository.findById(targetId)).willReturn(Optional.of(existingBook));
 
     given(fileUploader.upload(any(MultipartFile.class), eq(BOOK_THUMBNAIL_DIR)))
@@ -319,7 +320,7 @@ class BookServiceTest {
         Optional.empty());
 
     // when & then
-    assertThatThrownBy(() -> bookService.update(nonExistentId, request))
+    assertThatThrownBy(() -> bookService.update(nonExistentId, request, null))
         .isInstanceOf(BookNotFoundException.class);
 
     then(bookRepository).should().findById(nonExistentId);

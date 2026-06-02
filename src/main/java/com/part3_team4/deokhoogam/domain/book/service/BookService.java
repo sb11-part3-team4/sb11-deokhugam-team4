@@ -10,5 +10,5 @@ public interface BookService {
 
   BookDto create(BookCreateRequest request, MultipartFile thumbnailFile);
 
-  BookDto update(UUID id, BookUpdateRequest request);
+  BookDto update(UUID id, BookUpdateRequest request, MultipartFile thumbnailFile);
 }
