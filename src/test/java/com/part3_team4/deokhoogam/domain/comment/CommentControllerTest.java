@@ -425,41 +425,21 @@ class CommentControllerTest {
     class HardDeleteComment {
 
         @Test
-        @DisplayName("본인 댓글을 정상적으로 물리 삭제하면 204를 반환한다")
+        @DisplayName("정상적으로 물리 삭제하면 204를 반환한다")
         void hardDeleteComment_success_returns204() throws Exception {
-            willDoNothing().given(commentService).hardDeleteComment(any(UUID.class), any(UUID.class));
+            willDoNothing().given(commentService).hardDeleteComment(any(UUID.class));
 
-            mockMvc.perform(delete("/api/comments/{commentId}/hard", COMMENT_ID)
-                            .header(USER_HEADER, USER_ID.toString()))
-                    .andExpect(status().isNoContent());
-        }
-
-        @Test
-        @DisplayName("헤더에 유저 ID가 없으면 400을 반환한다")
-        void hardDeleteComment_missingUserIdHeader_returns400() throws Exception {
             mockMvc.perform(delete("/api/comments/{commentId}/hard", COMMENT_ID))
-                    .andExpect(status().isBadRequest());
-        }
-
-        @Test
-        @DisplayName("다른 사람 댓글을 물리 삭제하면 403을 반환한다")
-        void hardDeleteComment_notOwner_returns403() throws Exception {
-            willThrow(CommentNotOwnerException.forUser(USER_ID))
-                    .given(commentService).hardDeleteComment(any(UUID.class), any(UUID.class));
-
-            mockMvc.perform(delete("/api/comments/{commentId}/hard", COMMENT_ID)
-                            .header(USER_HEADER, UUID.randomUUID().toString()))
-                    .andExpect(status().isForbidden());
+                    .andExpect(status().isNoContent());
         }
 
         @Test
         @DisplayName("존재하지 않는 댓글을 물리 삭제하면 404를 반환한다")
         void hardDeleteComment_notFound_returns404() throws Exception {
             willThrow(CommentNotFoundException.withId(COMMENT_ID))
-                    .given(commentService).hardDeleteComment(any(UUID.class), any(UUID.class));
+                    .given(commentService).hardDeleteComment(any(UUID.class));
 
-            mockMvc.perform(delete("/api/comments/{commentId}/hard", COMMENT_ID)
-                            .header(USER_HEADER, USER_ID.toString()))
+            mockMvc.perform(delete("/api/comments/{commentId}/hard", COMMENT_ID))
                     .andExpect(status().isNotFound());
         }
     }

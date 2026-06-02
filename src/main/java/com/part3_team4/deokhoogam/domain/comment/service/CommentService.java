@@ -12,7 +12,7 @@ public interface CommentService {
 
     void softDeleteComment(UUID commentId, UUID userId);
 
-    void hardDeleteComment(UUID commentId, UUID userId);
+    void hardDeleteComment(UUID commentId);
 
     CommentDto.CommentsResponse getComments(UUID reviewId, String direction, Instant cursor, Instant after, int limit);
 

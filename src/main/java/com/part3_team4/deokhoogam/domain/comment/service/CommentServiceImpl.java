@@ -87,12 +87,9 @@ public class CommentServiceImpl implements CommentService {
 
     @Override
     @Transactional
-    public void hardDeleteComment(UUID commentId, UUID userId) {
+    public void hardDeleteComment(UUID commentId) {
         DeletedComment deletedComment = deletedCommentRepository.findById(commentId)
                 .orElseThrow(() -> CommentNotFoundException.withId(commentId));
-        if (!deletedComment.getUserId().equals(userId)) {
-            throw CommentNotOwnerException.forUser(userId);
-        }
         deletedCommentRepository.delete(deletedComment);
     }
 

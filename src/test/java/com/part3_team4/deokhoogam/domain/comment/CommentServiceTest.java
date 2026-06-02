@@ -258,33 +258,17 @@ class CommentServiceTest {
     class HardDeleteComment {
 
         @Test
-        @DisplayName("본인 deleted_comment를 정상적으로 물리 삭제한다")
+        @DisplayName("deleted_comment를 정상적으로 물리 삭제한다")
         void hardDeleteComment_success() {
             Review mockReview = mock(Review.class);
             User mockUser = mock(User.class);
-            given(mockUser.getId()).willReturn(USER_ID);
 
             DeletedComment deletedComment = DeletedComment.from(Comment.create(mockReview, mockUser, "물리 삭제될 댓글입니다."));
             given(deletedCommentRepository.findById(COMMENT_ID)).willReturn(Optional.of(deletedComment));
 
-            commentService.hardDeleteComment(COMMENT_ID, USER_ID);
+            commentService.hardDeleteComment(COMMENT_ID);
 
             then(deletedCommentRepository).should().delete(deletedComment);
-        }
-
-        @Test
-        @DisplayName("다른 사람의 댓글을 물리 삭제하면 예외가 발생한다")
-        void hardDeleteComment_notOwner_throwsException() {
-            UUID otherUserId = UUID.randomUUID();
-            Review mockReview = mock(Review.class);
-            User mockUser = mock(User.class);
-            given(mockUser.getId()).willReturn(USER_ID);
-
-            DeletedComment deletedComment = DeletedComment.from(Comment.create(mockReview, mockUser, "물리 삭제될 댓글입니다."));
-            given(deletedCommentRepository.findById(COMMENT_ID)).willReturn(Optional.of(deletedComment));
-
-            assertThatThrownBy(() -> commentService.hardDeleteComment(COMMENT_ID, otherUserId))
-                    .isInstanceOf(CommentNotOwnerException.class);
         }
 
         @Test
@@ -292,7 +276,7 @@ class CommentServiceTest {
         void hardDeleteComment_notFound_throwsException() {
             given(deletedCommentRepository.findById(COMMENT_ID)).willReturn(Optional.empty());
 
-            assertThatThrownBy(() -> commentService.hardDeleteComment(COMMENT_ID, USER_ID))
+            assertThatThrownBy(() -> commentService.hardDeleteComment(COMMENT_ID))
                     .isInstanceOf(CommentNotFoundException.class);
         }
     }

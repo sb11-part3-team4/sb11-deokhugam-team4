@@ -93,13 +93,8 @@ public class CommentController {
 
     @DeleteMapping("/{commentId}/hard")
     public ResponseEntity<Void> hardDeleteComment(
-            @PathVariable UUID commentId,
-            // TODO: [GlobalExceptionHandler] MissingRequestHeaderException 핸들러 추가 후 required=false → required=true로 교체
-            @RequestHeader(value = USER_HEADER, required = false) UUID userId) {
-        if (userId == null) {
-            return new ResponseEntity<>(HttpStatus.BAD_REQUEST);
-        }
-        commentService.hardDeleteComment(commentId, userId);
+            @PathVariable UUID commentId) {
+        commentService.hardDeleteComment(commentId);
         return ResponseEntity.noContent().build();
     }
 }
