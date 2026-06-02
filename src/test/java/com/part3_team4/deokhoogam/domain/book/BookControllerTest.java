@@ -1,6 +1,7 @@
 package com.part3_team4.deokhoogam.domain.book;
 
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.ArgumentMatchers.isNull;
 import static org.mockito.BDDMockito.given;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.multipart;
@@ -148,11 +149,34 @@ class BookControllerTest {
         .publishedDate(request.publishedDate())
         .build();
 
-    given(bookService.update(any(UUID.class), any(BookUpdateRequest.class)))
+    given(bookService.update(any(UUID.class), any(BookUpdateRequest.class), isNull()))
         .willReturn(mockResponse);
 
     // when & then
     mockMvc.perform(updateBookRequest(targetId, request))
+        .andDo(print())
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.title").value(request.title()));
+  }
+
+  @Test
+  @DisplayName("썸네일 파일과 함께 도서 수정 요청 시 200 OK를 반환한다")
+  void updateBook_withThumbnail_returnsOk() throws Exception {
+    // given
+    UUID targetId = UUID.randomUUID();
+    BookUpdateRequest request = BookFixtures.validBookUpdateRequest();
+    MockMultipartFile thumbnail = createThumbnailFile();
+
+    BookDto mockResponse = BookDto.builder()
+        .id(targetId)
+        .title(request.title())
+        .build();
+
+    given(bookService.update(eq(targetId), any(BookUpdateRequest.class), any()))
+        .willReturn(mockResponse);
+
+    // when & then
+    mockMvc.perform(updateBookRequest(targetId, request, thumbnail))
         .andDo(print())
         .andExpect(status().isOk())
         .andExpect(jsonPath("$.title").value(request.title()));
@@ -180,7 +204,8 @@ class BookControllerTest {
     UUID nonExistentId = UUID.randomUUID();
     BookUpdateRequest request = BookFixtures.validBookUpdateRequest();
 
-    given(bookService.update(any(UUID.class), any(BookUpdateRequest.class)))
+    // 수정 후
+    given(bookService.update(any(UUID.class), any(BookUpdateRequest.class), isNull()))
         .willThrow(BookNotFoundException.withId(nonExistentId));
 
     // when & then
@@ -197,7 +222,7 @@ class BookControllerTest {
 
     BookUpdateRequest request = BookFixtures.validBookUpdateRequest();
 
-    given(bookService.update(any(UUID.class), any(BookUpdateRequest.class)))
+    given(bookService.update(any(UUID.class), any(BookUpdateRequest.class), isNull()))
         .willThrow(IsbnAlreadyExistsException.withIsbn("1234567890123"));
 
     // when & then
@@ -245,5 +270,13 @@ class BookControllerTest {
         MediaType.IMAGE_JPEG_VALUE,
         "dummy-image".getBytes()
     );
+  }
+
+  private MockMultipartHttpServletRequestBuilder updateBookRequest(UUID bookId,
+      BookUpdateRequest request, MockMultipartFile thumbnail
+  ) throws Exception {
+    return multipart(HttpMethod.PATCH, "/api/books/{bookId}", bookId)
+        .file(createJsonPart(request))
+        .file(thumbnail);
   }
 }
