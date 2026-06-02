@@ -7,24 +7,32 @@ import com.part3_team4.deokhoogam.domain.book.entity.Book;
 import com.part3_team4.deokhoogam.domain.book.exception.BookNotFoundException;
 import com.part3_team4.deokhoogam.domain.book.exception.IsbnAlreadyExistsException;
 import com.part3_team4.deokhoogam.domain.book.repository.BookRepository;
+import com.part3_team4.deokhoogam.global.storage.FileUploader;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import org.hibernate.exception.ConstraintViolationException;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.multipart.MultipartFile;
 
 @Service
 @RequiredArgsConstructor
 public class BookServiceImpl implements BookService {
 
   private final BookRepository bookRepository;
+  private final FileUploader fileUploader;
 
   @Override
   @Transactional
-  public BookDto create(BookCreateRequest request) {
+  public BookDto create(BookCreateRequest request, MultipartFile thumbnailFile) {
     if (bookRepository.existsByIsbn(request.isbn())) {
       throw IsbnAlreadyExistsException.withIsbn(request.isbn());
+    }
+
+    String thumbnailUrl = null;
+    if (thumbnailFile != null && !thumbnailFile.isEmpty()) {
+      thumbnailUrl = fileUploader.upload(thumbnailFile, "books");
     }
 
     // 동시성 문제 방지
@@ -36,7 +44,9 @@ public class BookServiceImpl implements BookService {
           .description(request.description())
           .publisher(request.publisher())
           .publishedDate(request.publishedDate())
+          .thumbnailUrl(thumbnailUrl)
           .build();
+
       return BookDto.from(bookRepository.save(book));
     } catch (DataIntegrityViolationException e) {
       Throwable cause = e;
