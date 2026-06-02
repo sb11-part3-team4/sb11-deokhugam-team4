@@ -60,6 +60,7 @@ jobs:
           task-definition: task-definition.json
           container-name: deokhugam-app
           image: ${{ vars.ECR_REPOSITORY_URI }}:${{ github.sha }}
+          environment-variables: JWT_SECRET=${{ secrets.JWT_SECRET }}
 
 
       - name: ECS 서비스에 무중단 배포 (롤링 업데이트)
@@ -69,12 +70,3 @@ jobs:
           service: ${{ vars.ECS_SERVICE }}
           cluster: ${{ vars.ECS_CLUSTER }}
           wait-for-service-stability: true
-
-      - name: 새이미지로 교체
-        id: task-def
-        uses: aws-actions/amazon-ecs-render-task-definition@v1
-        with:
-          task-definition: task-definition.json
-          container-name: deokhugam-app
-          image: ${{ vars.ECR_REPOSITORY_URI }}:${{ github.sha }}
-          environment-variables: JWT_SECRET=${{ secrets.JWT_SECRET }}
