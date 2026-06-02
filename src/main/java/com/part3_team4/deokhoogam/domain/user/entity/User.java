@@ -40,6 +40,14 @@ public class User extends BaseEntity {
     this.name = name;
   }
 
+  public void updateEmail(String email) {
+    this.email = email;
+  }
+
+  public void updatePassword(String password) {
+    this.password = password;
+  }
+
   public void updateProfileImage(UserProfileImage profileImage) {
     this.profileImage = profileImage;
   }

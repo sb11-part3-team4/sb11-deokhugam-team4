@@ -9,10 +9,10 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 
 @Entity
-@Table(name = "delete_user")
+@Table(name = "deleted_user")
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
-public class DeleteUser {
+public class DeletedUser {
 
   @Id
   private UUID id;
@@ -20,13 +20,13 @@ public class DeleteUser {
   private String email;
   private String name;
 
-  public DeleteUser(UUID id, String email, String name) {
+  public DeletedUser(UUID id, String email, String name) {
     this.id = id;
     this.email = email;
     this.name = name;
   }
 
-  public static DeleteUser from(User user) {
-    return new DeleteUser(user.getId(), user.getEmail(), user.getName());
+  public static DeletedUser from(User user) {
+    return new DeletedUser(user.getId(), user.getEmail(), user.getName());
   }
 }
