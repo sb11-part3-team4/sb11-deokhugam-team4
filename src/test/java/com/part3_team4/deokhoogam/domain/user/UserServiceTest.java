@@ -14,7 +14,6 @@ import com.part3_team4.deokhoogam.domain.user.dto.response.UserResponse;
 import com.part3_team4.deokhoogam.domain.user.dto.UserUpdateRequestDto;
 import com.part3_team4.deokhoogam.domain.user.entity.DeletedUser;
 import com.part3_team4.deokhoogam.domain.user.entity.User;
-import com.part3_team4.deokhoogam.domain.user.exception.EmailNotFoundException;
 import com.part3_team4.deokhoogam.domain.user.exception.PasswordMismatchException;
 import com.part3_team4.deokhoogam.domain.user.exception.UserAlreadyExistsException;
 import com.part3_team4.deokhoogam.domain.user.exception.UserNotFoundException;
@@ -68,7 +67,7 @@ public class UserServiceTest {
     given(passwordEncoder.encode(any(CharSequence.class))).willReturn("encodedPassword");
     given(userMapper.toDto(any(User.class))).willReturn(mockDto);
 
-    UserDto savedUserDto = userService.createUser(request, null);
+    UserDto savedUserDto = userService.createUser(request);
 
     then(userRepository).should().save(any(User.class));
 
@@ -84,7 +83,7 @@ public class UserServiceTest {
     given(userRepository.existsByName(request.name())).willReturn(true);
 
     assertThrows(UserAlreadyExistsException.class, () -> {
-      userService.createUser(request, null);
+      userService.createUser(request);
     });
 
     then(userRepository).should(never()).save(any(User.class));
@@ -99,7 +98,7 @@ public class UserServiceTest {
     given(userRepository.existsByEmail(request.email())).willReturn(true);
 
     assertThrows(UserAlreadyExistsException.class, () -> {
-      userService.createUser(request, null);
+      userService.createUser(request);
     });
 
     then(userRepository).should(never()).save(any(User.class));
@@ -117,7 +116,7 @@ public class UserServiceTest {
     given(deleteUserRepository.existsByEmail(request.email())).willReturn(true);
 
     assertThrows(UserAlreadyExistsException.class, () -> {
-      userService.createUser(request, null);
+      userService.createUser(request);
     });
 
     then(userRepository).should(never()).save(any(User.class));
@@ -162,7 +161,7 @@ public class UserServiceTest {
 
     given(userRepository.findById(userId)).willReturn(Optional.of(user));
 
-    userService.updateUser(userId, request, null);
+    userService.updateUser(userId, request);
 
     assertThat(user.getName()).isEqualTo("newName");
   }
@@ -180,7 +179,7 @@ public class UserServiceTest {
     given(userRepository.existsByName(request.newName())).willReturn(true);
 
     assertThrows(UserAlreadyExistsException.class, () -> {
-      userService.updateUser(userId, request, null);
+      userService.updateUser(userId, request);
     });
   }
 
@@ -197,7 +196,7 @@ public class UserServiceTest {
     given(userRepository.existsByEmail(request.newEmail())).willReturn(true);
 
     assertThrows(UserAlreadyExistsException.class, () -> {
-      userService.updateUser(userId, request, null);
+      userService.updateUser(userId, request);
     });
   }
 
@@ -216,7 +215,7 @@ public class UserServiceTest {
     given(deleteUserRepository.existsByEmail(request.newEmail())).willReturn(true);
 
     assertThrows(UserAlreadyExistsException.class, () -> {
-      userService.updateUser(userId, request, null);
+      userService.updateUser(userId, request);
     });
   }
 
@@ -306,7 +305,7 @@ public class UserServiceTest {
 
     given(userRepository.findByEmail(email)).willReturn(Optional.empty());
 
-    assertThrows(EmailNotFoundException.class, () -> {
+    assertThrows(PasswordMismatchException.class, () -> {
       userService.login(email, "password123!");
     });
   }

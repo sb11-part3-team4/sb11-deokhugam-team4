@@ -34,7 +34,7 @@ public class UserController {
   public ResponseEntity<UserDto> signup(
       @Valid @RequestBody UserCreateRequestDto request) {
 
-    UserDto responseDto = userService.createUser(request, null);
+    UserDto responseDto = userService.createUser(request);
 
     return ResponseEntity.status(HttpStatus.CREATED).body(responseDto);
   }
@@ -53,7 +53,7 @@ public class UserController {
       @PathVariable UUID userId,
       @Valid @RequestBody UserUpdateRequestDto request) {
 
-    userService.updateUser(userId, request, null);
+    userService.updateUser(userId, request);
 
     return ResponseEntity.ok().build();
   }

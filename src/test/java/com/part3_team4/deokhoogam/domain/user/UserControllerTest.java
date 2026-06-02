@@ -1,7 +1,6 @@
 package com.part3_team4.deokhoogam.domain.user;
 
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.isNull;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.BDDMockito.willThrow;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
@@ -26,12 +25,14 @@ import java.util.UUID;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.http.MediaType;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 
 @WebMvcTest(UserController.class)
+@AutoConfigureMockMvc(addFilters = false)
 public class UserControllerTest {
 
   @Autowired
@@ -52,7 +53,7 @@ public class UserControllerTest {
     UserDto responseDto = new UserDto(
         userId, "test@deokhugam.com", "testUser", null);
 
-    given(userService.createUser(any(UserCreateRequestDto.class), isNull()))
+    given(userService.createUser(any(UserCreateRequestDto.class)))
         .willReturn(responseDto);
 
     mockMvc.perform(post("/api/users/signup")
