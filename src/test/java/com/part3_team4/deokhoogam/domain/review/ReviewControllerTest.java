@@ -7,9 +7,11 @@ import com.part3_team4.deokhoogam.domain.review.dto.ReviewCreateRequest;
 import com.part3_team4.deokhoogam.domain.review.dto.ReviewResponse;
 import com.part3_team4.deokhoogam.domain.review.exception.ReviewAlreadyExistsException;
 import com.part3_team4.deokhoogam.domain.review.service.ReviewService;
+import com.part3_team4.deokhoogam.global.jwt.JwtFilter;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
@@ -27,6 +29,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import org.springframework.http.MediaType;
 
 @WebMvcTest(controllers = ReviewController.class)
+@AutoConfigureMockMvc(addFilters = false)
 public class ReviewControllerTest {
 
     @Autowired
@@ -38,6 +41,8 @@ public class ReviewControllerTest {
     @MockitoBean
     ReviewService reviewService;
 
+    @MockitoBean
+    private JwtFilter jwtFilter;
 
     @Test
     @DisplayName("리뷰 등록 성공 시 201을 반환한다")

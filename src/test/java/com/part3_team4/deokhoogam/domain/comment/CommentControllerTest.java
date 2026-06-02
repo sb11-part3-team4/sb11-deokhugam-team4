@@ -6,10 +6,12 @@ import com.part3_team4.deokhoogam.domain.comment.dto.CommentDto;
 import com.part3_team4.deokhoogam.domain.comment.exception.CommentNotFoundException;
 import com.part3_team4.deokhoogam.domain.comment.exception.CommentNotOwnerException;
 import com.part3_team4.deokhoogam.domain.comment.service.CommentService;
+import com.part3_team4.deokhoogam.global.jwt.JwtFilter;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.http.MediaType;
@@ -28,6 +30,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
 @WebMvcTest(CommentController.class)
+@AutoConfigureMockMvc(addFilters = false)
 class CommentControllerTest {
 
     @Autowired
@@ -38,6 +41,9 @@ class CommentControllerTest {
 
     @MockitoBean
     private CommentService commentService;
+
+    @MockitoBean
+    private JwtFilter jwtFilter;
 
     private static final String USER_HEADER = "Deokhugam-Request-User-ID";
     private static final UUID USER_ID = UUID.randomUUID();
