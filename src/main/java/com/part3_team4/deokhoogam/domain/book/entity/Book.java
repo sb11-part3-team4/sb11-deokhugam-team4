@@ -50,7 +50,7 @@ public class Book extends BaseEntity {
   @Column(name = "published_date", nullable = false)
   private LocalDate publishedDate;
 
-  @Column(name = "isbn", nullable = false, columnDefinition = "TEXT")
+  @Column(name = "isbn", columnDefinition = "TEXT")
   private String isbn;
 
   @Column(name = "thumbnail_url", length = THUMBNAIL_URL_MAX_LENGTH)
