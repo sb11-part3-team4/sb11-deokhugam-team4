@@ -51,7 +51,7 @@ public class UserControllerTest {
     UserCreateRequestDto request = new UserCreateRequestDto(
         "test@deokhugam.com", "testUser", "password123!");
     UserDto responseDto = new UserDto(
-        userId, "test@deokhugam.com", "testUser", null);
+        userId, "test@deokhugam.com", "testUser");
 
     given(userService.createUser(any(UserCreateRequestDto.class)))
         .willReturn(responseDto);

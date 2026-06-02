@@ -60,7 +60,7 @@ public class UserServiceTest {
         "test@deokhugam.com", "testUser", "password123!");
 
     UserDto mockDto = new UserDto(UUID.randomUUID(), "test@deokhugam.com"
-        , "testUser", null);
+        , "testUser");
 
     given(userRepository.existsByName(request.name())).willReturn(false);
     given(userRepository.existsByEmail(request.email())).willReturn(false);
