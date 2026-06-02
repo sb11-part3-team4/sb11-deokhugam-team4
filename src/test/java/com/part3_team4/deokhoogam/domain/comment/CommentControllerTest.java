@@ -6,6 +6,7 @@ import com.part3_team4.deokhoogam.domain.comment.dto.CommentDto;
 import com.part3_team4.deokhoogam.domain.comment.exception.CommentNotFoundException;
 import com.part3_team4.deokhoogam.domain.comment.exception.CommentNotOwnerException;
 import com.part3_team4.deokhoogam.domain.comment.service.CommentService;
+import com.part3_team4.deokhoogam.global.jwt.JwtFilter;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -40,6 +41,9 @@ class CommentControllerTest {
 
     @MockitoBean
     private CommentService commentService;
+
+    @MockitoBean
+    private JwtFilter jwtFilter;
 
     private static final String USER_HEADER = "Deokhugam-Request-User-ID";
     private static final UUID USER_ID = UUID.randomUUID();

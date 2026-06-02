@@ -15,6 +15,7 @@ import com.part3_team4.deokhoogam.domain.notification.controller.NotificationCon
 import com.part3_team4.deokhoogam.domain.notification.dto.NotificationDto;
 import com.part3_team4.deokhoogam.domain.notification.service.NotificationService;
 import com.part3_team4.deokhoogam.domain.notification.dto.NotificationUpdateRequest;
+import com.part3_team4.deokhoogam.global.jwt.JwtFilter;
 import java.time.Instant;
 import java.util.UUID;
 import org.junit.jupiter.api.DisplayName;
@@ -71,6 +72,9 @@ class NotificationControllerTest {
    */
   @MockitoBean
   private NotificationService notificationService;
+
+  @MockitoBean
+  private JwtFilter jwtFilter;
 
   @Test
   @DisplayName("PATCH /api/notifications/{notificationId} 요청으로 알림 읽음 상태를 수정한다")
