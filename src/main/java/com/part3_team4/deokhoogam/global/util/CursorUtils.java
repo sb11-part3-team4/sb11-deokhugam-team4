@@ -2,6 +2,8 @@ package com.part3_team4.deokhoogam.global.util;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.SerializationFeature;
+import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import com.part3_team4.deokhoogam.domain.book.dto.BookCursor;
 import com.part3_team4.deokhoogam.global.exception.Base64Exception;
 import java.nio.charset.StandardCharsets;
@@ -11,7 +13,12 @@ import org.springframework.stereotype.Component;
 @Component
 public class CursorUtils {
 
-  private static final ObjectMapper objectMapper = new ObjectMapper();
+  private static ObjectMapper objectMapper = new ObjectMapper();
+
+  static {
+    objectMapper.registerModule(new JavaTimeModule());
+    objectMapper.disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS); // 디코딩 오류 방지
+  }
 
   // 인코딩 메서드
   public static String encodeCursor(BookCursor cursor) {

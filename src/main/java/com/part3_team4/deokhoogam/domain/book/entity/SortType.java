@@ -1,10 +1,10 @@
 package com.part3_team4.deokhoogam.domain.book.entity;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonValue;
 import java.util.Arrays;
-import lombok.Getter;
 
-@Getter
+
 public enum SortType {
 
 
@@ -19,6 +19,11 @@ public enum SortType {
 
   SortType(String value) {
     this.value = value;
+  }
+
+  @JsonValue
+  public String getValue() {
+    return value;
   }
 
   @JsonCreator
