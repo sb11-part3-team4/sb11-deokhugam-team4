@@ -60,9 +60,10 @@ public class BookController {
   @PatchMapping(value = "/{bookId}", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
   public ResponseEntity<BookDto> updateBook(
       @Schema(description = "도서 ID", example = "123e4567-e89b-12d3-a456-426614174000") @PathVariable UUID bookId,
-      @Schema(description = "수정할 도서 정보") @RequestPart("bookData") @Valid BookUpdateRequest request
+      @Schema(description = "수정할 도서 정보") @RequestPart("bookData") @Valid BookUpdateRequest request,
+      @RequestPart(value = "thumbnailImage", required = false) MultipartFile thumbnailImage
   ) {
-    BookDto response = bookService.update(bookId, request);
+    BookDto response = bookService.update(bookId, request, thumbnailImage);
     return ResponseEntity.ok(response);
   }
 }
