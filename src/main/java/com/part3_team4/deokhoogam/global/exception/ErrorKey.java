@@ -12,6 +12,11 @@ public enum ErrorKey {
   REASON("reason"),
   VALUE("value"),
 
+  FILE("file"),
+  FILE_NAME("fileName"),
+  STORAGE_KEY("storageKey"),
+  DOMAIN_PATH("domainPath"),
+
   /// ==== 도메인  ====
   // 도서
   BOOK_ID("bookId"),
