@@ -185,7 +185,7 @@ public class ReviewServiceTest {
         UUID bookId = UUID.randomUUID();
         UUID reviewId = UUID.randomUUID();
         Review review = Review.create(ownerUserId, bookId, 4, "내용");
-        ReviewUpdateRequest request = new ReviewUpdateRequest(5, "수정된 내용");
+        ReviewUpdateRequest request = new ReviewUpdateRequest(6, "수정된 내용");
 
         given(reviewRepository.findById(reviewId)).willReturn(Optional.of(review));
 
