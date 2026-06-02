@@ -3,7 +3,6 @@ package com.part3_team4.deokhoogam.global.util;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import com.part3_team4.deokhoogam.domain.book.dto.BookCursor;
-import com.part3_team4.deokhoogam.domain.book.entity.SortType;
 import java.time.Instant;
 import java.util.UUID;
 import org.junit.jupiter.api.DisplayName;
@@ -16,11 +15,9 @@ class CursorBase64Test {
   void encode_and_decode_cursor() {
     // given: 테스트할 커서 객체 생성
 
-
     Instant createdAt = Instant.parse("2023-10-15T10:00:00Z");
-    BookCursor originalCursor = new BookCursor(SortType.TITLE, UUID.randomUUID(), createdAt);
+    BookCursor originalCursor = new BookCursor("예시 값", UUID.randomUUID(), createdAt);
     UUID id = originalCursor.getId();
-
 
     // when: 인코딩 -> 디코딩 진행
     String encoded = CursorUtils.encodeCursor(originalCursor);
@@ -30,7 +27,7 @@ class CursorBase64Test {
     assertThat(encoded).isNotBlank();
 
     // then: 디코딩된 객체의 값이 원래 값과 정확히 일치하는지 확인
-    assertThat(decodedCursor.getMainValue()).isEqualTo(SortType.TITLE);
+    assertThat(decodedCursor.getMainValue()).isEqualTo("예시 값");
     assertThat(decodedCursor.getId()).isEqualTo(id);
     assertThat(decodedCursor.getCreatedAt()).isEqualTo(createdAt);
   }

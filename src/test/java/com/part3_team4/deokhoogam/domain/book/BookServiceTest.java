@@ -16,7 +16,6 @@ import com.part3_team4.deokhoogam.domain.book.dto.BookCursor;
 import com.part3_team4.deokhoogam.domain.book.dto.BookDto;
 import com.part3_team4.deokhoogam.domain.book.dto.BookGetListRequest;
 import com.part3_team4.deokhoogam.domain.book.entity.Book;
-import com.part3_team4.deokhoogam.domain.book.entity.SortType;
 import com.part3_team4.deokhoogam.domain.book.exception.BookNotFoundException;
 import com.part3_team4.deokhoogam.domain.book.exception.IsbnAlreadyExistsException;
 import com.part3_team4.deokhoogam.domain.book.repository.BookRepository;
@@ -296,7 +295,7 @@ class BookServiceTest {
 
 
         BookCursor cursor = new BookCursor(
-            SortType.TITLE,
+            mockBook.getTitle(),
             mockBook.getId(),
             mockBook.getCreatedAt()
         );

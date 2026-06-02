@@ -1,7 +1,6 @@
 package com.part3_team4.deokhoogam.domain.book.dto;
 
 
-import com.part3_team4.deokhoogam.domain.book.entity.SortType;
 import java.time.Instant;
 import java.util.UUID;
 import lombok.AllArgsConstructor;
@@ -14,7 +13,8 @@ import lombok.Setter;
 @NoArgsConstructor
 @AllArgsConstructor
 public class BookCursor {
-  private SortType mainValue;
+
+  private String mainValue;
   private UUID id;
   private Instant createdAt;
 }

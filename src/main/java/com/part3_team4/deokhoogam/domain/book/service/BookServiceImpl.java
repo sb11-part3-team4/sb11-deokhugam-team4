@@ -5,7 +5,6 @@ import com.part3_team4.deokhoogam.domain.book.dto.BookCursor;
 import com.part3_team4.deokhoogam.domain.book.dto.BookDto;
 import com.part3_team4.deokhoogam.domain.book.dto.BookGetListRequest;
 import com.part3_team4.deokhoogam.domain.book.entity.Book;
-import com.part3_team4.deokhoogam.domain.book.entity.SortType;
 import com.part3_team4.deokhoogam.domain.book.exception.BookNotFoundException;
 import com.part3_team4.deokhoogam.domain.book.exception.IsbnAlreadyExistsException;
 import com.part3_team4.deokhoogam.domain.book.repository.BookRepository;
@@ -74,11 +73,11 @@ public class BookServiceImpl implements BookService {
     return PageResponse.<BookDto>builder()
         .content(dtoList)
         .hasNext(books.hasNext())
-        .nextCursor(generateNextCursor(books,request.orderBy()))
+        .nextCursor(generateNextCursor(books))
         .build();
   }
 
-  private String generateNextCursor(Slice<Book> books, SortType orderBy) {
+  private String generateNextCursor(Slice<Book> books) {
     if (!books.hasNext() || books.getContent().isEmpty()) {
       return null; // 다음 페이지가 없으면 null 반환
     }
@@ -88,7 +87,7 @@ public class BookServiceImpl implements BookService {
 
     // 마지막 데이터의 값으로 다음 커서 객체 생성
     BookCursor newCursorObj = new BookCursor(
-        orderBy,
+        lastBook.getTitle(),
         lastBook.getId(),
         lastBook.getCreatedAt()
     );
