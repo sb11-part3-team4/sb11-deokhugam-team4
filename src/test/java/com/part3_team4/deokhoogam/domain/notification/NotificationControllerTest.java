@@ -15,11 +15,13 @@ import com.part3_team4.deokhoogam.domain.notification.controller.NotificationCon
 import com.part3_team4.deokhoogam.domain.notification.dto.NotificationDto;
 import com.part3_team4.deokhoogam.domain.notification.service.NotificationService;
 import com.part3_team4.deokhoogam.domain.notification.dto.NotificationUpdateRequest;
+import com.part3_team4.deokhoogam.global.jwt.JwtFilter;
 import java.time.Instant;
 import java.util.UUID;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
@@ -40,6 +42,7 @@ import org.springframework.test.web.servlet.MockMvc;
  * - Controller가 Service를 올바르게 호출하는지
  */
 @WebMvcTest(NotificationController.class)
+@AutoConfigureMockMvc(addFilters = false)
 class NotificationControllerTest {
 
   /**
@@ -69,6 +72,9 @@ class NotificationControllerTest {
    */
   @MockitoBean
   private NotificationService notificationService;
+
+  @MockitoBean
+  private JwtFilter jwtFilter;
 
   @Test
   @DisplayName("PATCH /api/notifications/{notificationId} 요청으로 알림 읽음 상태를 수정한다")

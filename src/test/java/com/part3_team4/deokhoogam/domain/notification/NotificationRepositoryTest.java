@@ -68,12 +68,12 @@ class NotificationRepositoryTest {
 
     // createdAt 차이를 확실하게 만들기 위한 짧은 대기입니다.
     // Repository 테스트에서 최신순 정렬을 검증하기 위해 사용합니다.
-    Thread.sleep(5);
+    Thread.sleep(50);
 
     Notification second = notificationRepository.saveAndFlush(
         createNotification(userId, "두 번째 알림"));
 
-    Thread.sleep(5);
+    Thread.sleep(50);
 
     Notification third = notificationRepository.saveAndFlush(
         createNotification(userId, "세 번째 알림"));

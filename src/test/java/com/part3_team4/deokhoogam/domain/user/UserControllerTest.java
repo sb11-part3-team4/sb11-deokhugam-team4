@@ -1,7 +1,6 @@
 package com.part3_team4.deokhoogam.domain.user;
 
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.isNull;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.BDDMockito.willThrow;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
@@ -16,21 +15,25 @@ import com.part3_team4.deokhoogam.domain.user.controller.UserController;
 import com.part3_team4.deokhoogam.domain.user.dto.PasswordUpdateRequestDto;
 import com.part3_team4.deokhoogam.domain.user.dto.UserCreateRequestDto;
 import com.part3_team4.deokhoogam.domain.user.dto.UserDto;
+import com.part3_team4.deokhoogam.domain.user.dto.UserLoginRequestDto;
 import com.part3_team4.deokhoogam.domain.user.dto.UserUpdateRequestDto;
 import com.part3_team4.deokhoogam.domain.user.dto.response.UserResponse;
 import com.part3_team4.deokhoogam.domain.user.exception.PasswordMismatchException;
 import com.part3_team4.deokhoogam.domain.user.exception.UserNotFoundException;
 import com.part3_team4.deokhoogam.domain.user.service.UserService;
+import com.part3_team4.deokhoogam.global.jwt.JwtFilter;
 import java.util.UUID;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.http.MediaType;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 
 @WebMvcTest(UserController.class)
+@AutoConfigureMockMvc(addFilters = false)
 public class UserControllerTest {
 
   @Autowired
@@ -42,6 +45,9 @@ public class UserControllerTest {
   @MockitoBean
   private UserService userService;
 
+  @MockitoBean
+  private JwtFilter jwtFilter;
+
   @Test
   @DisplayName("회원가입 API 성공 - 201 반환")
   void createUser_success() throws Exception {
@@ -49,9 +55,9 @@ public class UserControllerTest {
     UserCreateRequestDto request = new UserCreateRequestDto(
         "test@deokhugam.com", "testUser", "password123!");
     UserDto responseDto = new UserDto(
-        userId, "test@deokhugam.com", "testUser", null);
+        userId, "test@deokhugam.com", "testUser");
 
-    given(userService.createUser(any(UserCreateRequestDto.class), isNull()))
+    given(userService.createUser(any(UserCreateRequestDto.class)))
         .willReturn(responseDto);
 
     mockMvc.perform(post("/api/users/signup")
@@ -178,5 +184,34 @@ public class UserControllerTest {
 
     mockMvc.perform(delete("/api/users/{userId}", userId))
         .andExpect(status().isNotFound());
+  }
+
+  @Test
+  @DisplayName("로그인 성공 - 200반환 및 토큰 발급")
+  void login_success() throws Exception {
+    UserLoginRequestDto request = new UserLoginRequestDto(
+        "test@deokhugam.com", "password123!");
+
+    given(userService.login(request.email(), request.password()))
+        .willReturn("eyjh...fakeToken");
+
+    mockMvc.perform(post("/api/users/login")
+        .contentType(MediaType.APPLICATION_JSON)
+        .content(objectMapper.writeValueAsString(request)))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.accessToken").value("eyjh...fakeToken"));
+  }
+
+  @Test
+  @DisplayName("로그인 실패 - 이메일 형식 오류  400 반환")
+  void login_fail_invalidEmail() throws Exception {
+    UserLoginRequestDto request = new UserLoginRequestDto(
+        "invalid-email-format", "password123!");
+
+    mockMvc.perform(post("/api/users/login")
+        .contentType(MediaType.APPLICATION_JSON)
+        .content(objectMapper.writeValueAsString(request)))
+        .andExpect(status().isBadRequest())
+        .andExpect(jsonPath("$.code").value("COMMON-002"));
   }
 }

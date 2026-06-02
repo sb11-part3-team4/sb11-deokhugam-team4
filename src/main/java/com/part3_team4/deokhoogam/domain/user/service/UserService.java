@@ -10,13 +10,15 @@ import org.springframework.web.multipart.MultipartFile;
 
 public interface UserService {
 
-  UserDto createUser(UserCreateRequestDto request, MultipartFile profileImage);
+  UserDto createUser(UserCreateRequestDto request);
 
   UserResponse getUser(UUID userId);
 
-  void updateUser(UUID userId, UserUpdateRequestDto request, MultipartFile profileImage);
+  void updateUser(UUID userId, UserUpdateRequestDto request);
 
   void updatePassword(UUID userId, PasswordUpdateRequestDto request);
 
   void deleteUser(UUID userId);
+
+  String login(String email, String password);
 }
