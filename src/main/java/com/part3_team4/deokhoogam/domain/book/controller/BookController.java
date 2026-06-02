@@ -5,6 +5,8 @@ import com.part3_team4.deokhoogam.domain.book.dto.BookDto;
 import com.part3_team4.deokhoogam.domain.book.dto.BookUpdateRequest;
 import com.part3_team4.deokhoogam.domain.book.service.BookService;
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
@@ -60,8 +62,12 @@ public class BookController {
   @PatchMapping(value = "/{bookId}", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
   public ResponseEntity<BookDto> updateBook(
       @Schema(description = "도서 ID", example = "123e4567-e89b-12d3-a456-426614174000") @PathVariable UUID bookId,
+
+      @Parameter(content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE))
       @Schema(description = "수정할 도서 정보") @RequestPart("bookData") @Valid BookUpdateRequest request,
-      @RequestPart(value = "thumbnailImage", required = false) MultipartFile thumbnailImage
+
+      @RequestPart(value = "thumbnailImage", required = false)
+      @Schema(description = "수정할 도서 썸네일 이미지") MultipartFile thumbnailImage
   ) {
     BookDto response = bookService.update(bookId, request, thumbnailImage);
     return ResponseEntity.ok(response);
