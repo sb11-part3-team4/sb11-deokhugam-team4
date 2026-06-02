@@ -7,6 +7,7 @@ import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.BDDMockito.then;
 import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
 import static org.springframework.test.util.ReflectionTestUtils.setField;
 
 import com.part3_team4.deokhoogam.domain.book.dto.BookCreateRequest;
@@ -220,7 +221,7 @@ class BookServiceTest {
   }
 
   @Test
-  @DisplayName("기존 도서 정보를 요청에 따라 수정한다")
+  @DisplayName("썸네일 없이 기존 도서 정보를 요청에 따라 수정한다")
   void updateBook_Success() {
     // given
     UUID targetId = UUID.randomUUID();
@@ -241,7 +242,7 @@ class BookServiceTest {
     given(bookRepository.findById(targetId)).willReturn(Optional.of(existingBook));
 
     // when
-    BookDto result = bookService.update(targetId, updateRequest);
+    BookDto result = bookService.update(targetId, updateRequest, null);
 
     // then
     assertThat(result).isNotNull();
@@ -257,6 +258,54 @@ class BookServiceTest {
 
     then(bookRepository).should().findById(targetId);
     then(bookRepository).should(never()).save(any(Book.class));
+  }
+
+  @Test
+  @DisplayName("도서 정보 수정 시 썸네일 파일이 주어지면 파일 업로드 후 URL을 업데이트한다")
+  void updateBook_WithThumbnail_Success() {
+    // given
+    UUID targetId = UUID.randomUUID();
+    BookUpdateRequest request = BookFixtures.validBookUpdateRequest();
+    MockMultipartFile thumbnailFile = new MockMultipartFile(
+        "thumbnailFile", "image.png", "image/png", "test_content".getBytes());
+    String newMockUrl = "https://s3.deokhugam.com/books/new-image.png";
+
+    Book existingBook = Book.builder().title("old").build();
+    setField(existingBook, "id", targetId);
+
+    given(bookRepository.findById(targetId)).willReturn(Optional.of(existingBook));
+    given(fileUploader.upload(any(MultipartFile.class), eq(BOOK_THUMBNAIL_DIR))).willReturn(
+        newMockUrl);
+
+    // when
+    BookDto result = bookService.update(targetId, request, thumbnailFile);
+
+    // then
+    assertThat(result.thumbnailUrl()).isEqualTo(newMockUrl);
+    assertThat(existingBook.getThumbnailUrl()).isEqualTo(newMockUrl);
+
+    then(fileUploader).should(times(1)).upload(any(), eq(BOOK_THUMBNAIL_DIR));
+  }
+
+  @Test
+  @DisplayName("도서 수정 시 파일 스토리지 업로드 중 예외가 발생하면 수정이 실패하고 예외가 전파된다")
+  void updateBook_ThumbnailUploadFail_ThrowsException() {
+    // given
+    UUID targetId = UUID.randomUUID();
+    BookUpdateRequest request = BookFixtures.validBookUpdateRequest();
+    MockMultipartFile thumbnailFile = new MockMultipartFile(
+        "thumbnailFile", "image.png", "image/png", "test_content".getBytes());
+
+    Book existingBook = Book.builder().build();
+    given(bookRepository.findById(targetId)).willReturn(Optional.of(existingBook));
+
+    given(fileUploader.upload(any(MultipartFile.class), eq(BOOK_THUMBNAIL_DIR)))
+        .willThrow(new RuntimeException("S3 업로드 에러 발생"));
+
+    // when & then
+    assertThatThrownBy(() -> bookService.update(targetId, request, thumbnailFile))
+        .isInstanceOf(RuntimeException.class)
+        .hasMessageContaining("S3 업로드 에러 발생");
   }
 
   @Test
