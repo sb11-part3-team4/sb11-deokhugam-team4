@@ -153,14 +153,14 @@ public class ReviewServiceTest {
         UUID ownerUserId = UUID.randomUUID();
         UUID bookId = UUID.randomUUID();
         Review review = Review.create(ownerUserId, bookId, 4, "좋은 책이에요");
-        ReviewUpdateRequest request = new ReviewUpdateRequest(4, "수정된 내용");
+        ReviewUpdateRequest request = new ReviewUpdateRequest(5, "수정된 내용");
 
         given(reviewRepository.findById(any(UUID.class))).willReturn(Optional.of(review));
 
         ReviewResponse response = reviewService.updateReview(review.getId(), ownerUserId, request);
 
         assertThat(response.userId()).isEqualTo(ownerUserId);
-        assertThat(response.rating()).isEqualTo(4);
+        assertThat(response.rating()).isEqualTo(5);
         assertThat(response.content()).isEqualTo("수정된 내용");
         assertThat(response.likedByMe()).isFalse();
     }
@@ -185,7 +185,7 @@ public class ReviewServiceTest {
         UUID bookId = UUID.randomUUID();
         UUID reviewId = UUID.randomUUID();
         Review review = Review.create(ownerUserId, bookId, 4, "내용");
-        ReviewUpdateRequest request = new ReviewUpdateRequest(6, "수정된 내용");
+        ReviewUpdateRequest request = new ReviewUpdateRequest(5, "수정된 내용");
 
         given(reviewRepository.findById(reviewId)).willReturn(Optional.of(review));
 
