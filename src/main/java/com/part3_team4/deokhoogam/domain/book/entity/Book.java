@@ -7,6 +7,7 @@ import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EntityListeners;
 import jakarta.persistence.Table;
+import jakarta.persistence.UniqueConstraint;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import lombok.AccessLevel;
@@ -16,7 +17,9 @@ import lombok.NoArgsConstructor;
 import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 
 @Entity
-@Table(name = "book")
+@Table(name = "book", uniqueConstraints = {
+    @UniqueConstraint(name = "uk_book_isbn", columnNames = "isbn")
+})
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 @EntityListeners(AuditingEntityListener.class)
@@ -26,7 +29,6 @@ public class Book extends BaseEntity {
   private static final int TITLE_MAX_LENGTH = 255;
   private static final int AUTHOR_MAX_LENGTH = 100;
   private static final int PUBLISHER_MAX_LENGTH = 100;
-  private static final int ISBN_MAX_LENGTH = 20;
   private static final int THUMBNAIL_URL_MAX_LENGTH = 512;
 
   private static final BigDecimal MIN_RATING = new BigDecimal("0.00");
@@ -48,7 +50,7 @@ public class Book extends BaseEntity {
   @Column(name = "published_date", nullable = false)
   private LocalDate publishedDate;
 
-  @Column(name = "isbn", unique = true, length = ISBN_MAX_LENGTH)
+  @Column(name = "isbn", columnDefinition = "TEXT")
   private String isbn;
 
   @Column(name = "thumbnail_url", length = THUMBNAIL_URL_MAX_LENGTH)
@@ -147,7 +149,6 @@ public class Book extends BaseEntity {
           "ISBN이 입력되면 공백이 될 수 없습니다."
       );
     }
-    validateLength(isbn, ISBN_MAX_LENGTH, ErrorKey.BOOK_ISBN);
   }
 
   private void validateReviewData(int reviewCount, BigDecimal rating) {

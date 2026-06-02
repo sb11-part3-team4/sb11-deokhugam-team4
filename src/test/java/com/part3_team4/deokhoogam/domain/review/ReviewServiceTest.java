@@ -4,8 +4,11 @@ import com.part3_team4.deokhoogam.domain.book.entity.Book;
 import com.part3_team4.deokhoogam.domain.book.repository.BookRepository;
 import com.part3_team4.deokhoogam.domain.review.dto.ReviewCreateRequest;
 import com.part3_team4.deokhoogam.domain.review.dto.ReviewResponse;
+import com.part3_team4.deokhoogam.domain.review.dto.ReviewUpdateRequest;
 import com.part3_team4.deokhoogam.domain.review.entity.Review;
+import com.part3_team4.deokhoogam.domain.review.exception.InvalidReviewException;
 import com.part3_team4.deokhoogam.domain.review.exception.ReviewNotFoundException;
+import com.part3_team4.deokhoogam.domain.review.exception.ReviewNotOwnerException;
 import com.part3_team4.deokhoogam.domain.review.repository.ReviewLikeRepository;
 import com.part3_team4.deokhoogam.domain.review.repository.ReviewRepository;
 import com.part3_team4.deokhoogam.domain.review.service.ReviewServiceImpl;
@@ -99,7 +102,6 @@ public class ReviewServiceTest {
     }
 
 
-
     @Test
     @DisplayName("reviewId로 리뷰를 조회하면 ReviewResponse를 반환한다")
     void getReview_success() {
@@ -110,7 +112,7 @@ public class ReviewServiceTest {
         given(reviewRepository.findById(any(UUID.class))).willReturn(Optional.of(review));
         given(reviewLikeRepository.existsByReviewIdAndUserId(any(UUID.class), eq(userId))).willReturn(false);
 
-        ReviewResponse response = reviewService.getReview(review.getId(),userId);
+        ReviewResponse response = reviewService.getReview(review.getId(), userId);
 
         assertThat(response.userId()).isEqualTo(userId);
         assertThat(response.rating()).isEqualTo(4);
@@ -129,13 +131,67 @@ public class ReviewServiceTest {
         assertThatThrownBy(() -> reviewService.getReview(reviewId, userId)).isInstanceOf(ReviewNotFoundException.class);
     }
 
+    @Test
+    @DisplayName("타인의 reviewId를 수정하려하면 ReviewNotOwnerException을 던진다")
+    void updateReview_reviewNotOwner_throwsException() {
+        UUID ownerUserId = UUID.randomUUID();
+        UUID anotherUserId = UUID.randomUUID();
+        UUID bookId = UUID.randomUUID();
+        UUID reviewId = UUID.randomUUID();
+        Review review = Review.create(ownerUserId, bookId, 4, "내용");
+        ReviewUpdateRequest request = new ReviewUpdateRequest(4, "수정된 내용");
 
+        given(reviewRepository.findById(reviewId)).willReturn(Optional.of(review));
 
+        assertThatThrownBy(() -> reviewService.updateReview(reviewId, anotherUserId, request)).isInstanceOf(ReviewNotOwnerException.class);
 
+    }
 
+    @Test
+    @DisplayName("reviewId로 리뷰를 수정하면 ReviewResponse를 반환한다")
+    void updateReview_success() {
+        UUID ownerUserId = UUID.randomUUID();
+        UUID bookId = UUID.randomUUID();
+        Review review = Review.create(ownerUserId, bookId, 4, "좋은 책이에요");
+        ReviewUpdateRequest request = new ReviewUpdateRequest(5, "수정된 내용");
 
+        given(reviewRepository.findById(any(UUID.class))).willReturn(Optional.of(review));
 
+        ReviewResponse response = reviewService.updateReview(review.getId(), ownerUserId, request);
 
+        assertThat(response.userId()).isEqualTo(ownerUserId);
+        assertThat(response.rating()).isEqualTo(5);
+        assertThat(response.content()).isEqualTo("수정된 내용");
+        assertThat(response.likedByMe()).isFalse();
+    }
 
+    @Test
+    @DisplayName("존재하지 않는 reviewId로 수정하면 ReviewNotFoundException을 던진다")
+    void updateReview_reviewNotFound_throwsException() {
+        UUID userId = UUID.randomUUID();
+        UUID reviewId = UUID.randomUUID();
+        ReviewUpdateRequest request = new ReviewUpdateRequest(4,"수정된 내용");
+
+        given(reviewRepository.findById(reviewId)).willReturn(Optional.empty());
+
+        assertThatThrownBy(() -> reviewService.updateReview(reviewId, userId, request))
+                .isInstanceOf(ReviewNotFoundException.class);
+    }
+
+    @Test
+    @DisplayName("rating이 범위를 벗어나면 InvalidReviewException을 던진다")
+    void updateReview_invalidRating_throwsException() {
+        UUID ownerUserId = UUID.randomUUID();
+        UUID bookId = UUID.randomUUID();
+        UUID reviewId = UUID.randomUUID();
+        Review review = Review.create(ownerUserId, bookId, 4, "내용");
+        ReviewUpdateRequest request = new ReviewUpdateRequest(6, "수정된 내용");
+
+        given(reviewRepository.findById(reviewId)).willReturn(Optional.of(review));
+
+        assertThatThrownBy(() -> reviewService.updateReview(reviewId, ownerUserId, request))
+                .isInstanceOf(InvalidReviewException.class);
+
+    }
 
 }

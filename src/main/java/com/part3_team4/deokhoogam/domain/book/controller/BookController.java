@@ -5,7 +5,7 @@ import com.part3_team4.deokhoogam.domain.book.dto.BookDto;
 import com.part3_team4.deokhoogam.domain.book.dto.BookUpdateRequest;
 import com.part3_team4.deokhoogam.domain.book.service.BookService;
 import io.swagger.v3.oas.annotations.Operation;
-import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -39,7 +39,7 @@ public class BookController {
   })
   @PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
   public ResponseEntity<BookDto> createBook(
-      @RequestPart("bookData") @Valid @Parameter(description = "도서 정보") BookCreateRequest request) {
+      @RequestPart("bookData") @Valid @Schema(description = "도서 정보") BookCreateRequest request) {
     BookDto response = bookService.create(request);
     return ResponseEntity.status(HttpStatus.CREATED).body(response);
   }
@@ -55,8 +55,8 @@ public class BookController {
   })
   @PatchMapping(value = "/{bookId}", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
   public ResponseEntity<BookDto> updateBook(
-      @Parameter(description = "도서 ID", example = "123e4567-e89b-12d3-a456-426614174000") @PathVariable UUID bookId,
-      @Parameter(description = "수정할 도서 정보") @RequestPart("bookData") @Valid BookUpdateRequest request
+      @Schema(description = "도서 ID", example = "123e4567-e89b-12d3-a456-426614174000") @PathVariable UUID bookId,
+      @Schema(description = "수정할 도서 정보") @RequestPart("bookData") @Valid BookUpdateRequest request
   ) {
     BookDto response = bookService.update(bookId, request);
     return ResponseEntity.ok(response);

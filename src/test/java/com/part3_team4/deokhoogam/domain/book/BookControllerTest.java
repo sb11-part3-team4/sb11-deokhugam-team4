@@ -18,6 +18,7 @@ import com.part3_team4.deokhoogam.domain.book.service.BookService;
 import com.part3_team4.deokhoogam.global.exception.ErrorCode;
 import com.part3_team4.deokhoogam.global.jwt.JwtFilter;
 import java.time.LocalDate;
+import com.part3_team4.deokhoogam.global.fixture.BookFixtures;
 import java.util.UUID;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -53,7 +54,7 @@ class BookControllerTest {
   @DisplayName("올바른 도서 정보로 생성 요청 시에 201 Created를 반환한다")
   void createBook_validRequest_returnsCreatedBook() throws Exception {
     // given
-    BookCreateRequest request = createValidBookRequest();
+    BookCreateRequest request = BookFixtures.validBookCreateRequest();
     MockMultipartFile bookDataPart = createMockMultipartFile(request);
 
     UUID mockId = UUID.randomUUID();
@@ -81,7 +82,7 @@ class BookControllerTest {
   @DisplayName("이미 존재하는 ISBN으로 도서를 등록 시에 409 Conflict를 반환한다")
   void createBook_alreadyIsbn_returnsConflict() throws Exception {
     // given
-    BookCreateRequest request = createValidBookRequest();
+    BookCreateRequest request = BookFixtures.validBookCreateRequest();
     MockMultipartFile bookDataPart = createMockMultipartFile(request);
 
     given(bookService.create(any(BookCreateRequest.class)))
@@ -100,13 +101,8 @@ class BookControllerTest {
   @DisplayName("유효하지 않은 정보로 생성 요청 시에 400 Bad Request를 반환한다")
   void createBook_invalidRequest_returnsBadRequest() throws Exception {
     // given
-    BookCreateRequest invalidRequest = BookCreateRequest.builder()
-        .isbn("1234567890123")
+    BookCreateRequest invalidRequest = BookFixtures.validBookCreateRequest().toBuilder()
         .title("")
-        .author("조슈아 블로흐")
-        .description("자바 가이드")
-        .publisher("인사이트")
-        .publishedDate(LocalDate.of(2026, 5, 28))
         .build();
 
     MockMultipartFile bookDataPart = createMockMultipartFile(invalidRequest);
@@ -121,71 +117,11 @@ class BookControllerTest {
   }
 
   @Test
-  @DisplayName("ISBN에 숫자가 아닌 값이 섞여있으면 400 Bad Request를 반환한다")
-  void createBook_isbnContainsLetters_returnsBadRequest() throws Exception {
-    // given
-    BookCreateRequest invalidRequest = BookCreateRequest.builder()
-        .isbn("1234567890abc")
-        .title("이펙티브 자바")
-        .author("조슈아 블로흐")
-        .description("자바 가이드")
-        .publisher("인사이트")
-        .publishedDate(LocalDate.of(2026, 5, 28))
-        .build();
-
-    MockMultipartFile bookDataPart = createMockMultipartFile(invalidRequest);
-
-    // when & then
-    mockMvc.perform(multipart("/api/books")
-            .file(bookDataPart))
-        .andDo(print())
-        .andExpect(status().isBadRequest())
-        .andExpect(jsonPath("$.code").value(ErrorCode.INVALID_INPUT_VALUE.getCode()))
-        .andExpect(jsonPath("$.details.isbn").exists());
-  }
-
-  @Test
-  @DisplayName("ISBN이 20자를 초과하는 경우 400 Bad Request를 반환한다")
-  void createBook_isbnTooLong_returnsBadRequest() throws Exception {
-    // given
-    BookCreateRequest invalidRequest = BookCreateRequest.builder()
-        .isbn("123456789012345678901")
-        .title("이펙티브 자바")
-        .author("조슈아 블로흐")
-        .description("자바 가이드")
-        .publisher("인사이트")
-        .publishedDate(LocalDate.of(2026, 5, 28))
-        .build();
-
-    MockMultipartFile bookDataPart = createMockMultipartFile(invalidRequest);
-
-    // when & then
-    mockMvc.perform(multipart("/api/books")
-            .file(bookDataPart))
-        .andDo(print())
-        .andExpect(status().isBadRequest())
-        .andExpect(jsonPath("$.code").value(ErrorCode.INVALID_INPUT_VALUE.getCode()))
-        .andExpect(jsonPath("$.details.isbn").exists());
-  }
-
-  // 등록 픽스처 메소드
-  private BookCreateRequest createValidBookRequest() {
-    return BookCreateRequest.builder()
-        .isbn("1234567890123")
-        .title("이펙티브 자바")
-        .author("조슈아 블로흐")
-        .description("자바 가이드")
-        .publisher("인사이트")
-        .publishedDate(LocalDate.of(2026, 5, 28))
-        .build();
-  }
-
-  @Test
   @DisplayName("올바른 도서 정보로 수정 요청 시에 200 OK를 반환한다")
   void updateBook_validRequest_returnsOk() throws Exception {
     // given
     UUID targetId = UUID.randomUUID();
-    BookUpdateRequest request = createValidBookUpdateRequest();
+    BookUpdateRequest request = BookFixtures.validBookUpdateRequest();
     MockMultipartFile bookDataPart = createMockMultipartFile(request);
 
     BookDto mockResponse = BookDto.builder()
@@ -213,12 +149,8 @@ class BookControllerTest {
   void updateBook_invalidRequest_returnsBadRequest() throws Exception {
     // given
     UUID targetId = UUID.randomUUID();
-    BookUpdateRequest invalidRequest = BookUpdateRequest.builder()
+    BookUpdateRequest invalidRequest = BookFixtures.validBookUpdateRequest().toBuilder()
         .title("")
-        .author("로버트 C. 마틴")
-        .description("소프트웨어 구조와 설계의 원칙")
-        .publisher("인사이트")
-        .publishedDate(LocalDate.of(2026, 5, 29))
         .build();
 
     MockMultipartFile bookDataPart = createMockMultipartFile(invalidRequest);
@@ -235,7 +167,7 @@ class BookControllerTest {
   void updateBook_nonExistentId_returnsNotFound() throws Exception {
     // given
     UUID nonExistentId = UUID.randomUUID();
-    BookUpdateRequest request = createValidBookUpdateRequest();
+    BookUpdateRequest request = BookFixtures.validBookUpdateRequest();
     MockMultipartFile bookDataPart = createMockMultipartFile(request);
 
     given(bookService.update(any(UUID.class), any(BookUpdateRequest.class)))
@@ -253,7 +185,7 @@ class BookControllerTest {
   void updateBook_isbnConflict_returnsConflict() throws Exception {
     // given
     UUID targetId = UUID.randomUUID();
-    BookUpdateRequest request = createValidBookUpdateRequest();
+    BookUpdateRequest request = BookFixtures.validBookUpdateRequest();
     MockMultipartFile bookDataPart = createMockMultipartFile(request);
 
     given(bookService.update(any(UUID.class), any(BookUpdateRequest.class)))
@@ -264,17 +196,6 @@ class BookControllerTest {
             .file(bookDataPart))
         .andDo(print())
         .andExpect(status().isConflict());
-  }
-
-  // 수정 픽스처 메서드
-  private BookUpdateRequest createValidBookUpdateRequest() {
-    return BookUpdateRequest.builder()
-        .title("클린 아키텍처")
-        .author("로버트 C. 마틴")
-        .description("소프트웨어 구조와 설계의 원칙")
-        .publisher("인사이트")
-        .publishedDate(LocalDate.of(2026, 5, 29))
-        .build();
   }
 
   // MultipartFile 생성 헬퍼 메서드

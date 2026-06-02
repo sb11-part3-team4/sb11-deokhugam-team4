@@ -11,6 +11,7 @@ import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 
+
 @Entity
 @Table(name = "review")
 @Getter
@@ -36,12 +37,7 @@ public class Review extends BaseEntity {
     private int commentCount;
 
     public static Review create(UUID userId, UUID bookId, int rating, String content) {
-        if (rating < 1 || rating > 5) {
-            throw InvalidReviewException.withFieldAndValue(ErrorKey.REVIEW_RATING, rating, "rating은 1~5 사이여야 합니다.");
-        }
-        if (content == null || content.isBlank()) {
-            throw InvalidReviewException.withField(ErrorKey.REVIEW_CONTENT, "content는 필수입니다.");
-        }
+        validate(rating, content);
 
         Review review = new Review();
         review.userId = userId;
@@ -53,5 +49,18 @@ public class Review extends BaseEntity {
         return review;
     }
 
+    public void update(int rating, String content) {
+        validate(rating, content);
+        this.rating = rating;
+        this.content = content;
+    }
 
+    private static void validate(int rating, String content) {
+        if (rating < 1 || rating > 5) {
+            throw InvalidReviewException.withFieldAndValue(ErrorKey.REVIEW_RATING, rating, "rating은 1~5 사이여야 합니다.");
+        }
+        if (content == null || content.isBlank()) {
+            throw InvalidReviewException.withField(ErrorKey.REVIEW_CONTENT, "content는 필수입니다.");
+        }
+    }
 }
