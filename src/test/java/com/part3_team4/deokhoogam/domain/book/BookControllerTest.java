@@ -18,6 +18,8 @@ import com.part3_team4.deokhoogam.domain.book.exception.BookNotFoundException;
 import com.part3_team4.deokhoogam.domain.book.exception.IsbnAlreadyExistsException;
 import com.part3_team4.deokhoogam.domain.book.service.BookService;
 import com.part3_team4.deokhoogam.global.exception.ErrorCode;
+import com.part3_team4.deokhoogam.global.jwt.JwtFilter;
+import java.time.LocalDate;
 import com.part3_team4.deokhoogam.global.fixture.BookFixtures;
 import java.util.UUID;
 import org.junit.jupiter.api.DisplayName;
@@ -47,6 +49,9 @@ class BookControllerTest {
 
   @MockitoBean
   private BookService bookService;
+
+  @MockitoBean
+  private JwtFilter jwtFilter;
 
   @Test
   @DisplayName("올바른 도서 정보로 생성 요청 시에 201 Created를 반환한다")
