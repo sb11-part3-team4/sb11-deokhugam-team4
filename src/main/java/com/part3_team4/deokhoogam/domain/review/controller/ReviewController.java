@@ -2,6 +2,7 @@ package com.part3_team4.deokhoogam.domain.review.controller;
 
 import com.part3_team4.deokhoogam.domain.review.dto.ReviewCreateRequest;
 import com.part3_team4.deokhoogam.domain.review.dto.ReviewResponse;
+import com.part3_team4.deokhoogam.domain.review.dto.ReviewUpdateRequest;
 import com.part3_team4.deokhoogam.domain.review.service.ReviewService;
 import jakarta.validation.Valid;
 import java.util.UUID;
@@ -33,6 +34,16 @@ public class ReviewController {
     ) {
        ReviewResponse response = reviewService.getReview(reviewId, userId);
        return ResponseEntity.ok(response);
+    }
+
+    @PatchMapping("/{reviewId}")
+    public ResponseEntity<ReviewResponse> updateReview(
+            @RequestHeader("Deokhugam-Request-User-ID") UUID userId,
+            @PathVariable UUID reviewId,
+            @RequestBody @Valid ReviewUpdateRequest request
+            ) {
+        ReviewResponse response = reviewService.updateReview(reviewId, userId, request);
+        return ResponseEntity.ok(response);
     }
 
 }
