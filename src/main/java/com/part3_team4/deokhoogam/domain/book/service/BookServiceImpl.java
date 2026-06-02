@@ -5,6 +5,7 @@ import com.part3_team4.deokhoogam.domain.book.dto.BookCursor;
 import com.part3_team4.deokhoogam.domain.book.dto.BookDto;
 import com.part3_team4.deokhoogam.domain.book.dto.BookGetListRequest;
 import com.part3_team4.deokhoogam.domain.book.entity.Book;
+import com.part3_team4.deokhoogam.domain.book.entity.SortType;
 import com.part3_team4.deokhoogam.domain.book.exception.BookNotFoundException;
 import com.part3_team4.deokhoogam.domain.book.exception.IsbnAlreadyExistsException;
 import com.part3_team4.deokhoogam.domain.book.repository.BookRepository;
@@ -64,32 +65,35 @@ public class BookServiceImpl implements BookService {
     //커서 디코딩
     BookCursor cursor = CursorUtils.decodeCursor(request.cursor());
     //슬라이스 가져오기
-    Slice<Book> books = bookRepository.getBooks(cursor,request);
+    Slice<Book> books = bookRepository.getBooks(cursor, request);
     //Dto 변환
     List<BookDto> dtoList = books.stream().map(BookDto::from).toList();
 
-    String nextCursor = null;
-    // 다음 커서 구하기
-    if (books.hasNext() && !books.getContent().isEmpty()) {
-      // 현재 슬라이스의 마지막 데이터 추출
-      Book lastBook = books.getContent().get(books.getContent().size() - 1);
 
-      // 마지막 데이터의 값으로 다음 커서 객체 생성
-      BookCursor newCursorObj = new BookCursor(
-          request.orderBy(),
-          lastBook.getId(),
-          lastBook.getCreatedAt()
-      );
-
-      // 인코딩 후 출력
-      nextCursor = CursorUtils.encodeCursor(newCursorObj);
-    }
 
     return PageResponse.<BookDto>builder()
         .content(dtoList)
         .hasNext(books.hasNext())
-        .nextCursor(nextCursor)
+        .nextCursor(generateNextCursor(books,request.orderBy()))
         .build();
+  }
+
+  private String generateNextCursor(Slice<Book> books, SortType orderBy) {
+    if (!books.hasNext() || books.getContent().isEmpty()) {
+      return null; // 다음 페이지가 없으면 null 반환
+    }
+
+    // 현재 슬라이스의 마지막 데이터 추출
+    Book lastBook = books.getContent().get(books.getContent().size() - 1);
+
+    // 마지막 데이터의 값으로 다음 커서 객체 생성
+    BookCursor newCursorObj = new BookCursor(
+        orderBy,
+        lastBook.getId(),
+        lastBook.getCreatedAt()
+    );
+
+    return CursorUtils.encodeCursor(newCursorObj);
   }
 
 
