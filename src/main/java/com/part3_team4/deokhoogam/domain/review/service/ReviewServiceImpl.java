@@ -5,6 +5,7 @@ import com.part3_team4.deokhoogam.domain.book.repository.BookRepository;
 import com.part3_team4.deokhoogam.domain.review.dto.ReviewCreateRequest;
 import com.part3_team4.deokhoogam.domain.review.dto.ReviewResponse;
 import com.part3_team4.deokhoogam.domain.review.dto.ReviewUpdateRequest;
+import com.part3_team4.deokhoogam.domain.review.entity.DeletedReview;
 import com.part3_team4.deokhoogam.domain.review.entity.Review;
 import com.part3_team4.deokhoogam.domain.review.exception.ReviewAlreadyExistsException;
 import com.part3_team4.deokhoogam.domain.review.exception.ReviewNotFoundException;
@@ -93,7 +94,13 @@ public class ReviewServiceImpl implements ReviewService {
     @Override
     @Transactional
     public void deleteReview(UUID reviewId, UUID userId) {
-        throw new UnsupportedOperationException();
-    }
+        Review review = reviewRepository.findById(reviewId)
+                .orElseThrow(() -> ReviewNotFoundException.withId(reviewId));
+        if (!review.getUserId().equals(userId))
+            throw ReviewNotOwnerException.withUserId(userId);
+            reviewLikeRepository.deleteAllByReviewId(reviewId);
+            deletedReviewRepository.save(DeletedReview.from(review));
+            reviewRepository.delete(review);
+        }
 
-}
+    }
