@@ -1,24 +1,25 @@
 package com.part3_team4.deokhoogam.domain.user.controller;
 
+import com.part3_team4.deokhoogam.domain.user.dto.PasswordUpdateRequestDto;
 import com.part3_team4.deokhoogam.domain.user.dto.UserCreateRequestDto;
 import com.part3_team4.deokhoogam.domain.user.dto.UserDto;
-import com.part3_team4.deokhoogam.domain.user.dto.response.UserResponse;
+import com.part3_team4.deokhoogam.domain.user.dto.UserLoginRequestDto;
 import com.part3_team4.deokhoogam.domain.user.dto.UserUpdateRequestDto;
+import com.part3_team4.deokhoogam.domain.user.dto.response.UserResponse;
 import com.part3_team4.deokhoogam.domain.user.service.UserService;
 import jakarta.validation.Valid;
+import java.util.Map;
 import java.util.UUID;
 import org.springframework.http.HttpStatus;
-import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestPart;
 import org.springframework.web.bind.annotation.RestController;
-import org.springframework.web.multipart.MultipartFile;
 
 @RestController
 @RequestMapping("/api/users")
@@ -29,12 +30,11 @@ public class UserController {
     this.userService = userService;
   }
 
-  @PostMapping(value = "/signup", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+  @PostMapping(value = "/signup")
   public ResponseEntity<UserDto> signup(
-      @Valid @RequestPart("request") UserCreateRequestDto request,
-      @RequestPart(value = "profileImage", required = false)MultipartFile profileImage) {
+      @Valid @RequestBody UserCreateRequestDto request) {
 
-    UserDto responseDto = userService.createUser(request, profileImage);
+    UserDto responseDto = userService.createUser(request);
 
     return ResponseEntity.status(HttpStatus.CREATED).body(responseDto);
   }
@@ -51,11 +51,18 @@ public class UserController {
   @PatchMapping("/{userId}")
   public ResponseEntity<Void> updateUser(
       @PathVariable UUID userId,
-      @Valid @RequestPart("request") UserUpdateRequestDto request,
-      @RequestPart(value = "profileImage", required = false) MultipartFile profileImage) {
+      @Valid @RequestBody UserUpdateRequestDto request) {
 
-    userService.updateUser(userId, request, profileImage);
+    userService.updateUser(userId, request);
 
+    return ResponseEntity.ok().build();
+  }
+
+  @PatchMapping("/{userId}/password")
+  public ResponseEntity<Void> updatePassword(@PathVariable UUID userId,
+      @Valid @RequestBody PasswordUpdateRequestDto request) {
+
+    userService.updatePassword(userId, request);
     return ResponseEntity.ok().build();
   }
 
@@ -66,5 +73,14 @@ public class UserController {
     userService.deleteUser(userId);
 
     return ResponseEntity.noContent().build();
+  }
+
+  @PostMapping("/login")
+  public ResponseEntity<Map<String, String>> login(
+      @Valid @RequestBody UserLoginRequestDto request) {
+
+    String token = userService.login(request.email(), request.password());
+
+    return ResponseEntity.ok(Map.of("accessToken", token));
   }
 }

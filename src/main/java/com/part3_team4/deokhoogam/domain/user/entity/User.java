@@ -19,13 +19,13 @@ public class User extends BaseEntity {
   @Column(unique = true, nullable = false)
   private String email;
 
-  @Column(unique = true, nullable = false)
+  @Column(unique = true, name = "nickname", nullable = false)
   private String name;
   private String password;
 
-  @OneToOne(fetch = FetchType.LAZY, cascade = CascadeType.ALL, orphanRemoval = true)
-  @JoinColumn(name = "profile_image_id")
-  private UserProfileImage profileImage;
+//  @OneToOne(fetch = FetchType.LAZY, cascade = CascadeType.ALL, orphanRemoval = true)
+//  @JoinColumn(name = "profile_image_id")
+//  private UserProfileImage profileImage;
 
   public User() {
   }
@@ -40,7 +40,15 @@ public class User extends BaseEntity {
     this.name = name;
   }
 
-  public void updateProfileImage(UserProfileImage profileImage) {
-    this.profileImage = profileImage;
+  public void updateEmail(String email) {
+    this.email = email;
   }
+
+  public void updatePassword(String password) {
+    this.password = password;
+  }
+
+//  public void updateProfileImage(UserProfileImage profileImage) {
+//    this.profileImage = profileImage;
+//  }
 }

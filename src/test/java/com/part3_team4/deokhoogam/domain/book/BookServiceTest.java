@@ -2,6 +2,7 @@ package com.part3_team4.deokhoogam.domain.book;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.BDDMockito.then;
@@ -16,9 +17,12 @@ import com.part3_team4.deokhoogam.domain.book.exception.BookNotFoundException;
 import com.part3_team4.deokhoogam.domain.book.exception.IsbnAlreadyExistsException;
 import com.part3_team4.deokhoogam.domain.book.repository.BookRepository;
 import com.part3_team4.deokhoogam.domain.book.service.BookServiceImpl;
+import com.part3_team4.deokhoogam.global.fixture.BookFixtures;
+import java.sql.SQLException;
 import java.time.LocalDate;
 import java.util.Optional;
 import java.util.UUID;
+import org.hibernate.exception.ConstraintViolationException;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -44,7 +48,7 @@ class BookServiceTest {
   @DisplayName("새로운 도서를 성공적으로 등록한다")
   void createBook_Success() {
     // given
-    BookCreateRequest request = createValidBookRequest();
+    BookCreateRequest request = BookFixtures.validBookCreateRequest();
     UUID mockId = UUID.randomUUID();
 
     Book mockSavedBook = Book.builder()
@@ -84,7 +88,7 @@ class BookServiceTest {
   @DisplayName("이미 존재하는 ISBN으로 도서를 등록하면 예외가 발생한다")
   void registerBook_WithAlreadyExistIsbn_ThrowsException() {
     // given
-    BookCreateRequest request = createValidBookRequest();
+    BookCreateRequest request = BookFixtures.validBookCreateRequest();
 
     given(bookRepository.existsByIsbn(request.isbn())).willReturn(true);
 
@@ -97,26 +101,62 @@ class BookServiceTest {
   }
 
   @Test
-  @DisplayName("도서 등록 중 동시성 이슈로 DB Unique 제약조건이 깨지면 예외가 발생한다")
-  void createBook_concurrentSave_throwsIsbnAlreadyExistsException() {
+  @DisplayName("ISBN 제약 위반시 IsbnAlreadyExistsException으로 변환")
+  void create_uniqueViolationOnIsbn_throwsBusinessException() {
     // given
-    BookCreateRequest request = createValidBookRequest();
-
+    BookCreateRequest request = BookFixtures.validBookCreateRequest();
     given(bookRepository.existsByIsbn(request.isbn())).willReturn(false);
-    given(bookRepository.save(any(Book.class)))
-        .willThrow(new DataIntegrityViolationException("ISBN 동시 입력"));
+
+    ConstraintViolationException cause = new ConstraintViolationException(
+        "제약조건명 검증",
+        new SQLException(),
+        "uk_book_isbn"
+    );
+    DataIntegrityViolationException exception = new DataIntegrityViolationException("예외 발생", cause);
+
+    given(bookRepository.save(any(Book.class))).willThrow(exception);
 
     // when & then
-    assertThatThrownBy(() -> bookService.create(request))
-        .isInstanceOf(IsbnAlreadyExistsException.class);
+    assertThrows(IsbnAlreadyExistsException.class,
+        () -> bookService.create(request));
+  }
 
-    then(bookRepository).should().existsByIsbn(request.isbn());
+  @Test
+  @DisplayName("ISBN 외 제약 위반 발생 시 원본 예외 그대로 전파한다")
+  void create_dataIntegrityViolationOnOtherConstraint_propagates() {
+    // given
+    BookCreateRequest request = BookFixtures.validBookCreateRequest();
+    given(bookRepository.existsByIsbn(request.isbn())).willReturn(false);
 
-    ArgumentCaptor<Book> bookCaptor = ArgumentCaptor.forClass(Book.class);
-    then(bookRepository).should().save(bookCaptor.capture());
+    ConstraintViolationException cause = new ConstraintViolationException(
+        "제약조건명 검증",
+        new SQLException(),
+        "other_constraint"
+    );
+    DataIntegrityViolationException exception = new DataIntegrityViolationException("예외 발생", cause);
 
-    Book actualSavedBook = bookCaptor.getValue();
-    assertThat(actualSavedBook.getIsbn()).isEqualTo(request.isbn());
+    given(bookRepository.save(any(Book.class))).willThrow(exception);
+
+    assertThrows(DataIntegrityViolationException.class,
+        () -> bookService.create(request));
+  }
+
+  @Test
+  @DisplayName("원인이 ConstraintViolationException이 아닌 DataIntegrityViolationException 발생 시 원본 예외를 전파한다")
+  void create_dataIntegrityViolation_withDifferentCause_propagates() {
+    // given
+    BookCreateRequest request = BookFixtures.validBookCreateRequest();
+    given(bookRepository.existsByIsbn(request.isbn())).willReturn(false);
+
+    SQLException differentCause = new SQLException("일반적인 SQL 문법 에러 등");
+    DataIntegrityViolationException exception = new DataIntegrityViolationException("예외 발생",
+        differentCause);
+
+    given(bookRepository.save(any(Book.class))).willThrow(exception);
+
+    // when & then
+    assertThrows(DataIntegrityViolationException.class,
+        () -> bookService.create(request));
   }
 
   @Test
@@ -124,8 +164,8 @@ class BookServiceTest {
   void updateBook_Success() {
     // given
     UUID targetId = UUID.randomUUID();
-    BookCreateRequest createRequest = createValidBookRequest();
-    BookUpdateRequest updateRequest = createValidBookUpdateRequest();
+    BookCreateRequest createRequest = BookFixtures.validBookCreateRequest();
+    BookUpdateRequest updateRequest = BookFixtures.validBookUpdateRequest();
 
     Book existingBook = Book.builder()
         .isbn(createRequest.isbn())
@@ -166,7 +206,7 @@ class BookServiceTest {
   void updateBook_WithNonExistentId_ThrowsException() {
     // given
     UUID nonExistentId = UUID.randomUUID();
-    BookUpdateRequest request = createValidBookUpdateRequest();
+    BookUpdateRequest request = BookFixtures.validBookUpdateRequest();
 
     given(bookRepository.findById(nonExistentId)).willReturn(
         Optional.empty());
@@ -177,19 +217,6 @@ class BookServiceTest {
 
     then(bookRepository).should().findById(nonExistentId);
     then(bookRepository).shouldHaveNoMoreInteractions();
-  }
-
-  // 픽스처 메서드
-
-  private BookCreateRequest createValidBookRequest() {
-    return BookCreateRequest.builder()
-        .isbn("1234567890123")
-        .title("이펙티브 자바")
-        .author("조슈아 블로흐")
-        .description("자바 가이드")
-        .publisher("인사이트")
-        .publishedDate(LocalDate.of(2026, 5, 28))
-        .build();
   }
 
   @Nested

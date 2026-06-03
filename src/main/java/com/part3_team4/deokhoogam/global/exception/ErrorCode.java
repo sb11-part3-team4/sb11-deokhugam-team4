@@ -11,6 +11,8 @@ public enum ErrorCode {
   // 1. 사용자 예외
   USER_NOT_FOUND(HttpStatus.NOT_FOUND, "USER-001", "존재하지 않는 사용자입니다."),
   USER_ALREADY_EXISTS(HttpStatus.CONFLICT, "USER-002", "이미 존재하는 사용자입니다."),
+  PASSWORD_MISMATCH(HttpStatus.BAD_REQUEST, "USER-003", "비밀번호가 일치하지 않습니다."),
+  INVALID_CREDENTIALS(HttpStatus.UNAUTHORIZED, "USER-004", "이메일 또는 비밀번호가 일치하지 않습니다."),
 
   // 2. 도서 예외
   BOOK_NOT_FOUND(HttpStatus.NOT_FOUND, "BOOK-001", "존재하지 않는 도서입니다."),
@@ -27,6 +29,7 @@ public enum ErrorCode {
   REVIEW_NOT_FOUND(HttpStatus.NOT_FOUND, "REVIEW-001", "존재하지 않는 리뷰입니다."),
   REVIEW_ALREADY_EXISTS(HttpStatus.CONFLICT, "REVIEW-002", "이미 해당 도서에 작성한 리뷰가 존재합니다."),
   REVIEW_INVALID_INPUT(HttpStatus.BAD_REQUEST, "REVIEW-003", "올바르지 않은 리뷰 정보입니다."),
+  REVIEW_NOT_OWNER(HttpStatus.FORBIDDEN,"REVIEW-004", "사용자가 남긴 리뷰가 아닙니다."),
 
   // 5. 알림 예외
   NOTIFICATION_NOT_FOUND(HttpStatus.NOT_FOUND, "NOTIFICATION-001", "존재하지 않는 알림입니다."),
