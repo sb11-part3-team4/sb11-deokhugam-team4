@@ -10,4 +10,7 @@ public interface BookService {
   BookDto create(BookCreateRequest request);
 
   BookDto update(UUID id, BookUpdateRequest request);
+
+  BookDto getDetails(UUID bookId);
+
 }

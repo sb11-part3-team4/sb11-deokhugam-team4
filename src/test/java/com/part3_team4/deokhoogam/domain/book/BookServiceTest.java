@@ -19,10 +19,12 @@ import com.part3_team4.deokhoogam.domain.book.repository.BookRepository;
 import com.part3_team4.deokhoogam.domain.book.service.BookServiceImpl;
 import com.part3_team4.deokhoogam.global.fixture.BookFixtures;
 import java.sql.SQLException;
+import java.time.LocalDate;
 import java.util.Optional;
 import java.util.UUID;
 import org.hibernate.exception.ConstraintViolationException;
 import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
@@ -30,6 +32,7 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.test.util.ReflectionTestUtils;
 
 @ExtendWith(MockitoExtension.class)
 @DisplayName("BookService 단위 테스트")
@@ -215,4 +218,74 @@ class BookServiceTest {
     then(bookRepository).should().findById(nonExistentId);
     then(bookRepository).shouldHaveNoMoreInteractions();
   }
+
+  @Nested
+  @DisplayName("getDetails() 메서드")
+  class TestGetDetails {
+
+    UUID mockId = UUID.randomUUID();
+
+
+    @Test
+    @DisplayName("유효한 id가 들어왔을때 책 정보를 반환한다.")
+    void returnDetails() {
+
+      //given
+      given(bookRepository.findById(mockId)).willReturn(book());
+
+      //when
+      BookDto result = bookService.getDetails(mockId);
+
+      assertThat(result.id()).isEqualTo(mockId);
+      assertThat(result.title()).isEqualTo("모비 딕");
+
+      then(bookRepository).should().findById(mockId);
+
+
+    }
+
+
+    @Test
+    @DisplayName("유효하지 않은 id가 들어왔을때 예외를 발생시킨다.")
+    void returnDetailsInvalidId() {
+
+      //given
+      given(bookRepository.findById(mockId)).willReturn(Optional.empty());
+      //then & when
+      assertThatThrownBy(() -> bookService.getDetails(mockId)).isInstanceOf(
+          BookNotFoundException.class);
+
+    }
+
+
+    private Optional<Book> book() {
+
+      Book book = Book.builder()
+          .title("모비 딕")
+          .author("허먼 멜빌")
+          .description("『모비 딕』 완역본")
+          .publisher("작가정신")
+          .publishedDate(LocalDate.of(2024, 4, 9))
+          .thumbnailUrl("temp/url")
+          .isbn("9791160263404")
+          .build();
+
+      ReflectionTestUtils.setField(book, "id", mockId);
+
+      return Optional.of(book);
+
+    }
+
+  }
+
+  private BookUpdateRequest createValidBookUpdateRequest() {
+    return BookUpdateRequest.builder()
+        .title("클린 아키텍처")
+        .author("로버트 C. 마틴")
+        .description("소프트웨어 구조와 설계의 원칙")
+        .publisher("인사이트")
+        .publishedDate(LocalDate.of(2026, 5, 29))
+        .build();
+  }
+
 }

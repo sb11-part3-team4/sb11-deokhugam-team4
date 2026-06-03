@@ -51,7 +51,7 @@ public class BookServiceImpl implements BookService {
     }
   }
 
-  @Override
+
   @Transactional
   public BookDto update(UUID id, BookUpdateRequest request) {
     Book book = bookRepository.findById(id)
@@ -65,6 +65,17 @@ public class BookServiceImpl implements BookService {
         request.publishedDate(),
         book.getThumbnailUrl() // TODO: 추후 메서드 분리 및 관련 로직 추가 예정
     );
+
+    return BookDto.from(book);
+  }
+
+
+  @Override
+  @Transactional(readOnly = true)
+  public BookDto getDetails(UUID bookId) {
+
+    Book book = bookRepository.findById(bookId)
+        .orElseThrow(() -> BookNotFoundException.withId(bookId));
 
     return BookDto.from(book);
   }
