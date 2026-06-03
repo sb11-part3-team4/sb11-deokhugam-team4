@@ -12,10 +12,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.part3_team4.deokhoogam.domain.book.controller.BookController;
 import com.part3_team4.deokhoogam.domain.book.dto.BookCreateRequest;
 import com.part3_team4.deokhoogam.domain.book.dto.BookDto;
-<<<<<<< HEAD
-=======
 import com.part3_team4.deokhoogam.domain.book.dto.BookUpdateRequest;
->>>>>>> main
 import com.part3_team4.deokhoogam.domain.book.exception.BookNotFoundException;
 import com.part3_team4.deokhoogam.domain.book.exception.IsbnAlreadyExistsException;
 import com.part3_team4.deokhoogam.domain.book.service.BookService;
@@ -183,77 +180,6 @@ class BookControllerTest {
         .build();
   }
 
-<<<<<<< HEAD
-
-  @Nested
-  @DisplayName("getBookDetails() API에서")
-  class TestGetBookDetails {
-
-    @Test
-    @DisplayName("유효한 ID로 요청이 들어오면 200 상태 코드로 책 상세 정보를 반환한다.")
-    void return_200_when_valid_id() throws Exception {
-
-      //given
-      UUID mockId = UUID.randomUUID();
-
-      BookDto bookDto = createValidBookDto(mockId);
-
-      given(bookService.getDetails(mockId)).willReturn(bookDto);
-
-      //when
-      ResultActions result = mockMvc.perform(get("/api/books/{bookId}", mockId)
-          .accept(MediaType.APPLICATION_JSON));
-
-      //then
-      result.andExpect(status().isOk())
-          .andExpect(jsonPath("$.id").value(mockId.toString()))
-          .andExpect(jsonPath("$.isbn").value(bookDto.isbn()));
-
-    }
-
-    @Test
-    @DisplayName("유효하지 않은 ID가 들어오면 404 상태 코드를 반환한다")
-    void return_404_when_invalid_id() throws Exception {
-
-      //given
-      UUID mockId = UUID.randomUUID();
-      given(bookService.getDetails(mockId)).willThrow(BookNotFoundException.withId(mockId));
-
-      //when
-      ResultActions result = mockMvc.perform(get("/api/books/{bookId}", mockId)
-          .accept(MediaType.APPLICATION_JSON));
-
-      //then
-      result.andExpect(status().isNotFound());
-
-    }
-
-
-    //픽스쳐
-    private BookDto createValidBookDto(UUID mockId) {
-      Instant at = Instant.now().minusSeconds(10);
-
-      return BookDto.builder()
-          .id(mockId)
-          .title("모비 딕")
-          .author("허먼 멜빌")
-          .description("『모비 딕』 완역본")
-          .publisher("작가정신")
-          .publishedDate(LocalDate.of(2024, 4, 9))
-          .thumbnailUrl("temp/url")
-          .reviewCount(2)
-          .rating(BigDecimal.valueOf(4.5))
-          .isbn("9791160263404")
-          .createdAt(at)
-          .updatedAt(at)
-          .build();
-    }
-
-
-  }
-
-
-=======
   @Test
   @DisplayName("올바른 도서 정보로 수정 요청 시에 200 OK를 반환한다")
   void updateBook_validRequest_returnsOk() throws Exception {
@@ -360,5 +286,73 @@ class BookControllerTest {
         objectMapper.writeValueAsBytes(request)
     );
   }
->>>>>>> main
+
+  @Nested
+  @DisplayName("getBookDetails() API에서")
+  class TestGetBookDetails {
+
+    @Test
+    @DisplayName("유효한 ID로 요청이 들어오면 200 상태 코드로 책 상세 정보를 반환한다.")
+    void return_200_when_valid_id() throws Exception {
+
+      //given
+      UUID mockId = UUID.randomUUID();
+
+      BookDto bookDto = createValidBookDto(mockId);
+
+      given(bookService.getDetails(mockId)).willReturn(bookDto);
+
+      //when
+      ResultActions result = mockMvc.perform(get("/api/books/{bookId}", mockId)
+          .accept(MediaType.APPLICATION_JSON));
+
+      //then
+      result.andExpect(status().isOk())
+          .andExpect(jsonPath("$.id").value(mockId.toString()))
+          .andExpect(jsonPath("$.isbn").value(bookDto.isbn()));
+
+    }
+
+    @Test
+    @DisplayName("유효하지 않은 ID가 들어오면 404 상태 코드를 반환한다")
+    void return_404_when_invalid_id() throws Exception {
+
+      //given
+      UUID mockId = UUID.randomUUID();
+      given(bookService.getDetails(mockId)).willThrow(BookNotFoundException.withId(mockId));
+
+      //when
+      ResultActions result = mockMvc.perform(get("/api/books/{bookId}", mockId)
+          .accept(MediaType.APPLICATION_JSON));
+
+      //then
+      result.andExpect(status().isNotFound());
+
+    }
+
+
+    //픽스쳐
+    private BookDto createValidBookDto(UUID mockId) {
+      Instant at = Instant.now().minusSeconds(10);
+
+      return BookDto.builder()
+          .id(mockId)
+          .title("모비 딕")
+          .author("허먼 멜빌")
+          .description("『모비 딕』 완역본")
+          .publisher("작가정신")
+          .publishedDate(LocalDate.of(2024, 4, 9))
+          .thumbnailUrl("temp/url")
+          .reviewCount(2)
+          .rating(BigDecimal.valueOf(4.5))
+          .isbn("9791160263404")
+          .createdAt(at)
+          .updatedAt(at)
+          .build();
+    }
+
+
+  }
+
+
 }
