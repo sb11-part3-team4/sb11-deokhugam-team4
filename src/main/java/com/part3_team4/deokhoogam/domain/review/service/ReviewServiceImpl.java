@@ -98,9 +98,9 @@ public class ReviewServiceImpl implements ReviewService {
                 .orElseThrow(() -> ReviewNotFoundException.withId(reviewId));
         if (!review.getUserId().equals(userId))
             throw ReviewNotOwnerException.withUserId(userId);
-            reviewLikeRepository.deleteAllByReviewId(reviewId);
-            deletedReviewRepository.save(DeletedReview.from(review));
-            reviewRepository.delete(review);
-        }
-
+        reviewLikeRepository.deleteAllByReviewId(reviewId);
+        deletedReviewRepository.save(DeletedReview.from(review));
+        reviewRepository.delete(review);
     }
+
+}
