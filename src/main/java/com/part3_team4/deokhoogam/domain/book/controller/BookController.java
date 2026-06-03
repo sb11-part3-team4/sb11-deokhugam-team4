@@ -66,7 +66,7 @@ public class BookController implements BookAPI {
   }
 
   @Override
-  @GetMapping(value = "{bookId}")
+  @GetMapping(value = "/{bookId}")
   public ResponseEntity<BookDto> getDetails(@PathVariable UUID bookId) {
 
     BookDto response = bookService.getDetails(bookId);
