@@ -79,4 +79,18 @@ public class BookServiceImpl implements BookService {
 
     return BookDto.from(book);
   }
+
+  @Override
+  @Transactional
+  public void delete(UUID bookId) {
+
+
+  }
+
+  @Override
+  @Transactional
+  public void deleteHard(UUID bookId) {
+
+
+  }
 }

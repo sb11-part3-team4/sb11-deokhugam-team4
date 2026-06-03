@@ -13,4 +13,10 @@ public interface BookService {
 
   BookDto getDetails(UUID bookId);
 
+  void delete(UUID bookId);
+
+  void deleteHard(UUID bookId);
+
+
+
 }

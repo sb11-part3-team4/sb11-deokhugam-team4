@@ -16,6 +16,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -73,6 +74,20 @@ public class BookController implements BookAPI {
 
     return ResponseEntity.ok().body(response);
 
+  }
 
+  @Override
+  @DeleteMapping(value = "/{bookId}")
+  public ResponseEntity<Void> deleteBook(@PathVariable UUID bookId) {
+
+    bookService.delete(bookId);
+    return ResponseEntity.noContent().build();
+  }
+
+  @Override
+  @DeleteMapping(value = "/{bookId}/hard")
+  public ResponseEntity<Void> deleteBookHard(@PathVariable UUID bookId) {
+    bookService.deleteHard(bookId);
+    return ResponseEntity.noContent().build();
   }
 }
