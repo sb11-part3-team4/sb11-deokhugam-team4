@@ -6,7 +6,6 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.BDDMockito.then;
-import static org.mockito.BDDMockito.willReturn;
 import static org.mockito.Mockito.never;
 import static org.springframework.test.util.ReflectionTestUtils.setField;
 
@@ -309,8 +308,6 @@ class BookServiceTest {
 
       //given
       given(bookRepository.findById(any())).willReturn(Optional.of(createBook(mockId)));
-
-      willReturn(null).given(bookRepository).deleteById(mockId);
 
       DeletedBook deletedBook = DeletedBook.from(createBook(mockId));
       ReflectionTestUtils.setField(deletedBook, "deletedAt", Instant.now());

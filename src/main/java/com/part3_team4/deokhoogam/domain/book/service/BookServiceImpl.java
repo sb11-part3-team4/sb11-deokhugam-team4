@@ -4,9 +4,11 @@ import com.part3_team4.deokhoogam.domain.book.dto.BookCreateRequest;
 import com.part3_team4.deokhoogam.domain.book.dto.BookDto;
 import com.part3_team4.deokhoogam.domain.book.dto.BookUpdateRequest;
 import com.part3_team4.deokhoogam.domain.book.entity.Book;
+import com.part3_team4.deokhoogam.domain.book.entity.DeletedBook;
 import com.part3_team4.deokhoogam.domain.book.exception.BookNotFoundException;
 import com.part3_team4.deokhoogam.domain.book.exception.IsbnAlreadyExistsException;
 import com.part3_team4.deokhoogam.domain.book.repository.BookRepository;
+import com.part3_team4.deokhoogam.domain.book.repository.DeletedBookRepository;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import org.hibernate.exception.ConstraintViolationException;
@@ -19,6 +21,8 @@ import org.springframework.transaction.annotation.Transactional;
 public class BookServiceImpl implements BookService {
 
   private final BookRepository bookRepository;
+
+  private final DeletedBookRepository deletedBookRepository;
 
   @Override
   @Transactional
@@ -84,6 +88,18 @@ public class BookServiceImpl implements BookService {
   @Transactional
   public void delete(UUID bookId) {
 
+    //정보 가져온 후
+    Book book = bookRepository.findById(bookId).orElseThrow(()->BookNotFoundException.withId(bookId));
+
+    //삭제
+    bookRepository.deleteById(bookId);
+
+    //삭제 버전으로
+    DeletedBook deletedBook = DeletedBook.from(book);
+
+    //저장
+
+    deletedBookRepository.save(deletedBook);
 
   }
 
