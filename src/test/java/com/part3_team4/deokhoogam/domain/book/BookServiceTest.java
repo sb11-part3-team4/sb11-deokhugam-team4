@@ -6,6 +6,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.BDDMockito.then;
+import static org.mockito.BDDMockito.willReturn;
 import static org.mockito.Mockito.never;
 import static org.springframework.test.util.ReflectionTestUtils.setField;
 
@@ -13,12 +14,15 @@ import com.part3_team4.deokhoogam.domain.book.dto.BookCreateRequest;
 import com.part3_team4.deokhoogam.domain.book.dto.BookDto;
 import com.part3_team4.deokhoogam.domain.book.dto.BookUpdateRequest;
 import com.part3_team4.deokhoogam.domain.book.entity.Book;
+import com.part3_team4.deokhoogam.domain.book.entity.DeletedBook;
 import com.part3_team4.deokhoogam.domain.book.exception.BookNotFoundException;
 import com.part3_team4.deokhoogam.domain.book.exception.IsbnAlreadyExistsException;
 import com.part3_team4.deokhoogam.domain.book.repository.BookRepository;
+import com.part3_team4.deokhoogam.domain.book.repository.DeletedBookRepository;
 import com.part3_team4.deokhoogam.domain.book.service.BookServiceImpl;
 import com.part3_team4.deokhoogam.global.fixture.BookFixtures;
 import java.sql.SQLException;
+import java.time.Instant;
 import java.time.LocalDate;
 import java.util.Optional;
 import java.util.UUID;
@@ -43,6 +47,9 @@ class BookServiceTest {
 
   @Mock
   private BookRepository bookRepository;
+
+  @Mock
+  private DeletedBookRepository deletedBookRepository;
 
   @Test
   @DisplayName("새로운 도서를 성공적으로 등록한다")
@@ -287,5 +294,74 @@ class BookServiceTest {
         .publishedDate(LocalDate.of(2026, 5, 29))
         .build();
   }
+
+
+  @Nested
+  @DisplayName("도서 논리 삭제 서비스에서")
+  class TestDeleteBook {
+
+
+    UUID mockId = UUID.randomUUID();
+
+    @Test
+    @DisplayName("도서 테이블에서 해당 정보를 삭제하고 삭제 테이블로 옮긴다.")
+    void deleteBook_success_and_move_to_deleted_table() {
+
+      //given
+      given(bookRepository.findById(any())).willReturn(Optional.of(createBook(mockId)));
+
+      willReturn(null).given(bookRepository).deleteById(mockId);
+
+      DeletedBook deletedBook = DeletedBook.from(createBook(mockId));
+      ReflectionTestUtils.setField(deletedBook, "deletedAt", Instant.now());
+
+      given(deletedBookRepository.save(any())).willReturn(deletedBook);
+
+      //when
+      bookService.delete(mockId);
+
+      //then
+      then(bookRepository).should().deleteById(mockId);
+      then(deletedBookRepository).should().save(any(DeletedBook.class));
+
+    }
+
+    @Test
+    @DisplayName("존재하지 않는 도서 ID로 삭제 시 예외가 발생한다")
+    void deleteBook_fail_when_book_not_found() {
+      // given
+      given(bookRepository.findById(any())).willReturn(Optional.empty());
+
+      // when & then
+      assertThatThrownBy(() -> bookService.delete(mockId))
+          .isInstanceOf(BookNotFoundException.class);
+    }
+
+
+    private Book createBook(UUID mockId) {
+
+      Instant createdAt = Instant.now().minusSeconds(100);
+      Instant updatedAt = Instant.now().minusSeconds(50);
+
+      Book book = Book.builder()
+          .title("모비 딕")
+          .author("허먼 멜빌")
+          .description("『모비 딕』 완역본")
+          .publisher("작가정신")
+          .publishedDate(LocalDate.of(2024, 4, 9))
+          .thumbnailUrl("temp/url")
+          .isbn("9791160263404")
+          .build();
+
+      ReflectionTestUtils.setField(book, "id", mockId);
+      ReflectionTestUtils.setField(book, "createdAt", createdAt);
+      ReflectionTestUtils.setField(book, "updatedAt", updatedAt);
+
+      return book;
+
+    }
+
+  }
+
 
 }
