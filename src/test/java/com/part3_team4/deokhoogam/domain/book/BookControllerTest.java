@@ -2,6 +2,9 @@ package com.part3_team4.deokhoogam.domain.book;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.BDDMockito.given;
+import static org.mockito.BDDMockito.willThrow;
+import static org.mockito.Mockito.verify;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.multipart;
 import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.print;
@@ -17,11 +20,11 @@ import com.part3_team4.deokhoogam.domain.book.exception.BookNotFoundException;
 import com.part3_team4.deokhoogam.domain.book.exception.IsbnAlreadyExistsException;
 import com.part3_team4.deokhoogam.domain.book.service.BookService;
 import com.part3_team4.deokhoogam.global.exception.ErrorCode;
+import com.part3_team4.deokhoogam.global.fixture.BookFixtures;
 import com.part3_team4.deokhoogam.global.jwt.JwtFilter;
 import java.math.BigDecimal;
 import java.time.Instant;
 import java.time.LocalDate;
-import com.part3_team4.deokhoogam.global.fixture.BookFixtures;
 import java.util.UUID;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
@@ -277,6 +280,70 @@ class BookControllerTest {
           .build();
     }
 
+
+  }
+
+  @Nested
+  @DisplayName("도서 논리 삭제 API에서")
+  class TestDeleteBook {
+
+    UUID mockId = UUID.randomUUID();
+
+    @Test
+    @DisplayName("도서를 삭제하는데 성공하면 204를 반환한다")
+    void return_204_when_delete_book() throws Exception {
+
+      mockMvc.perform(delete("/api/books/{bookId}", mockId))
+          .andExpect(status().isNoContent());
+
+      verify(bookService).delete(mockId);
+
+    }
+
+    @Test
+    @DisplayName("없는 도서 아이디를 입력받으면 404 에러코드를 반환한다")
+    void return_404_when_delete_book_with_invalid_id() throws Exception {
+
+      willThrow(BookNotFoundException.withId(mockId))
+          .given(bookService).delete(any());
+
+      mockMvc.perform(delete("/api/books/{bookId}", mockId))
+          .andExpect(status().isNotFound());
+
+    }
+
+
+  }
+
+
+  @Nested
+  @DisplayName("도서 물리 삭제 API에서")
+  class TestDeleteHardBook {
+
+    UUID mockId = UUID.randomUUID();
+
+    @Test
+    @DisplayName("도서를 삭제하는데 성공하면 204를 반환한다")
+    void return_204_when_delete_book_hard() throws Exception {
+
+      mockMvc.perform(delete("/api/books/{bookId}/hard", mockId))
+          .andExpect(status().isNoContent());
+
+      verify(bookService).deleteHard(mockId);
+
+    }
+
+    @Test
+    @DisplayName("없는 도서 아이디를 입력받으면 404 에러코드를 반환한다")
+    void return_404_when_delete_book_hard_with_invalid_id() throws Exception {
+
+      willThrow(BookNotFoundException.withId(mockId))
+          .given(bookService).deleteHard(any());
+
+      mockMvc.perform(delete("/api/books/{bookId}/hard", mockId))
+          .andExpect(status().isNotFound());
+
+    }
 
   }
 
