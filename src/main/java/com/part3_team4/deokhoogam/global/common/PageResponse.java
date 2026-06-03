@@ -1,28 +1,25 @@
 package com.part3_team4.deokhoogam.global.common;
 
 import java.util.List;
-import lombok.Builder;
-import lombok.Getter;
 
+/**
+ * 커서 페이지네이션 응답 공통 DTO입니다.
+ *
+ * @param content 현재 페이지 데이터 목록
+ * @param nextCursor 다음 페이지 조회에 사용할 커서
+ * @param nextAfter 다음 페이지 조회에 사용할 보조 커서
+ * @param size 현재 응답 데이터 개수
+ * @param totalElements 전체 데이터 개수
+ * @param hasNext 다음 페이지 존재 여부
+ */
+public record PageResponse<T> (
 
-@Getter
-@Builder
-public class PageResponse<T> {
+    List<T> content,
+    String nextCursor,
+    String nextAfter,
+    int size,
+    Long totalElements,
+    boolean hasNext
 
-  private final List<T> content;
-  private final String nextCursor;
-  private final String afterCursor;
-  private final int size;
-  private final Long totalElements;
-  private final boolean hasNext;
-
-  public PageResponse(List<T> content, String nextCursor, String afterCursor, int size,
-      Long totalElements, boolean hasNext) {
-    this.content = content;
-    this.nextCursor = nextCursor;
-    this.afterCursor = afterCursor;
-    this.size = size;
-    this.totalElements = totalElements;
-    this.hasNext = hasNext;
-  }
+) {
 }

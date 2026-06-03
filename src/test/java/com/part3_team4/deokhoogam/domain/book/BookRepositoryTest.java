@@ -10,9 +10,11 @@ import com.part3_team4.deokhoogam.domain.book.entity.Direction;
 import com.part3_team4.deokhoogam.domain.book.entity.SortType;
 import com.part3_team4.deokhoogam.domain.book.repository.BookRepository;
 import com.part3_team4.deokhoogam.global.config.JpaAuditingConfig;
-import com.part3_team4.deokhoogam.global.config.QuerydslConfig;
+import com.part3_team4.deokhoogam.global.support.RepositoryTestSupport;
 import com.part3_team4.deokhoogam.global.util.CursorUtils;
 import java.time.LocalDate;
+import java.time.temporal.ChronoUnit;
+import java.util.Comparator;
 import java.util.List;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -28,7 +30,7 @@ import org.springframework.test.context.ActiveProfiles;
 @Import(JpaAuditingConfig.class)
 @ActiveProfiles("test")
 @DisplayName("BookRepository 테스트")
-class BookRepositoryTest {
+class BookRepositoryTest extends RepositoryTestSupport {
 
   @Autowired
   private BookRepository bookRepository;
@@ -64,7 +66,6 @@ class BookRepositoryTest {
 
 
   @DataJpaTest
-  @Import(QuerydslConfig.class)
   @DisplayName("BookRepository 커서 페이지네이션 에서")
   @Nested
   class TestCursorPagination {
@@ -72,6 +73,7 @@ class BookRepositoryTest {
 
     @BeforeEach
     void setUp() {
+      bookRepository.deleteAll();
 
       List<Book> savedBooks = BookFixtureFactory.createBookList();
       bookRepository.saveAll(savedBooks);
@@ -83,7 +85,7 @@ class BookRepositoryTest {
     @DisplayName("커서가 없으면 최신 데이터부터 limit만큼 가져온다")
     void getBooks_firstPage() {
       // given
-      BookGetListRequest request = new BookGetListRequest("", SortType.TITLE, Direction.DESC,
+      BookGetListRequest request = new BookGetListRequest("", SortType.TITLE, Direction.ASC,
           null, null, 2);
       BookCursor cursor = null; // 첫 요청
 
@@ -105,19 +107,25 @@ class BookRepositoryTest {
     @DisplayName("커서 값 이후의 데이터를 정상적으로 가져오고, 마지막 페이지일시 hasnext = fasle를 반환한다")
     void getBooks_nextPage() {
 
-      List<Book> savedBooks = BookFixtureFactory.createBookList();
+      List<Book> savedBooks = bookRepository.findAll();
+
+      savedBooks.sort(
+          Comparator.comparing(Book::getTitle));
+
+
+
 
       Book lastBookOfFirstPage = savedBooks.get(1);
 
-      BookCursor testCursor = new BookCursor( //커서.
-          lastBookOfFirstPage.getTitle(),
-          lastBookOfFirstPage.getId(),
-          lastBookOfFirstPage.getCreatedAt()
+              BookCursor testCursor = new BookCursor( //커서.
+                  lastBookOfFirstPage.getTitle(),
+                  lastBookOfFirstPage.getId(),
+                  lastBookOfFirstPage.getCreatedAt().truncatedTo(ChronoUnit.MILLIS)
       );
 
       String cursor = CursorUtils.encodeCursor(testCursor); //인코딩
 
-      BookGetListRequest request = new BookGetListRequest("", SortType.TITLE, Direction.DESC,
+      BookGetListRequest request = new BookGetListRequest("", SortType.TITLE, Direction.ASC,
           cursor, lastBookOfFirstPage.getCreatedAt(), 2);
 
       // when

@@ -70,13 +70,17 @@ public class BookServiceImpl implements BookService {
 
 
 
-    return PageResponse.<BookDto>builder()
-        .content(dtoList)
-        .hasNext(books.hasNext())
-        .nextCursor(generateNextCursor(books))
-        .build();
+    return new PageResponse<>(
+        dtoList,
+        generateNextCursor(books),
+        books.hasNext() ? books.getContent().get(books.getContent().size()-1).getCreatedAt().toString():null,
+        books.getSize(),
+        null,
+        books.hasNext()
+    );
   }
 
+  //다음 커서 만들기
   private String generateNextCursor(Slice<Book> books) {
     if (!books.hasNext() || books.getContent().isEmpty()) {
       return null; // 다음 페이지가 없으면 null 반환

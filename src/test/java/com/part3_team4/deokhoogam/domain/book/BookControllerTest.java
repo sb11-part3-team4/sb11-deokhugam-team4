@@ -253,13 +253,16 @@ class BookControllerTest {
         //given
         List<BookDto> books = BookFixtureFactory.createBookDtoList();
 
-        PageResponse<BookDto> response = PageResponse.<BookDto>builder()
-            .content(books)
-            .hasNext(false)
-            .size(50)
-            .afterCursor("Cursor")
-            .totalElements(4L)
-            .build();
+        PageResponse<BookDto> response = new PageResponse<>(
+
+
+            books,
+            "Cursor",
+            "After",
+            50,
+            4L,
+            false
+           );
 
         given(bookService.getBooks(any())).willReturn(response);
 

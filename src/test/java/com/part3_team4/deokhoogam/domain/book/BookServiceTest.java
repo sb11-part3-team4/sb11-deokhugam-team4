@@ -24,6 +24,7 @@ import com.part3_team4.deokhoogam.global.common.PageResponse;
 import com.part3_team4.deokhoogam.global.exception.Base64Exception;
 import com.part3_team4.deokhoogam.global.exception.BusinessException;
 import com.part3_team4.deokhoogam.global.util.CursorUtils;
+import java.time.Instant;
 import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;
@@ -227,11 +228,11 @@ class BookServiceTest {
         PageResponse<BookDto> result = bookService.getBooks(request);
 
         //then
-        assertThat(result.getContent()).hasSize(mockBooks.size());
-        assertThat(result.getContent().get(0).id()).isEqualTo(mockBooks.get(0).getId());
+        assertThat(result.content()).hasSize(mockBooks.size());
+        assertThat(result.content().get(0).id()).isEqualTo(mockBooks.get(0).getId());
 
-        assertThat(result.isHasNext()).isFalse();
-        assertThat(result.getNextCursor()).isNull();
+        assertThat(result.hasNext()).isFalse();
+        assertThat(result.nextCursor()).isNull();
 
         verify(bookRepository, times(1)).getBooks(any(),any());
       }
@@ -247,6 +248,8 @@ class BookServiceTest {
             .build();
 
         List<Book> mockBooks = List.of(BookFixtureFactory.createBook1());
+        //임시로 createdAt 필드 채워주기
+        ReflectionTestUtils.setField(mockBooks.get(0), "createdAt", Instant.now());
 
         Pageable pageable = PageRequest.of(0, request.limit());
         Slice<Book> mockSlice = new SliceImpl<>(mockBooks,pageable,true);
@@ -257,12 +260,12 @@ class BookServiceTest {
 
         //then
 
-        assertThat(result.getContent()).hasSize(1);
-        assertThat(result.getContent().get(0).id()).isEqualTo(mockBooks.get(0).getId());
+        assertThat(result.content()).hasSize(1);
+        assertThat(result.content().get(0).id()).isEqualTo(mockBooks.get(0).getId());
 
-        assertThat(result.isHasNext()).isTrue();
+        assertThat(result.hasNext()).isTrue();
 
-        assertThat(result.getNextCursor()).isNotNull();
+        assertThat(result.nextCursor()).isNotNull();
 
       }
 
@@ -282,9 +285,9 @@ class BookServiceTest {
         PageResponse<BookDto> result = bookService.getBooks(request);
 
         // then
-        assertThat(result.getContent()).isEmpty();
-        assertThat(result.isHasNext()).isFalse();
-        assertThat(result.getNextCursor()).isNull();
+        assertThat(result.content()).isEmpty();
+        assertThat(result.hasNext()).isFalse();
+        assertThat(result.nextCursor()).isNull();
       }
 
       @Test
@@ -318,7 +321,7 @@ class BookServiceTest {
         PageResponse<BookDto> result = bookService.getBooks(request);
 
         // then
-        assertThat(result.getContent()).isNotEmpty();
+        assertThat(result.content()).isNotEmpty();
 
         verify(bookRepository, times(1)).getBooks(any(),any());
       }

@@ -1,8 +1,15 @@
 package com.part3_team4.deokhoogam.domain.comment;
 
+import static org.assertj.core.api.Assertions.assertThat;
+
 import com.part3_team4.deokhoogam.domain.comment.entity.Comment;
 import com.part3_team4.deokhoogam.domain.comment.repository.CommentRepository;
 import com.part3_team4.deokhoogam.global.config.JpaAuditingConfig;
+import com.part3_team4.deokhoogam.global.support.RepositoryTestSupport;
+import java.time.Instant;
+import java.util.List;
+import java.util.Optional;
+import java.util.UUID;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -11,19 +18,11 @@ import org.springframework.boot.test.autoconfigure.orm.jpa.TestEntityManager;
 import org.springframework.context.annotation.Import;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.test.context.ActiveProfiles;
-import org.springframework.test.util.ReflectionTestUtils;
-
-import java.time.Instant;
-import java.util.List;
-import java.util.Optional;
-import java.util.UUID;
-
-import static org.assertj.core.api.Assertions.assertThat;
 
 @DataJpaTest
 @Import(JpaAuditingConfig.class)
 @ActiveProfiles("test")
-class CommentRepositoryTest {
+class CommentRepositoryTest extends RepositoryTestSupport {
 
     @Autowired
     private CommentRepository commentRepository;
