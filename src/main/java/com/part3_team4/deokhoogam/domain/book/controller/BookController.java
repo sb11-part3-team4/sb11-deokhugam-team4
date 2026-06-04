@@ -44,9 +44,11 @@ public class BookController implements BookAPI {
   })
   @PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
   public ResponseEntity<BookDto> createBook(
-      @RequestPart("bookData") @Valid @Schema(description = "도서 정보") BookCreateRequest request,
-      @RequestPart(value = "thumbnailImage", required = false) @Schema(description = "도서 썸네일 이미지")
-      MultipartFile thumbnailImage
+      @Parameter(content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE))
+      @Schema(description = "도서 정보") @RequestPart("bookData") @Valid BookCreateRequest request,
+
+      @RequestPart(value = "thumbnailImage", required = false)
+      @Schema(description = "도서 썸네일 이미지") MultipartFile thumbnailImage
   ) {
     BookDto response = bookService.create(request, thumbnailImage);
     return ResponseEntity.status(HttpStatus.CREATED).body(response);
