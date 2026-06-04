@@ -15,10 +15,13 @@ import com.part3_team4.deokhoogam.domain.book.dto.BookUpdateRequest;
 import com.part3_team4.deokhoogam.domain.book.dto.NaverBookDto;
 import com.part3_team4.deokhoogam.domain.book.entity.Book;
 import com.part3_team4.deokhoogam.domain.book.exception.BookNotFoundException;
+import com.part3_team4.deokhoogam.domain.book.exception.InvalidIsbnException;
 import com.part3_team4.deokhoogam.domain.book.exception.IsbnAlreadyExistsException;
 import com.part3_team4.deokhoogam.domain.book.repository.BookRepository;
 import com.part3_team4.deokhoogam.domain.book.service.BookServiceImpl;
+import com.part3_team4.deokhoogam.domain.book.service.NaverApiService;
 import com.part3_team4.deokhoogam.global.fixture.BookFixtures;
+import com.part3_team4.deokhoogam.global.fixture.NaverBookFixture;
 import java.sql.SQLException;
 import java.time.LocalDate;
 import java.util.Optional;
@@ -41,6 +44,9 @@ class BookServiceTest {
 
   @InjectMocks
   private BookServiceImpl bookService;
+
+  @Mock
+  private NaverApiService naverApiService;
 
   @Mock
   private BookRepository bookRepository;
@@ -288,15 +294,44 @@ class BookServiceTest {
     void return_200_and_data_when_valid_isbn() {
       // given
       String validIsbn = "9788957272541";
+      given(naverApiService.getBookInfoByIsbn(validIsbn)).willReturn(NaverBookFixture.createValidNaverBookDto(validIsbn));
 
       // when
       NaverBookDto result = bookService.getByIsbn(validIsbn);
 
       // then
       assertThat(result).isNotNull();
-      assertThat(result.getTitle()).isEqualTo("리눅스시스템 프로그래밍 V1.0");
-      assertThat(result.getPublisher()).isEqualTo("그린");
+      assertThat(result.getTitle()).isEqualTo("모비 딕");
+      assertThat(result.getPublisher()).isEqualTo("작가정신");
     }
+
+    @Test
+    @DisplayName("ISBN 형식에 입력시 400 과 예외를 발생시킨다")
+    void return_400_when_invalid_isbn(){
+
+      String invalidIsbn = "978895727254";
+
+      // when & then
+      assertThatThrownBy(() -> bookService.getByIsbn(invalidIsbn)).isInstanceOf(InvalidIsbnException.class);
+      then(naverApiService).shouldHaveNoMoreInteractions();
+
+    }
+
+    @Test
+    @DisplayName("네이버 API에 없는 책이라면 404 예외를 발생시킨다")
+    void return_404_when_book_not_found_by_isbn(){
+
+
+      String notFoundIsbn = "9788957272542";
+      given(naverApiService.getBookInfoByIsbn(notFoundIsbn)).willReturn(null);
+
+      assertThatThrownBy(() -> bookService.getByIsbn(notFoundIsbn)).isInstanceOf(BookNotFoundException.class);
+      then(naverApiService).should().getBookInfoByIsbn(notFoundIsbn);
+      then(naverApiService).shouldHaveNoMoreInteractions();
+
+    }
+
+
 
 
 

@@ -6,20 +6,25 @@ import com.part3_team4.deokhoogam.domain.book.dto.BookUpdateRequest;
 import com.part3_team4.deokhoogam.domain.book.dto.NaverBookDto;
 import com.part3_team4.deokhoogam.domain.book.entity.Book;
 import com.part3_team4.deokhoogam.domain.book.exception.BookNotFoundException;
+import com.part3_team4.deokhoogam.domain.book.exception.InvalidIsbnException;
 import com.part3_team4.deokhoogam.domain.book.exception.IsbnAlreadyExistsException;
 import com.part3_team4.deokhoogam.domain.book.repository.BookRepository;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.hibernate.exception.ConstraintViolationException;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 @Service
+@Slf4j
 @RequiredArgsConstructor
 public class BookServiceImpl implements BookService {
 
   private final BookRepository bookRepository;
+
+  private final NaverApiService naverApiService;
 
   @Override
   @Transactional
@@ -84,6 +89,18 @@ public class BookServiceImpl implements BookService {
   @Override
   public NaverBookDto getByIsbn(String isbn) {
 
-    return new NaverBookDto("","","","", "",isbn,"");
+    //isbn 형식 검사
+    if (isbn == null || !isbn.matches("^[0-9]{13}$")) {
+      throw InvalidIsbnException.withIsbn(isbn);
+    }
+
+    NaverBookDto response = naverApiService.getBookInfoByIsbn(isbn);
+
+    if (response == null) {
+      throw BookNotFoundException.withIsbn(isbn);
+    }
+
+    return response;
+
   }
 }
