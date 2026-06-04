@@ -284,16 +284,6 @@ class BookServiceTest {
 
   }
 
-  private BookUpdateRequest createValidBookUpdateRequest() {
-    return BookUpdateRequest.builder()
-        .title("클린 아키텍처")
-        .author("로버트 C. 마틴")
-        .description("소프트웨어 구조와 설계의 원칙")
-        .publisher("인사이트")
-        .publishedDate(LocalDate.of(2026, 5, 29))
-        .build();
-  }
-
 
   @Nested
   @DisplayName("도서 논리 삭제 서비스에서")
@@ -359,6 +349,41 @@ class BookServiceTest {
     }
 
   }
+
+  @Nested
+  @DisplayName("도서 물리 삭제 서비스에서")
+  class TestDeleteHardBook {
+
+    @Test
+    @DisplayName("유효한 도서 아이디가 들어올 경우 삭제한다")
+    void successful_delete_book_hard() {
+
+      given(deletedBookRepository.existsById(any())).willReturn(true);
+
+      bookService.deleteHard(UUID.randomUUID());
+
+      then(deletedBookRepository).should().existsById(any());
+      then(deletedBookRepository).should().deleteById(any());
+
+    }
+
+    @Test
+    @DisplayName("유효한 도서 아이디가 아닐경우 예외를 발생시킨다")
+    void fail_delete_book_hard_when_book_not_found() {
+
+      given(deletedBookRepository.existsById(any())).willReturn(false);
+
+      assertThatThrownBy(() -> bookService.deleteHard(UUID.randomUUID()))
+          .isInstanceOf(BookNotFoundException.class);
+
+      then(deletedBookRepository).should().existsById(any());
+      then(deletedBookRepository).shouldHaveNoMoreInteractions();
+    }
+
+
+  }
+
+
 
 
 }
