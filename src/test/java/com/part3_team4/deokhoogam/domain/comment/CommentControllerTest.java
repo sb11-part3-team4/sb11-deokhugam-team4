@@ -217,6 +217,7 @@ class CommentControllerTest {
                     .andExpect(status().isOk())
                     .andExpect(jsonPath("$.content.length()").value(2))
                     .andExpect(jsonPath("$.content[0].content").value("오래된 댓글"));
+            verify(commentService).getComments(REVIEW_ID, "ASC", null, null, 50);
         }
 
         @Test
@@ -261,6 +262,7 @@ class CommentControllerTest {
             mockMvc.perform(get("/api/comments")
                             .param("reviewId", REVIEW_ID.toString()))
                     .andExpect(status().isOk());
+            verify(commentService).getComments(REVIEW_ID, "DESC", null, null, 50);
         }
 
         @Test
