@@ -23,11 +23,8 @@ public record BookDto(
     String thumbnailUrl,
     int reviewCount,
     BigDecimal rating,
-
-    @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss", timezone = "Asia/Seoul")
+    
     Instant createdAt,
-
-    @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss", timezone = "Asia/Seoul")
     Instant updatedAt
 ) {
 
