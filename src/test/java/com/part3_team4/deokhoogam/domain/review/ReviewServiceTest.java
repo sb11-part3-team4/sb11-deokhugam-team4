@@ -300,7 +300,17 @@ public class ReviewServiceTest {
 
         assertThat(response.liked()).isFalse();
         assertThat(response.likeCount()).isEqualTo(0);
-
     }
 
+    @Test
+    @DisplayName("존재하지 않는 reviewId로 좋아요를 누르면 ReviewNotFoundException을 던진다")
+    void toggleLike_reviewNotFound_throwsException() {
+        UUID userId = UUID.randomUUID();
+        UUID reviewId = UUID.randomUUID();
+
+        given(reviewRepository.findById(reviewId)).willReturn(Optional.empty());
+
+        assertThatThrownBy(() -> reviewService.toggleLike(reviewId, userId))
+                .isInstanceOf(ReviewNotFoundException.class);
+    }
 }
