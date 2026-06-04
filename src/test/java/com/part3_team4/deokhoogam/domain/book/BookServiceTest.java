@@ -21,10 +21,12 @@ import com.part3_team4.deokhoogam.domain.book.service.BookServiceImpl;
 import com.part3_team4.deokhoogam.global.fixture.BookFixtures;
 import com.part3_team4.deokhoogam.global.storage.FileUploader;
 import java.sql.SQLException;
+import java.time.LocalDate;
 import java.util.Optional;
 import java.util.UUID;
 import org.hibernate.exception.ConstraintViolationException;
 import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
@@ -33,6 +35,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.mock.web.MockMultipartFile;
+import org.springframework.test.util.ReflectionTestUtils;
 import org.springframework.web.multipart.MultipartFile;
 
 @ExtendWith(MockitoExtension.class)
@@ -325,6 +328,65 @@ class BookServiceTest {
 
     then(bookRepository).should().findById(nonExistentId);
     then(bookRepository).shouldHaveNoMoreInteractions();
+  }
+
+  @Nested
+  @DisplayName("getDetails() 메서드")
+  class TestGetDetails {
+
+    UUID mockId = UUID.randomUUID();
+
+
+    @Test
+    @DisplayName("유효한 id가 들어왔을때 책 정보를 반환한다.")
+    void returnDetails() {
+
+      //given
+      given(bookRepository.findById(mockId)).willReturn(book());
+
+      //when
+      BookDto result = bookService.getDetails(mockId);
+
+      assertThat(result.id()).isEqualTo(mockId);
+      assertThat(result.title()).isEqualTo("모비 딕");
+
+      then(bookRepository).should().findById(mockId);
+
+
+    }
+
+
+    @Test
+    @DisplayName("유효하지 않은 id가 들어왔을때 예외를 발생시킨다.")
+    void returnDetailsInvalidId() {
+
+      //given
+      given(bookRepository.findById(mockId)).willReturn(Optional.empty());
+      //then & when
+      assertThatThrownBy(() -> bookService.getDetails(mockId)).isInstanceOf(
+          BookNotFoundException.class);
+
+    }
+
+
+    private Optional<Book> book() {
+
+      Book book = Book.builder()
+          .title("모비 딕")
+          .author("허먼 멜빌")
+          .description("『모비 딕』 완역본")
+          .publisher("작가정신")
+          .publishedDate(LocalDate.of(2024, 4, 9))
+          .thumbnailUrl("temp/url")
+          .isbn("9791160263404")
+          .build();
+
+      ReflectionTestUtils.setField(book, "id", mockId);
+
+      return Optional.of(book);
+
+    }
+
   }
 
   private DataIntegrityViolationException createDataIntegrityViolation(String constraintName) {

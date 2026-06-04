@@ -78,6 +78,18 @@ public class BookServiceImpl implements BookService {
     return BookDto.from(book);
   }
 
+
+  @Override
+  @Transactional(readOnly = true)
+  public BookDto getDetails(UUID bookId) {
+
+    Book book = bookRepository.findById(bookId)
+        .orElseThrow(() -> BookNotFoundException.withId(bookId));
+
+    return BookDto.from(book);
+  }
+
+
   private void validateDuplicateIsbn(String isbn) {
     if (bookRepository.existsByIsbn(isbn)) {
       throw IsbnAlreadyExistsException.withIsbn(isbn);

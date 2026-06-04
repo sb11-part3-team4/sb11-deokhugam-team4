@@ -1,5 +1,6 @@
 package com.part3_team4.deokhoogam.domain.book.controller;
 
+import com.part3_team4.deokhoogam.domain.book.controller.api.BookAPI;
 import com.part3_team4.deokhoogam.domain.book.dto.BookCreateRequest;
 import com.part3_team4.deokhoogam.domain.book.dto.BookDto;
 import com.part3_team4.deokhoogam.domain.book.dto.BookUpdateRequest;
@@ -17,6 +18,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -29,7 +31,7 @@ import org.springframework.web.multipart.MultipartFile;
 @RestController
 @RequestMapping("/api/books")
 @RequiredArgsConstructor
-public class BookController {
+public class BookController implements BookAPI {
 
   private final BookService bookService;
 
@@ -71,5 +73,17 @@ public class BookController {
   ) {
     BookDto response = bookService.update(bookId, request, thumbnailImage);
     return ResponseEntity.ok(response);
+
+  }
+
+  @Override
+  @GetMapping(value = "/{bookId}")
+  public ResponseEntity<BookDto> getDetails(@PathVariable UUID bookId) {
+
+    BookDto response = bookService.getDetails(bookId);
+
+    return ResponseEntity.ok().body(response);
+
+
   }
 }
