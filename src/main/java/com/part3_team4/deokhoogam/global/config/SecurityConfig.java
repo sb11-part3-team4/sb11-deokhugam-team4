@@ -10,7 +10,8 @@ import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
-import org.springframework.security.web.firewall.DefaultHttpFirewall;
+import org.springframework.security.web.firewall.HttpFirewall;
+import org.springframework.security.web.firewall.StrictHttpFirewall;
 
 @Configuration
 public class SecurityConfig {
@@ -50,7 +51,14 @@ public class SecurityConfig {
   }
 
   @Bean
-  public WebSecurityCustomizer webSecurityCustomizer() {
-    return (web) -> web.httpFirewall(new DefaultHttpFirewall());
+  public HttpFirewall httpFirewall() {
+    StrictHttpFirewall firewall = new StrictHttpFirewall();
+    firewall.setAllowUrlEncodedDoubleSlash(true);
+    return  firewall;
+  }
+
+  @Bean
+  public WebSecurityCustomizer webSecurityCustomizer(HttpFirewall httpFirewall) {
+    return (web) -> web.httpFirewall(httpFirewall);
   }
 }

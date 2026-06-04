@@ -11,6 +11,6 @@ import org.springframework.data.repository.query.Param;
 public interface DeletedUserRepository extends JpaRepository<DeletedUser, UUID> {
   boolean existsByEmail(String email);
 
-  @Query("SELECT d.id FROM DeletedUser d WHERE d.deletedAt < :cutoff")
+  @Query("SELECT d.id FROM DeletedUser d WHERE d.deletedAt <= :cutoff")
   List<UUID> findUserIdsDeletedBefore(@Param("cutoff") Instant cutoff);
 }
