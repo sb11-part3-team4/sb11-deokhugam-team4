@@ -2,6 +2,7 @@ package com.part3_team4.deokhoogam.domain.user;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.BDDMockito.given;
+import static org.mockito.BDDMockito.then;
 import static org.mockito.BDDMockito.willThrow;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
@@ -16,6 +17,7 @@ import com.part3_team4.deokhoogam.domain.user.dto.PasswordUpdateRequestDto;
 import com.part3_team4.deokhoogam.domain.user.dto.UserCreateRequestDto;
 import com.part3_team4.deokhoogam.domain.user.dto.UserDto;
 import com.part3_team4.deokhoogam.domain.user.dto.UserLoginRequestDto;
+import com.part3_team4.deokhoogam.domain.user.dto.UserLoginResultDto;
 import com.part3_team4.deokhoogam.domain.user.dto.UserUpdateRequestDto;
 import com.part3_team4.deokhoogam.domain.user.dto.response.UserResponse;
 import com.part3_team4.deokhoogam.domain.user.exception.PasswordMismatchException;
@@ -60,7 +62,7 @@ public class UserControllerTest {
     given(userService.createUser(any(UserCreateRequestDto.class)))
         .willReturn(responseDto);
 
-    mockMvc.perform(post("/api/users/signup")
+    mockMvc.perform(post("/api/users")
             .contentType(MediaType.APPLICATION_JSON)
             .content(objectMapper.writeValueAsString(request)))
         .andExpect(status().isCreated())
@@ -74,7 +76,7 @@ public class UserControllerTest {
     UserCreateRequestDto request = new UserCreateRequestDto(
         "test-email", "testUser", "password123!");
 
-    mockMvc.perform(post("/api/users/signup")
+    mockMvc.perform(post("/api/users")
             .contentType(MediaType.APPLICATION_JSON)
             .content(objectMapper.writeValueAsString(request)))
         .andExpect(status().isBadRequest())
@@ -172,6 +174,8 @@ public class UserControllerTest {
 
     mockMvc.perform(delete("/api/users/{userId}", userId))
         .andExpect(status().isNoContent());
+
+    then(userService).should().deleteUser(userId);
   }
 
   @Test
@@ -192,14 +196,18 @@ public class UserControllerTest {
     UserLoginRequestDto request = new UserLoginRequestDto(
         "test@deokhugam.com", "password123!");
 
+    UserLoginResultDto mockResult = new UserLoginResultDto(
+        "eyjh...fakeToken", UUID.randomUUID(), "test@deokhugam.com", "testUser", java.time.Instant.now());
+
     given(userService.login(request.email(), request.password()))
-        .willReturn("eyjh...fakeToken");
+        .willReturn(mockResult);
 
     mockMvc.perform(post("/api/users/login")
-        .contentType(MediaType.APPLICATION_JSON)
-        .content(objectMapper.writeValueAsString(request)))
+            .contentType(MediaType.APPLICATION_JSON)
+            .content(objectMapper.writeValueAsString(request)))
         .andExpect(status().isOk())
-        .andExpect(jsonPath("$.accessToken").value("eyjh...fakeToken"));
+        .andExpect(org.springframework.test.web.servlet.result.MockMvcResultMatchers.header().string("Authorization", "Bearer eyjh...fakeToken")) // 헤더 검증
+        .andExpect(jsonPath("$.email").value("test@deokhugam.com"));
   }
 
   @Test
