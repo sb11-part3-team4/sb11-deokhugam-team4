@@ -5,6 +5,7 @@ import com.part3_team4.deokhoogam.domain.book.dto.BookCreateRequest;
 import com.part3_team4.deokhoogam.domain.book.dto.BookDto;
 import com.part3_team4.deokhoogam.domain.book.dto.BookUpdateRequest;
 import com.part3_team4.deokhoogam.domain.book.service.BookService;
+import com.part3_team4.deokhoogam.domain.book.service.OcrService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.media.Content;
@@ -23,6 +24,7 @@ import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RequestPart;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
@@ -34,6 +36,7 @@ import org.springframework.web.multipart.MultipartFile;
 public class BookController implements BookAPI {
 
   private final BookService bookService;
+  private final OcrService ocrService;
 
   @Operation(summary = "도서 등록", description = "새로운 도서를 등록합니다.")
   @ApiResponses({
@@ -87,5 +90,13 @@ public class BookController implements BookAPI {
     return ResponseEntity.ok().body(response);
 
 
+  }
+
+  @PostMapping("/isbn/ocr")
+  public ResponseEntity<String> extractIsbn(
+      @RequestParam("image") MultipartFile image) {
+    String extractedIsbn = ocrService.extractIsbnFromImage(image);
+
+    return ResponseEntity.ok(extractedIsbn);
   }
 }
