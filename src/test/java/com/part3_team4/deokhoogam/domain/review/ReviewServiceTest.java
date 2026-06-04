@@ -5,10 +5,12 @@ import com.part3_team4.deokhoogam.domain.book.repository.BookRepository;
 import com.part3_team4.deokhoogam.domain.review.dto.ReviewCreateRequest;
 import com.part3_team4.deokhoogam.domain.review.dto.ReviewResponse;
 import com.part3_team4.deokhoogam.domain.review.dto.ReviewUpdateRequest;
+import com.part3_team4.deokhoogam.domain.review.entity.DeletedReview;
 import com.part3_team4.deokhoogam.domain.review.entity.Review;
 import com.part3_team4.deokhoogam.domain.review.exception.InvalidReviewException;
 import com.part3_team4.deokhoogam.domain.review.exception.ReviewNotFoundException;
 import com.part3_team4.deokhoogam.domain.review.exception.ReviewNotOwnerException;
+import com.part3_team4.deokhoogam.domain.review.repository.DeletedReviewRepository;
 import com.part3_team4.deokhoogam.domain.review.repository.ReviewLikeRepository;
 import com.part3_team4.deokhoogam.domain.review.repository.ReviewRepository;
 import com.part3_team4.deokhoogam.domain.review.service.ReviewServiceImpl;
@@ -31,6 +33,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
+import static org.mockito.BDDMockito.then;
 
 @ExtendWith(MockitoExtension.class)
 public class ReviewServiceTest {
@@ -43,6 +46,8 @@ public class ReviewServiceTest {
     BookRepository bookRepository;
     @Mock
     ReviewLikeRepository reviewLikeRepository;
+    @Mock
+    DeletedReviewRepository deletedReviewRepository;
 
     @Test
     @DisplayName("정상적인 요청으로 리뷰를 등록하면 ReviewResponse를 반환한다")
@@ -191,7 +196,76 @@ public class ReviewServiceTest {
 
         assertThatThrownBy(() -> reviewService.updateReview(reviewId, ownerUserId, request))
                 .isInstanceOf(InvalidReviewException.class);
+    }
 
+    @Test
+    @DisplayName("논리 삭제 성공 시 DeletedReview가 저장된다")
+    void deleteReview_success_deletedReviewSaved() {
+        UUID ownerUserId = UUID.randomUUID();
+        UUID bookId = UUID.randomUUID();
+        Review review = Review.create(ownerUserId, bookId, 4, "내용");
+
+        given(reviewRepository.findById(any(UUID.class))).willReturn(Optional.of(review));
+
+        reviewService.deleteReview(review.getId(), ownerUserId);
+
+        then(deletedReviewRepository).should().save(any(DeletedReview.class));
+    }
+
+    @Test
+    @DisplayName("논리 삭제 성공 시 Review 원본이 삭제된다")
+    void deleteReview_success_reviewDeleted() {
+        UUID ownerUserId = UUID.randomUUID();
+        UUID bookId = UUID.randomUUID();
+        Review review = Review.create(ownerUserId, bookId, 4, "내용");
+
+        given(reviewRepository.findById(any(UUID.class))).willReturn(Optional.of(review));
+
+        reviewService.deleteReview(review.getId(), ownerUserId);
+
+        then(reviewRepository).should().delete(review);
+
+    }
+
+    @Test
+    @DisplayName("타인의 reviewId를 삭제하려하면 ReviewNotOwnerException을 던진다")
+    void deleteReview_reviewNotOwner_throwsException() {
+        UUID ownerUserId = UUID.randomUUID();
+        UUID anotherUserId = UUID.randomUUID();
+        UUID bookId = UUID.randomUUID();
+        UUID reviewId = UUID.randomUUID();
+        Review review = Review.create(ownerUserId, bookId, 4, "내용");
+
+
+        given(reviewRepository.findById(reviewId)).willReturn(Optional.of(review));
+
+        assertThatThrownBy(() -> reviewService.deleteReview(reviewId, anotherUserId)).isInstanceOf(ReviewNotOwnerException.class);
+
+    }
+
+    @Test
+    @DisplayName("존재하지 않는 reviewId로 삭제를 시도하면 ReviewNotFoundException을 던진다")
+    void deleteReview_reviewNotFound_throwsException() {
+        UUID userId = UUID.randomUUID();
+        UUID reviewId = UUID.randomUUID();
+
+        given(reviewRepository.findById(reviewId)).willReturn(Optional.empty());
+
+        assertThatThrownBy(() -> reviewService.deleteReview(reviewId, userId)).isInstanceOf(ReviewNotFoundException.class);
+    }
+
+    @Test
+    @DisplayName("리뷰를 삭제하면 ReviewLike도 함께 삭제된다")
+    void deleteReview_success_deleteReviewLike() {
+        UUID ownerUserId = UUID.randomUUID();
+        UUID bookId = UUID.randomUUID();
+        Review review = Review.create(ownerUserId, bookId, 4, "내용");
+
+        given(reviewRepository.findById(any(UUID.class))).willReturn(Optional.of(review));
+
+        reviewService.deleteReview(review.getId(), ownerUserId);
+
+        then(reviewLikeRepository).should().deleteAllByReviewId(review.getId());
     }
 
 }
