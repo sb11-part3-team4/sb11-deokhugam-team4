@@ -111,17 +111,15 @@ public class ReviewServiceImpl implements ReviewService {
         Review review = reviewRepository.findById(reviewId)
                 .orElseThrow(() -> ReviewNotFoundException.withId(reviewId));
 
-        boolean liked;
-        if (reviewLikeRepository.existsByReviewIdAndUserId(reviewId, userId)) {
+        boolean alreadyLiked = reviewLikeRepository.existsByReviewIdAndUserId(reviewId, userId);
+        if (alreadyLiked) {
             reviewLikeRepository.deleteByReviewIdAndUserId(reviewId, userId);
             review.decrementLikeCount();
-            liked = false;
         } else {
             reviewLikeRepository.save(ReviewLike.create(reviewId, userId));
             review.incrementLikeCount();
-            liked = true;
         }
-        return new ReviewLikeResponse(reviewId, liked, review.getLikeCount());
+        return new ReviewLikeResponse(reviewId, alreadyLiked, review.getLikeCount());
     }
 
 
