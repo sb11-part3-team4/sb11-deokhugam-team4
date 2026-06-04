@@ -88,18 +88,21 @@ public class Book extends BaseEntity {
   // ===== 수정 메서드 =====
 
   public void updateBookInfo(String newTitle, String newAuthor, String newDescription,
-      String newPublisher, LocalDate newPublishedDate, String newThumbnailUrl) {
+      String newPublisher, LocalDate newPublishedDate) {
     validateBookInfo(newTitle, newAuthor, newDescription, newPublisher, newPublishedDate);
     validateLength(newTitle, TITLE_MAX_LENGTH, ErrorKey.BOOK_TITLE);
     validateLength(newAuthor, AUTHOR_MAX_LENGTH, ErrorKey.BOOK_AUTHOR);
     validateLength(newPublisher, PUBLISHER_MAX_LENGTH, ErrorKey.BOOK_PUBLISHER);
-    validateLength(newThumbnailUrl, THUMBNAIL_URL_MAX_LENGTH, ErrorKey.BOOK_THUMBNAIL_URL);
 
     this.title = newTitle;
     this.author = newAuthor;
     this.description = newDescription;
     this.publisher = newPublisher;
     this.publishedDate = newPublishedDate;
+  }
+  
+  public void updateThumbnail(String newThumbnailUrl) {
+    validateLength(newThumbnailUrl, THUMBNAIL_URL_MAX_LENGTH, ErrorKey.BOOK_THUMBNAIL_URL);
     this.thumbnailUrl = newThumbnailUrl;
   }
 
