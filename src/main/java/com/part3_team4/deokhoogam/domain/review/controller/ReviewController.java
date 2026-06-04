@@ -1,6 +1,7 @@
 package com.part3_team4.deokhoogam.domain.review.controller;
 
 import com.part3_team4.deokhoogam.domain.review.dto.ReviewCreateRequest;
+import com.part3_team4.deokhoogam.domain.review.dto.ReviewLikeResponse;
 import com.part3_team4.deokhoogam.domain.review.dto.ReviewResponse;
 import com.part3_team4.deokhoogam.domain.review.dto.ReviewUpdateRequest;
 import com.part3_team4.deokhoogam.domain.review.service.ReviewService;
@@ -43,6 +44,15 @@ public class ReviewController {
             @RequestBody @Valid ReviewUpdateRequest request
             ) {
         ReviewResponse response = reviewService.updateReview(reviewId, userId, request);
+        return ResponseEntity.ok(response);
+    }
+
+    @PostMapping("/{reviewId}/like")
+    public ResponseEntity<ReviewLikeResponse> toggleLike(
+            @RequestHeader("Deokhugam-Request-User-ID") UUID userId,
+            @PathVariable UUID reviewId
+    ) {
+        ReviewLikeResponse response = reviewService.toggleLike(reviewId, userId);
         return ResponseEntity.ok(response);
     }
 
