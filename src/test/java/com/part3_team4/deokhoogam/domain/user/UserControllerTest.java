@@ -2,6 +2,7 @@ package com.part3_team4.deokhoogam.domain.user;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.BDDMockito.given;
+import static org.mockito.BDDMockito.then;
 import static org.mockito.BDDMockito.willThrow;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
@@ -172,6 +173,8 @@ public class UserControllerTest {
 
     mockMvc.perform(delete("/api/users/{userId}", userId))
         .andExpect(status().isNoContent());
+
+    then(userService).should().deleteUser(userId);
   }
 
   @Test
