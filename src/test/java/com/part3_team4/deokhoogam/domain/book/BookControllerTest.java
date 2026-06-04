@@ -1,6 +1,8 @@
 package com.part3_team4.deokhoogam.domain.book;
 
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.ArgumentMatchers.isNull;
 import static org.mockito.BDDMockito.given;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.multipart;
@@ -17,11 +19,11 @@ import com.part3_team4.deokhoogam.domain.book.exception.BookNotFoundException;
 import com.part3_team4.deokhoogam.domain.book.exception.IsbnAlreadyExistsException;
 import com.part3_team4.deokhoogam.domain.book.service.BookService;
 import com.part3_team4.deokhoogam.global.exception.ErrorCode;
+import com.part3_team4.deokhoogam.global.fixture.BookFixtures;
 import com.part3_team4.deokhoogam.global.jwt.JwtFilter;
 import java.math.BigDecimal;
 import java.time.Instant;
 import java.time.LocalDate;
-import com.part3_team4.deokhoogam.global.fixture.BookFixtures;
 import java.util.UUID;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
@@ -35,6 +37,7 @@ import org.springframework.mock.web.MockMultipartFile;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.test.web.servlet.request.MockMultipartHttpServletRequestBuilder;
 import org.springframework.test.web.servlet.ResultActions;
 
 @WebMvcTest(BookController.class)
@@ -60,9 +63,8 @@ class BookControllerTest {
   void createBook_validRequest_returnsCreatedBook() throws Exception {
     // given
     BookCreateRequest request = BookFixtures.validBookCreateRequest();
-    MockMultipartFile bookDataPart = createMockMultipartFile(request);
-
     UUID mockId = UUID.randomUUID();
+
     BookDto mockResponse = BookDto.builder()
         .id(mockId)
         .isbn(request.isbn())
@@ -70,11 +72,11 @@ class BookControllerTest {
         .author(request.author())
         .build();
 
-    given(bookService.create(any(BookCreateRequest.class))).willReturn(mockResponse);
+    given(bookService.create(any(BookCreateRequest.class), isNull()))
+        .willReturn(mockResponse);
 
     // when & then
-    mockMvc.perform(multipart("/api/books")
-            .file(bookDataPart))
+    mockMvc.perform(createBookRequest(request))
         .andDo(print())
         .andExpect(status().isCreated())
         .andExpect(jsonPath("$.id").value(mockId.toString()))
@@ -82,20 +84,43 @@ class BookControllerTest {
         .andExpect(jsonPath("$.title").value(request.title()));
   }
 
+  @Test
+  @DisplayName("썸네일 파일과 함께 도서 생성 요청 시 201 Created를 반환한다")
+  void createBook_withThumbnail_returnsCreatedBook() throws Exception {
+    // given
+    BookCreateRequest request = BookFixtures.validBookCreateRequest();
+
+    UUID mockId = UUID.randomUUID();
+
+    BookDto mockResponse = BookDto.builder()
+        .id(mockId)
+        .title(request.title())
+        .isbn(request.isbn())
+        .author(request.author())
+        .build();
+
+    given(bookService.create(any(BookCreateRequest.class), any()))
+        .willReturn(mockResponse);
+
+    // when & then
+    mockMvc.perform(createBookRequest(request, createThumbnailFile()))
+        .andDo(print())
+        .andExpect(status().isCreated())
+        .andExpect(jsonPath("$.id").value(mockId.toString()))
+        .andExpect(jsonPath("$.title").value(request.title()));
+  }
 
   @Test
   @DisplayName("이미 존재하는 ISBN으로 도서를 등록 시에 409 Conflict를 반환한다")
   void createBook_alreadyIsbn_returnsConflict() throws Exception {
     // given
     BookCreateRequest request = BookFixtures.validBookCreateRequest();
-    MockMultipartFile bookDataPart = createMockMultipartFile(request);
 
-    given(bookService.create(any(BookCreateRequest.class)))
+    given(bookService.create(any(BookCreateRequest.class), isNull()))
         .willThrow(IsbnAlreadyExistsException.withIsbn(request.isbn()));
 
     // when & then
-    mockMvc.perform(multipart("/api/books")
-            .file(bookDataPart))
+    mockMvc.perform(createBookRequest(request))
         .andDo(print())
         .andExpect(status().isConflict())
         .andExpect(jsonPath("$.code").value(ErrorCode.ISBN_ALREADY_EXISTS.getCode()))
@@ -110,11 +135,8 @@ class BookControllerTest {
         .title("")
         .build();
 
-    MockMultipartFile bookDataPart = createMockMultipartFile(invalidRequest);
-
     // when & then
-    mockMvc.perform(multipart("/api/books")
-            .file(bookDataPart))
+    mockMvc.perform(createBookRequest(invalidRequest))
         .andDo(print())
         .andExpect(status().isBadRequest())
         .andExpect(jsonPath("$.code").value(ErrorCode.INVALID_INPUT_VALUE.getCode()))
@@ -127,7 +149,6 @@ class BookControllerTest {
     // given
     UUID targetId = UUID.randomUUID();
     BookUpdateRequest request = BookFixtures.validBookUpdateRequest();
-    MockMultipartFile bookDataPart = createMockMultipartFile(request);
 
     BookDto mockResponse = BookDto.builder()
         .id(targetId)
@@ -138,12 +159,34 @@ class BookControllerTest {
         .publishedDate(request.publishedDate())
         .build();
 
-    given(bookService.update(any(UUID.class), any(BookUpdateRequest.class))).willReturn(
-        mockResponse);
+    given(bookService.update(any(UUID.class), any(BookUpdateRequest.class), isNull()))
+        .willReturn(mockResponse);
 
     // when & then
-    mockMvc.perform(multipart(HttpMethod.PATCH, "/api/books/{bookId}", targetId)
-            .file(bookDataPart))
+    mockMvc.perform(updateBookRequest(targetId, request))
+        .andDo(print())
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.title").value(request.title()));
+  }
+
+  @Test
+  @DisplayName("썸네일 파일과 함께 도서 수정 요청 시 200 OK를 반환한다")
+  void updateBook_withThumbnail_returnsOk() throws Exception {
+    // given
+    UUID targetId = UUID.randomUUID();
+    BookUpdateRequest request = BookFixtures.validBookUpdateRequest();
+    MockMultipartFile thumbnail = createThumbnailFile();
+
+    BookDto mockResponse = BookDto.builder()
+        .id(targetId)
+        .title(request.title())
+        .build();
+
+    given(bookService.update(eq(targetId), any(BookUpdateRequest.class), any()))
+        .willReturn(mockResponse);
+
+    // when & then
+    mockMvc.perform(updateBookRequest(targetId, request, thumbnail))
         .andDo(print())
         .andExpect(status().isOk())
         .andExpect(jsonPath("$.title").value(request.title()));
@@ -158,11 +201,8 @@ class BookControllerTest {
         .title("")
         .build();
 
-    MockMultipartFile bookDataPart = createMockMultipartFile(invalidRequest);
-
     // when & then
-    mockMvc.perform(multipart(HttpMethod.PATCH, "/api/books/{bookId}", targetId)
-            .file(bookDataPart))
+    mockMvc.perform(updateBookRequest(targetId, invalidRequest))
         .andDo(print())
         .andExpect(status().isBadRequest());
   }
@@ -173,14 +213,13 @@ class BookControllerTest {
     // given
     UUID nonExistentId = UUID.randomUUID();
     BookUpdateRequest request = BookFixtures.validBookUpdateRequest();
-    MockMultipartFile bookDataPart = createMockMultipartFile(request);
 
-    given(bookService.update(any(UUID.class), any(BookUpdateRequest.class)))
+    // 수정 후
+    given(bookService.update(any(UUID.class), any(BookUpdateRequest.class), isNull()))
         .willThrow(BookNotFoundException.withId(nonExistentId));
 
     // when & then
-    mockMvc.perform(multipart(HttpMethod.PATCH, "/api/books/{bookId}", nonExistentId)
-            .file(bookDataPart))
+    mockMvc.perform(updateBookRequest(nonExistentId, request))
         .andDo(print())
         .andExpect(status().isNotFound());
   }
@@ -190,27 +229,65 @@ class BookControllerTest {
   void updateBook_isbnConflict_returnsConflict() throws Exception {
     // given
     UUID targetId = UUID.randomUUID();
-    BookUpdateRequest request = BookFixtures.validBookUpdateRequest();
-    MockMultipartFile bookDataPart = createMockMultipartFile(request);
 
-    given(bookService.update(any(UUID.class), any(BookUpdateRequest.class)))
+    BookUpdateRequest request = BookFixtures.validBookUpdateRequest();
+
+    given(bookService.update(any(UUID.class), any(BookUpdateRequest.class), isNull()))
         .willThrow(IsbnAlreadyExistsException.withIsbn("1234567890123"));
 
     // when & then
-    mockMvc.perform(multipart(HttpMethod.PATCH, "/api/books/{bookId}", targetId)
-            .file(bookDataPart))
+    mockMvc.perform(updateBookRequest(targetId, request))
         .andDo(print())
         .andExpect(status().isConflict());
   }
 
-  // MultipartFile 생성 헬퍼 메서드
-  private MockMultipartFile createMockMultipartFile(Object request) throws Exception {
+  // bookData만 요청
+  private MockMultipartHttpServletRequestBuilder createBookRequest(BookCreateRequest request
+  ) throws Exception {
+    return multipart("/api/books")
+        .file(createJsonPart(request));
+  }
+
+  // bookData와 thumbnailImage 요청
+  private MockMultipartHttpServletRequestBuilder createBookRequest(BookCreateRequest request,
+      MockMultipartFile thumbnail
+  ) throws Exception {
+    return multipart("/api/books")
+        .file(createJsonPart(request))
+        .file(thumbnail);
+  }
+
+  private MockMultipartHttpServletRequestBuilder updateBookRequest(UUID bookId,
+      BookUpdateRequest request
+  ) throws Exception {
+    return multipart(HttpMethod.PATCH, "/api/books/{bookId}", bookId)
+        .file(createJsonPart(request));
+  }
+
+  private MockMultipartFile createJsonPart(Object request) throws Exception {
     return new MockMultipartFile(
         "bookData",
         "",
         MediaType.APPLICATION_JSON_VALUE,
         objectMapper.writeValueAsBytes(request)
     );
+  }
+
+  private MockMultipartFile createThumbnailFile() {
+    return new MockMultipartFile(
+        "thumbnailImage",
+        "thumbnail.jpg",
+        MediaType.IMAGE_JPEG_VALUE,
+        "dummy-image".getBytes()
+    );
+  }
+
+  private MockMultipartHttpServletRequestBuilder updateBookRequest(UUID bookId,
+      BookUpdateRequest request, MockMultipartFile thumbnail
+  ) throws Exception {
+    return multipart(HttpMethod.PATCH, "/api/books/{bookId}", bookId)
+        .file(createJsonPart(request))
+        .file(thumbnail);
   }
 
   @Nested

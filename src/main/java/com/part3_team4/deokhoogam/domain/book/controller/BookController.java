@@ -6,6 +6,8 @@ import com.part3_team4.deokhoogam.domain.book.dto.BookDto;
 import com.part3_team4.deokhoogam.domain.book.dto.BookUpdateRequest;
 import com.part3_team4.deokhoogam.domain.book.service.BookService;
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
@@ -23,6 +25,7 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestPart;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.multipart.MultipartFile;
 
 @Tag(name = "도서 관리", description = "도서 관련 API")
 @RestController
@@ -41,8 +44,13 @@ public class BookController implements BookAPI {
   })
   @PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
   public ResponseEntity<BookDto> createBook(
-      @RequestPart("bookData") @Valid @Schema(description = "도서 정보") BookCreateRequest request) {
-    BookDto response = bookService.create(request);
+      @Parameter(content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE))
+      @Schema(description = "도서 정보") @RequestPart("bookData") @Valid BookCreateRequest request,
+
+      @RequestPart(value = "thumbnailImage", required = false)
+      @Schema(description = "도서 썸네일 이미지") MultipartFile thumbnailImage
+  ) {
+    BookDto response = bookService.create(request, thumbnailImage);
     return ResponseEntity.status(HttpStatus.CREATED).body(response);
   }
 
@@ -58,9 +66,14 @@ public class BookController implements BookAPI {
   @PatchMapping(value = "/{bookId}", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
   public ResponseEntity<BookDto> updateBook(
       @Schema(description = "도서 ID", example = "123e4567-e89b-12d3-a456-426614174000") @PathVariable UUID bookId,
-      @Schema(description = "수정할 도서 정보") @RequestPart("bookData") @Valid BookUpdateRequest request
+
+      @Parameter(content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE))
+      @Schema(description = "수정할 도서 정보") @RequestPart("bookData") @Valid BookUpdateRequest request,
+
+      @RequestPart(value = "thumbnailImage", required = false)
+      @Schema(description = "수정할 도서 썸네일 이미지") MultipartFile thumbnailImage
   ) {
-    BookDto response = bookService.update(bookId, request);
+    BookDto response = bookService.update(bookId, request, thumbnailImage);
     return ResponseEntity.ok(response);
 
   }
