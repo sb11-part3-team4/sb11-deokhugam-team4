@@ -3,6 +3,7 @@ package com.part3_team4.deokhoogam.domain.review;
 import com.part3_team4.deokhoogam.domain.book.entity.Book;
 import com.part3_team4.deokhoogam.domain.book.repository.BookRepository;
 import com.part3_team4.deokhoogam.domain.review.dto.ReviewCreateRequest;
+import com.part3_team4.deokhoogam.domain.review.dto.ReviewLikeResponse;
 import com.part3_team4.deokhoogam.domain.review.dto.ReviewResponse;
 import com.part3_team4.deokhoogam.domain.review.dto.ReviewUpdateRequest;
 import com.part3_team4.deokhoogam.domain.review.entity.DeletedReview;
@@ -266,6 +267,40 @@ public class ReviewServiceTest {
         reviewService.deleteReview(review.getId(), ownerUserId);
 
         then(reviewLikeRepository).should().deleteAllByReviewId(review.getId());
+    }
+
+    @Test
+    @DisplayName("좋아요가 없는 상태에서 토글하면 liked=true, likeCount가 1 증가한다")
+    void toggleLike_like_success() {
+        UUID userId = UUID.randomUUID();
+        UUID bookId = UUID.randomUUID();
+        Review review = Review.create(userId, bookId, 4, "내용");
+
+        given(reviewRepository.findById(any(UUID.class))).willReturn(Optional.of(review));
+        given(reviewLikeRepository.existsByReviewIdAndUserId(any(UUID.class),eq(userId))).willReturn(false);
+
+        ReviewLikeResponse response = reviewService.toggleLike(review.getId(),userId);
+
+        assertThat(response.liked()).isTrue();
+        assertThat(response.likeCount()).isEqualTo(1);
+    }
+
+    @Test
+    @DisplayName("이미 좋아요 상태에서 토글하면 liked=false, likeCount가 1 감소한다")
+    void toggleLike_unlike_success() {
+        UUID userId = UUID.randomUUID();
+        UUID bookId = UUID.randomUUID();
+        Review review = Review.create(userId, bookId, 4, "내용");
+        review.incrementLikeCount();
+
+        given(reviewRepository.findById(any(UUID.class))).willReturn(Optional.of(review));
+        given(reviewLikeRepository.existsByReviewIdAndUserId(any(UUID.class),eq(userId))).willReturn(true);
+
+        ReviewLikeResponse response = reviewService.toggleLike(review.getId(), userId);
+
+        assertThat(response.liked()).isFalse();
+        assertThat(response.likeCount()).isEqualTo(0);
+
     }
 
 }
