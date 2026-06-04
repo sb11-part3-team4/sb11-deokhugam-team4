@@ -3,6 +3,7 @@ package com.part3_team4.deokhoogam.domain.user;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.BDDMockito.then;
+import static org.mockito.BDDMockito.willThrow;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 
@@ -63,5 +64,30 @@ public class UserCleanupServiceTest {
     then(deletedUserRepository).should(times(1))
         .findUserIdsDeletedBefore(any(Instant.class));
     then(userRepository).should(never()).hardDeleteById(any());
+  }
+
+  @Test
+  @DisplayName("유저 물리 삭제 중 예외가 발생해도 다른 유저 삭제는 진행")
+  void cleanupOldDeleteUsers_exception_continue() {
+    UUID errorUserId = UUID.randomUUID();
+    UUID successUserId = UUID.randomUUID();
+
+    given(deletedUserRepository.findUserIdsDeletedBefore(any(Instant.class)))
+        .willReturn(List.of(errorUserId, successUserId));
+
+    willThrow(new RuntimeException("DB 삭제 에러 발생 테스트"))
+        .given(userRepository).hardDeleteById(errorUserId);
+
+    userCleanupService.cleanupOldDeletedUsers();
+
+    then(userRepository).should(times(1))
+        .hardDeleteById(errorUserId);
+    then(userRepository).should(times(1))
+        .hardDeleteById(successUserId);
+
+    then(deletedUserRepository).should(never()).deleteById(errorUserId);
+
+    then(deletedUserRepository).should(times(1))
+        .deleteById(successUserId);
   }
 }
