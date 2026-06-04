@@ -327,14 +327,45 @@ class CommentServiceTest {
         }
 
         @Test
-        @DisplayName("반환 건수가 limit과 같으면 hasNext가 true이고 nextCursor/nextAfter가 채워진다")
-        void getComments_sizeEqualsLimit_hasNextTrue() {
+        @DisplayName("조회 결과가 limit+1개이면 hasNext가 true이고 nextCursor/nextAfter가 채워진다")
+        void getComments_moreThanLimit_hasNextTrue() {
             Instant createdAt = Instant.now().minusSeconds(5);
             // 비영속 엔티티는 @CreatedDate가 적용되지 않아 createdAt이 null이므로 mock 사용
             Comment comment = mock(Comment.class);
             given(comment.getUserId()).willReturn(USER_ID);
             given(comment.getCreatedAt()).willReturn(createdAt);
             given(comment.getUpdatedAt()).willReturn(createdAt);
+            given(comment.getId()).willReturn(COMMENT_ID);
+            given(comment.getReviewId()).willReturn(REVIEW_ID);
+            given(comment.getContent()).willReturn("마지막 댓글");
+
+            Comment extraComment = mock(Comment.class);
+
+            User mockUser = mock(User.class);
+            given(mockUser.getId()).willReturn(USER_ID);
+            given(mockUser.getName()).willReturn("테스트유저");
+
+            given(reviewRepository.existsById(REVIEW_ID)).willReturn(true);
+            given(commentRepository.findByReviewIdOrderByCreatedAtDesc(eq(REVIEW_ID), any(Pageable.class)))
+                    .willReturn(List.of(comment, extraComment));
+            given(userRepository.findAllById(anyCollection())).willReturn(List.of(mockUser));
+            given(commentRepository.countByReviewId(REVIEW_ID)).willReturn(10L);
+
+            CommentDto.CommentsResponse result = commentService.getComments(REVIEW_ID, "DESC", null, null, 1);
+
+            assertThat(result.hasNext()).isTrue();
+            assertThat(result.content()).hasSize(1);
+            assertThat(result.nextCursor()).isEqualTo(createdAt.toString());
+            assertThat(result.nextAfter()).isEqualTo(createdAt);
+        }
+
+        @Test
+        @DisplayName("정확히 limit개 데이터일 때 hasNext=false를 반환한다")
+        void getComments_exactlyLimit_hasNextFalse() {
+            Instant createdAt = Instant.now().minusSeconds(5);
+            Comment comment = mock(Comment.class);
+            given(comment.getUserId()).willReturn(USER_ID);
+            given(comment.getCreatedAt()).willReturn(createdAt);
             given(comment.getId()).willReturn(COMMENT_ID);
             given(comment.getReviewId()).willReturn(REVIEW_ID);
             given(comment.getContent()).willReturn("마지막 댓글");
@@ -347,13 +378,14 @@ class CommentServiceTest {
             given(commentRepository.findByReviewIdOrderByCreatedAtDesc(eq(REVIEW_ID), any(Pageable.class)))
                     .willReturn(List.of(comment));
             given(userRepository.findAllById(anyCollection())).willReturn(List.of(mockUser));
-            given(commentRepository.countByReviewId(REVIEW_ID)).willReturn(10L);
+            given(commentRepository.countByReviewId(REVIEW_ID)).willReturn(1L);
 
             CommentDto.CommentsResponse result = commentService.getComments(REVIEW_ID, "DESC", null, null, 1);
 
-            assertThat(result.hasNext()).isTrue();
-            assertThat(result.nextCursor()).isEqualTo(createdAt.toString());
-            assertThat(result.nextAfter()).isEqualTo(createdAt);
+            assertThat(result.hasNext()).isFalse();
+            assertThat(result.content()).hasSize(1);
+            assertThat(result.nextCursor()).isNull();
+            assertThat(result.nextAfter()).isNull();
         }
 
         @Test

@@ -98,7 +98,7 @@ public class CommentServiceImpl implements CommentService {
         if (!reviewRepository.existsById(reviewId)) {
             throw ReviewNotFoundException.withId(reviewId);
         }
-        PageRequest pageable = PageRequest.of(0, limit);
+        PageRequest pageable = PageRequest.of(0, limit + 1);
         boolean isAsc = "ASC".equalsIgnoreCase(direction);
         List<Comment> comments;
         if (isAsc) {
@@ -111,11 +111,14 @@ public class CommentServiceImpl implements CommentService {
                     : commentRepository.findByReviewIdAndCreatedAtBeforeOrderByCreatedAtDesc(reviewId, cursor, pageable);
         }
 
-        Set<UUID> userIds = comments.stream().map(Comment::getUserId).collect(Collectors.toSet());
+        boolean hasNext = comments.size() > limit;
+        List<Comment> pagedComments = hasNext ? comments.subList(0, limit) : comments;
+
+        Set<UUID> userIds = pagedComments.stream().map(Comment::getUserId).collect(Collectors.toSet());
         Map<UUID, User> userMap = userRepository.findAllById(userIds).stream()
                 .collect(Collectors.toMap(u -> u.getId(), u -> u));
 
-        List<CommentDto.CommentResponse> content = comments.stream().map(comment -> {
+        List<CommentDto.CommentResponse> content = pagedComments.stream().map(comment -> {
             User commentUser = userMap.get(comment.getUserId());
             if (commentUser == null) {
                 throw UserNotFoundException.withId(comment.getUserId());
@@ -124,13 +127,12 @@ public class CommentServiceImpl implements CommentService {
         }).toList();
 
         int size = content.size();
-        boolean hasNext = size == limit;
         long totalElements = commentRepository.countByReviewId(reviewId);
 
         String nextCursor = null;
         Instant nextAfter = null;
         if (hasNext) {
-            Instant lastCreatedAt = comments.get(size - 1).getCreatedAt();
+            Instant lastCreatedAt = pagedComments.get(size - 1).getCreatedAt();
             nextCursor = lastCreatedAt.toString();
             nextAfter = lastCreatedAt;
         }
