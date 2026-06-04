@@ -56,6 +56,8 @@ public class SecurityConfig {
   public HttpFirewall httpFirewall() {
     StrictHttpFirewall firewall = new StrictHttpFirewall();
     firewall.setAllowUrlEncodedDoubleSlash(true);
+    firewall.setAllowSemicolon(true);
+    firewall.setAllowBackSlash(true);
     return  firewall;
   }
 
