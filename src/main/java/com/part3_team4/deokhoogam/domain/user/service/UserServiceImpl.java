@@ -111,7 +111,7 @@ public class UserServiceImpl implements UserService{
 
     deleteUserRepository.save(deletedUser);
 
-    userRepository.delete(user);
+    user.softDelete();
   }
 
   @Override
