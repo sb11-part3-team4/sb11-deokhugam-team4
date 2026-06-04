@@ -122,6 +122,17 @@ public class UserServiceImpl implements UserService{
   }
 
   @Override
+  @Transactional
+  public void hardDeleteUser(UUID userId) {
+    User user = userRepository.findById(userId)
+        .orElseThrow(() -> UserNotFoundException.withId(userId));
+
+    userRepository.delete(user);
+
+    eventPublisher.publishEvent(new UserDeletedEvent(userId));
+  }
+
+  @Override
   @Transactional(readOnly = true)
   public UserLoginResultDto login(String email, String password) {
     User user = userRepository.findByEmail(email)

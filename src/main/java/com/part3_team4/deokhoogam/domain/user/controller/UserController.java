@@ -77,6 +77,14 @@ public class UserController {
     return ResponseEntity.noContent().build();
   }
 
+  @DeleteMapping("/{userId}/hard")
+  public ResponseEntity<Void> hardDeleteUser(@PathVariable UUID userId) {
+
+    userService.hardDeleteUser(userId);
+
+    return ResponseEntity.noContent().build();
+  }
+
   @PostMapping("/login")
   public ResponseEntity<Map<String, Object>> login(
       @Valid @RequestBody UserLoginRequestDto request) {

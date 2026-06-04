@@ -295,6 +295,37 @@ public class UserServiceTest {
   }
 
   @Test
+  @DisplayName("회원 물리 삭제 성공 - DB 삭제 및 이벤트 발생")
+  void hardDeleteUser_success() {
+    UUID userId = UUID.randomUUID();
+    User user = new User(
+        "test@deokhugam.com", "testUser", "password123!");
+
+    given(userRepository.findById(userId)).willReturn(Optional.of(user));
+
+    userService.hardDeleteUser(userId);
+
+    then(userRepository).should().delete(user);
+    then(eventPublisher).should().publishEvent(any(UserDeletedEvent.class));
+    then(deleteUserRepository).should(never()).save(any(DeletedUser.class));
+  }
+
+  @Test
+  @DisplayName("회원 물리 삭제 실패 - 존재하지 않는 유저")
+  void hardDeleteUser_fail_userNotFound() {
+    UUID userId = UUID.randomUUID();
+
+    given(userRepository.findById(userId)).willReturn(Optional.empty());
+
+    assertThrows(UserNotFoundException.class, () -> {
+      userService.hardDeleteUser(userId);
+    });
+
+    then(userRepository).should(never()).delete(any(User.class));
+    then(eventPublisher).should(never()).publishEvent(any(UserDeletedEvent.class));
+  }
+
+  @Test
   @DisplayName("로그인 성공 - 토큰 발급")
   void login_success() {
     String email = "test@deokhugam.com";

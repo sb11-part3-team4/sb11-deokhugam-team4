@@ -35,13 +35,11 @@ public class SecurityConfig {
         .sessionManagement(session
             -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
         .authorizeHttpRequests(auth -> auth
+            // 회원가입, 로그인은 토큰 없이 접근 가능
             .requestMatchers(HttpMethod.POST, "/api/users").permitAll()
-            .requestMatchers(
-                "/", "/index.html", "/favicon.ico", "/error",
-                "/css/**", "/js/**", "/images/**", "/assets/**",
-                "/swagger-ui/**", "/v3/api-docs/**", "/swagger-resources/**",
-                "/api/users/login"
-            ).permitAll()
+            .requestMatchers("/api/users/login").permitAll()
+            // 메인 페이지 HTML 접근 허용
+            .requestMatchers("/", "/index.html").permitAll()
             .anyRequest().authenticated()
         )
         .formLogin(form -> form.disable())
@@ -63,6 +61,13 @@ public class SecurityConfig {
 
   @Bean
   public WebSecurityCustomizer webSecurityCustomizer(HttpFirewall httpFirewall) {
-    return (web) -> web.httpFirewall(httpFirewall);
+    return (web) -> web
+        .httpFirewall(httpFirewall)
+        .ignoring()
+        .requestMatchers(
+            "/favicon.ico", "/error",
+            "/css/**", "/js/**", "/images/**", "/assets/**",
+            "/swagger-ui/**", "/v3/api-docs/**", "/swagger-resources/**"
+        );
   }
 }

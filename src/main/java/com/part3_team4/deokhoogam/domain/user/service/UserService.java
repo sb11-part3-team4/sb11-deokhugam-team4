@@ -21,5 +21,7 @@ public interface UserService {
 
   void deleteUser(UUID userId);
 
+  void hardDeleteUser(UUID userId);
+
   UserLoginResultDto login(String email, String password);
 }
