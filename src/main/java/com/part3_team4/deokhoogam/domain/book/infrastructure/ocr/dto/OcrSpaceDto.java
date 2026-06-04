@@ -2,24 +2,22 @@ package com.part3_team4.deokhoogam.domain.book.infrastructure.ocr.dto;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 import java.util.List;
-import lombok.Getter;
 
-@Getter
-public class OcrSpaceDto {
+public record OcrSpaceDto(
+    @JsonProperty("IsErroredOnProcessing")
+    boolean isErroredOnProcessing,
 
-  @JsonProperty("IsErroredOnProcessing")
-  private boolean isErroredOnProcessing;
+    @JsonProperty("ErrorMessage")
+    List<String> errorMessage,
 
-  @JsonProperty("ErrorMessage")
-  private List<String> errorMessage;
+    @JsonProperty("ParsedResults")
+    List<ParsedResult> parsedResults
+) {
 
-  @JsonProperty("ParsedResults")
-  private List<ParsedResult> parsedResults;
+  public record ParsedResult(
+      @JsonProperty("ParsedText")
+      String parsedText
+  ) {
 
-  @Getter
-  public static class ParsedResult {
-
-    @JsonProperty("ParsedText")
-    private String parsedText;
   }
 }
