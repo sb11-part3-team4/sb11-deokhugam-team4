@@ -7,6 +7,7 @@ import static org.mockito.BDDMockito.given;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.multipart;
 import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.print;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -17,7 +18,9 @@ import com.part3_team4.deokhoogam.domain.book.dto.BookDto;
 import com.part3_team4.deokhoogam.domain.book.dto.BookUpdateRequest;
 import com.part3_team4.deokhoogam.domain.book.exception.BookNotFoundException;
 import com.part3_team4.deokhoogam.domain.book.exception.IsbnAlreadyExistsException;
+import com.part3_team4.deokhoogam.domain.book.exception.OcrProcessingException;
 import com.part3_team4.deokhoogam.domain.book.service.BookService;
+import com.part3_team4.deokhoogam.domain.book.service.OcrService;
 import com.part3_team4.deokhoogam.global.exception.ErrorCode;
 import com.part3_team4.deokhoogam.global.fixture.BookFixtures;
 import com.part3_team4.deokhoogam.global.jwt.JwtFilter;
@@ -37,8 +40,8 @@ import org.springframework.mock.web.MockMultipartFile;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
-import org.springframework.test.web.servlet.request.MockMultipartHttpServletRequestBuilder;
 import org.springframework.test.web.servlet.ResultActions;
+import org.springframework.test.web.servlet.request.MockMultipartHttpServletRequestBuilder;
 
 @WebMvcTest(BookController.class)
 @ActiveProfiles("test")
@@ -54,6 +57,9 @@ class BookControllerTest {
 
   @MockitoBean
   private BookService bookService;
+
+  @MockitoBean
+  private OcrService ocrService;
 
   @MockitoBean
   private JwtFilter jwtFilter;
@@ -239,6 +245,40 @@ class BookControllerTest {
     mockMvc.perform(updateBookRequest(targetId, request))
         .andDo(print())
         .andExpect(status().isConflict());
+  }
+
+  @Test
+  @DisplayName("이미지를 업로드하면 ISBN을 문자열로 반환한다")
+  void extractIsbn_validImage_returnsOk() throws Exception {
+    // given
+    MockMultipartFile image = new MockMultipartFile(
+        "image", "book.jpg", MediaType.IMAGE_JPEG_VALUE, "dummy-image".getBytes()
+    );
+
+    given(ocrService.extractIsbnFromImage(any())).willReturn("9788965402602");
+
+    // when & then
+    mockMvc.perform(multipart("/api/books/isbn/ocr").file(image))
+        .andDo(print())
+        .andExpect(status().isOk())
+        .andExpect(content().string("9788965402602"));
+  }
+
+  @Test
+  @DisplayName("OCR 인식 실패 시 400 Bad Request를 반환한다")
+  void extractIsbn_ocrFails_returnsBadRequest() throws Exception {
+    // given
+    MockMultipartFile image = new MockMultipartFile(
+        "image", "book.jpg", MediaType.IMAGE_JPEG_VALUE, "dummy-image".getBytes()
+    );
+    
+    given(ocrService.extractIsbnFromImage(any()))
+        .willThrow(OcrProcessingException.withDetail("이미지에서 ISBN 패턴을 찾을 수 없습니다."));
+
+    // when & then
+    mockMvc.perform(multipart("/api/books/isbn/ocr").file(image))
+        .andDo(print())
+        .andExpect(status().isBadRequest());
   }
 
   // bookData만 요청
