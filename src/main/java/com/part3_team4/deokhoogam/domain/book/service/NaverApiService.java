@@ -36,6 +36,9 @@ public class NaverApiService {
 
     try {
       // 템플릿 기반으로 체이닝 호출
+
+// record 버전은 get 없이 필드명 그대로 호출
+
       return restClient.get()
           .uri(url, isbn)
           .header("X-Naver-Client-Id", clientId)

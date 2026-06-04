@@ -3,7 +3,7 @@ package com.part3_team4.deokhoogam.global.exception;
 public class ExternalApiException extends BusinessException{
 
   public ExternalApiException() {
-    super(ErrorCode.INVALID_INPUT_VALUE);
+    super(ErrorCode.EXTERNAL_API_ERROR);
   }
 
   public static ExternalApiException withIsbn(String isbn) {

@@ -39,7 +39,7 @@ public enum ErrorCode {
   // 6. 공용 예외
   INTERNAL_SERVER_ERROR(HttpStatus.INTERNAL_SERVER_ERROR, "COMMON-001", "서버 내부 오류가 발생했습니다."),
   INVALID_INPUT_VALUE(HttpStatus.BAD_REQUEST, "COMMON-002", "잘못된 입력값입니다."),
-
+  EXTERNAL_API_ERROR(HttpStatus.INTERNAL_SERVER_ERROR,"COMMON-003", "외부 API에서 오류가 발생했습니다"),
 
   // 7. 스토리지 예외
   INVALID_FILE_INPUT(HttpStatus.BAD_REQUEST, "STORAGE-001", "올바르지 않은 파일 정보입니다."),
