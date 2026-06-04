@@ -251,14 +251,12 @@ class BookControllerTest {
   @DisplayName("이미지를 업로드하면 ISBN을 문자열로 반환한다")
   void extractIsbn_validImage_returnsOk() throws Exception {
     // given
-    MockMultipartFile image = new MockMultipartFile(
-        "image", "book.jpg", MediaType.IMAGE_JPEG_VALUE, "dummy-image".getBytes()
-    );
+    MockMultipartFile image = createOcrImageFile();
 
     given(ocrService.extractIsbnFromImage(any())).willReturn("9788965402602");
 
     // when & then
-    mockMvc.perform(multipart("/api/books/isbn/ocr").file(image))
+    mockMvc.perform(extractIsbnRequest(image))
         .andDo(print())
         .andExpect(status().isOk())
         .andExpect(content().string("9788965402602"));
@@ -268,18 +266,19 @@ class BookControllerTest {
   @DisplayName("OCR 인식 실패 시 400 Bad Request를 반환한다")
   void extractIsbn_ocrFails_returnsBadRequest() throws Exception {
     // given
-    MockMultipartFile image = new MockMultipartFile(
-        "image", "book.jpg", MediaType.IMAGE_JPEG_VALUE, "dummy-image".getBytes()
-    );
-    
+    MockMultipartFile image = createOcrImageFile();
+
     given(ocrService.extractIsbnFromImage(any()))
         .willThrow(OcrProcessingException.withDetail("이미지에서 ISBN 패턴을 찾을 수 없습니다."));
 
     // when & then
-    mockMvc.perform(multipart("/api/books/isbn/ocr").file(image))
+    mockMvc.perform(extractIsbnRequest(image))
         .andDo(print())
-        .andExpect(status().isBadRequest());
+        .andExpect(status().isBadRequest())
+        .andExpect(jsonPath("$.code").value(ErrorCode.OCR_PROCESSING_FAILED.getCode()));
   }
+
+  // ============ 헬퍼 메서드 =============
 
   // bookData만 요청
   private MockMultipartHttpServletRequestBuilder createBookRequest(BookCreateRequest request
@@ -328,6 +327,20 @@ class BookControllerTest {
     return multipart(HttpMethod.PATCH, "/api/books/{bookId}", bookId)
         .file(createJsonPart(request))
         .file(thumbnail);
+  }
+
+  private MockMultipartHttpServletRequestBuilder extractIsbnRequest(MockMultipartFile image) {
+    return multipart("/api/books/isbn/ocr")
+        .file(image);
+  }
+
+  private MockMultipartFile createOcrImageFile() {
+    return new MockMultipartFile(
+        "image",
+        "book.jpg",
+        MediaType.IMAGE_JPEG_VALUE,
+        "dummy-image".getBytes()
+    );
   }
 
   @Nested
