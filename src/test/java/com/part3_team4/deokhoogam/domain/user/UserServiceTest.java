@@ -15,6 +15,7 @@ import com.part3_team4.deokhoogam.domain.user.dto.response.UserResponse;
 import com.part3_team4.deokhoogam.domain.user.dto.UserUpdateRequestDto;
 import com.part3_team4.deokhoogam.domain.user.entity.DeletedUser;
 import com.part3_team4.deokhoogam.domain.user.entity.User;
+import com.part3_team4.deokhoogam.domain.user.entity.UserDeletedEvent;
 import com.part3_team4.deokhoogam.domain.user.exception.InvalidCredentialsException;
 import com.part3_team4.deokhoogam.domain.user.exception.PasswordMismatchException;
 import com.part3_team4.deokhoogam.domain.user.exception.UserAlreadyExistsException;
@@ -32,6 +33,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.security.crypto.password.PasswordEncoder;
 
 @ExtendWith(MockitoExtension.class)
@@ -53,6 +55,9 @@ public class UserServiceTest {
 
   @Mock
   private JwtProvider jwtProvider;
+
+  @Mock
+  private ApplicationEventPublisher eventPublisher;
 
   @Test
   @DisplayName("회원가입 성공")
@@ -255,7 +260,7 @@ public class UserServiceTest {
   }
 
   @Test
-  @DisplayName("회원 탈퇴 성공 - 논리 삭제")
+  @DisplayName("회원 탈퇴 성공 - 논리 삭제 및 이벤트 발생")
   void deleteUser_success() {
     UUID userId = UUID.randomUUID();
     User user = new User(
@@ -270,6 +275,8 @@ public class UserServiceTest {
     then(deleteUserRepository).should().save(any(DeletedUser.class));
 
     then(userRepository).should(never()).delete(any(User.class));
+
+    then(eventPublisher).should().publishEvent(any(UserDeletedEvent.class));
   }
 
   @Test

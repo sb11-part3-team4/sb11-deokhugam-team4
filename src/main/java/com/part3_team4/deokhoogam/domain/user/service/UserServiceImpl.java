@@ -8,6 +8,7 @@ import com.part3_team4.deokhoogam.domain.user.dto.UserUpdateRequestDto;
 import com.part3_team4.deokhoogam.domain.user.dto.response.UserResponse;
 import com.part3_team4.deokhoogam.domain.user.entity.DeletedUser;
 import com.part3_team4.deokhoogam.domain.user.entity.User;
+import com.part3_team4.deokhoogam.domain.user.entity.UserDeletedEvent;
 import com.part3_team4.deokhoogam.domain.user.exception.InvalidCredentialsException;
 import com.part3_team4.deokhoogam.domain.user.exception.PasswordMismatchException;
 import com.part3_team4.deokhoogam.domain.user.exception.UserAlreadyExistsException;
@@ -17,6 +18,7 @@ import com.part3_team4.deokhoogam.domain.user.repository.DeletedUserRepository;
 import com.part3_team4.deokhoogam.domain.user.repository.UserRepository;
 import com.part3_team4.deokhoogam.global.jwt.JwtProvider;
 import java.util.UUID;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -29,13 +31,15 @@ public class UserServiceImpl implements UserService{
   private final UserMapper userMapper;
   private final PasswordEncoder passwordEncoder;
   private final JwtProvider jwtProvider;
+  private final ApplicationEventPublisher eventPublisher;
 
-  public UserServiceImpl(UserRepository userRepository, DeletedUserRepository deleteUserRepository, UserMapper userMapper, PasswordEncoder passwordEncoder, JwtProvider jwtProvider) {
+  public UserServiceImpl(UserRepository userRepository, DeletedUserRepository deleteUserRepository, UserMapper userMapper, PasswordEncoder passwordEncoder, JwtProvider jwtProvider, ApplicationEventPublisher eventPublisher) {
     this.userRepository = userRepository;
     this.deleteUserRepository = deleteUserRepository;
     this.userMapper = userMapper;
     this.passwordEncoder = passwordEncoder;
     this.jwtProvider = jwtProvider;
+    this.eventPublisher = eventPublisher;
   }
 
   @Override
@@ -113,6 +117,8 @@ public class UserServiceImpl implements UserService{
     deleteUserRepository.save(deletedUser);
 
     user.softDelete();
+
+    eventPublisher.publishEvent(new UserDeletedEvent(userId));
   }
 
   @Override
