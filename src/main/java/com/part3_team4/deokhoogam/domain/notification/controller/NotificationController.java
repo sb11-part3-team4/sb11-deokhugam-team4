@@ -5,12 +5,15 @@ import com.part3_team4.deokhoogam.domain.notification.dto.NotificationUpdateRequ
 import com.part3_team4.deokhoogam.domain.notification.service.NotificationService;
 import com.part3_team4.deokhoogam.global.common.PageResponse;
 import jakarta.validation.Valid;
+import jakarta.validation.constraints.Max;
+import jakarta.validation.constraints.Min;
 import java.util.UUID;
 import java.time.Instant;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Sort;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.validation.annotation.Validated;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 
@@ -27,6 +30,7 @@ import io.swagger.v3.oas.annotations.Parameter;
  */
 @RestController
 @RequiredArgsConstructor
+@Validated // @RequestParam 같은 메서드 파라미터에 붙은 @Min, @Max 검증을 동작시키기 위한 설정입니다.
 @RequestMapping("/api/notifications")
 public class NotificationController {
 
@@ -143,7 +147,10 @@ public class NotificationController {
       @RequestParam(required = false) Instant after,
 
       @Parameter(description = "페이지 크기", example = "20")
-      @RequestParam(defaultValue = "20") int limit
+      @RequestParam(defaultValue = "20")
+      @Min(1)   // 페이지 크기는 최소 1이어야 합니다.
+      @Max(100) // 페이지 크기 상한을 둬서 과도한 조회 요청을 방지합니다.
+      int limit
   ) {
     /**
      * direction query parameter는 Swagger에서 ASC/DESC로 안내하지만,

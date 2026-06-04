@@ -245,4 +245,20 @@ class NotificationControllerTest {
         );
   }
 
+  @Test
+  @DisplayName("GET /api/notifications 요청에서 limit이 1보다 작으면 400 Bad Request를 반환한다")
+  void findAllWithInvalidLimit() throws Exception {
+    UUID userId = UUID.randomUUID();
+
+    mockMvc.perform(get("/api/notifications")
+            .header("Deokhugam-Request-User-ID", userId)
+            .param("userId", userId.toString())
+            .param("limit", "0")) // limit은 @Min(1)이므로 0은 허용되지 않습니다.
+        .andExpect(status().isBadRequest());
+
+    // 컨트롤러 파라미터 검증에서 요청이 막혀야 하므로,
+    // 서비스 목록 조회 로직은 호출되지 않아야 합니다.
+    then(notificationService).shouldHaveNoInteractions();
+  }
+
 }
