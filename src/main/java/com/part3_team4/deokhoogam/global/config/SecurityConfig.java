@@ -3,6 +3,7 @@ package com.part3_team4.deokhoogam.global.config;
 import com.part3_team4.deokhoogam.global.jwt.JwtFilter;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.http.HttpMethod;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.WebSecurityCustomizer;
 import org.springframework.security.config.http.SessionCreationPolicy;
@@ -34,11 +35,12 @@ public class SecurityConfig {
         .sessionManagement(session
             -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
         .authorizeHttpRequests(auth -> auth
+            .requestMatchers(HttpMethod.POST, "/api/users").permitAll()
             .requestMatchers(
                 "/", "/index.html", "/favicon.ico", "/error",
                 "/css/**", "/js/**", "/images/**", "/assets/**",
                 "/swagger-ui/**", "/v3/api-docs/**", "/swagger-resources/**",
-                "/api/users/signup", "/api/users/login"
+                "/api/users/login"
             ).permitAll()
             .anyRequest().authenticated()
         )

@@ -40,7 +40,7 @@ public class UserServiceImpl implements UserService{
   @Override
   @Transactional
   public UserDto createUser(UserCreateRequestDto request) {
-    if (userRepository.existsByName(request.name())) {
+    if (userRepository.existsByName(request.nickname())) {
       throw UserAlreadyExistsException.withName();
     }
     if (userRepository.existsByEmail(request.email())) {
@@ -51,7 +51,7 @@ public class UserServiceImpl implements UserService{
     }
 
     String encodedPassword = passwordEncoder.encode(request.password());
-    User user = new User(request.email(), request.name(), encodedPassword);
+    User user = new User(request.email(), request.nickname(), encodedPassword);
 
     userRepository.save(user);
 

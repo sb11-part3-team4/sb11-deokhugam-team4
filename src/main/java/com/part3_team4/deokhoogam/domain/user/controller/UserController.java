@@ -30,7 +30,7 @@ public class UserController {
     this.userService = userService;
   }
 
-  @PostMapping(value = "/signup")
+  @PostMapping
   public ResponseEntity<UserDto> signup(
       @Valid @RequestBody UserCreateRequestDto request) {
 

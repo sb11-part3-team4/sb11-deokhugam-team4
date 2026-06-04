@@ -62,7 +62,7 @@ public class UserServiceTest {
     UserDto mockDto = new UserDto(UUID.randomUUID(), "test@deokhugam.com"
         , "testUser");
 
-    given(userRepository.existsByName(request.name())).willReturn(false);
+    given(userRepository.existsByName(request.nickname())).willReturn(false);
     given(userRepository.existsByEmail(request.email())).willReturn(false);
     given(deleteUserRepository.existsByEmail(request.email())).willReturn(false);
     given(passwordEncoder.encode(any(CharSequence.class))).willReturn("encodedPassword");
@@ -81,7 +81,7 @@ public class UserServiceTest {
     UserCreateRequestDto request = new UserCreateRequestDto(
         "duplicate@deokhugam.com", "testUser", "password123!");
 
-    given(userRepository.existsByName(request.name())).willReturn(true);
+    given(userRepository.existsByName(request.nickname())).willReturn(true);
 
     assertThrows(UserAlreadyExistsException.class, () -> {
       userService.createUser(request);
@@ -112,7 +112,7 @@ public class UserServiceTest {
         "deleted@deokhugam.com", "testUser", "password123!");
 
     // 일반 유저 테이블엔 없지만, 탈퇴한 테이블에 존재한다고 가정
-    given(userRepository.existsByName(request.name())).willReturn(false);
+    given(userRepository.existsByName(request.nickname())).willReturn(false);
     given(userRepository.existsByEmail(request.email())).willReturn(false);
     given(deleteUserRepository.existsByEmail(request.email())).willReturn(true);
 

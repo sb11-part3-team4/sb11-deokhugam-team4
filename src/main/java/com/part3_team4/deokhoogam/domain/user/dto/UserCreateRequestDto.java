@@ -11,7 +11,7 @@ public record UserCreateRequestDto(
     String email,
 
     @NotBlank(message = "이름은 필수입니다.")
-    String name,
+    String nickname,
 
     @NotBlank(message = "비밀번호는 필수입니다.")
     @Size(min = 8, message = "비밀번호는 8자 이상이어야 합니다.")
