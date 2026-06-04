@@ -87,6 +87,8 @@ public class UserController {
     headers.set("Authorization", "Bearer " + result.token());
 
     Map<String, Object> responseBody = Map.of(
+        "token", result.token(),
+        "accessToken", result.token(),
         "id", result.id(),
         "email", result.email(),
         "nickname", result.nickname(),
