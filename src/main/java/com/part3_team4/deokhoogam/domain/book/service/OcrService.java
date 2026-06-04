@@ -21,17 +21,18 @@ public class OcrService {
     // 텍스트 추출
     String rawText = ocrSpaceApiClient.extractTextFromImage(file);
 
-    // 공백 및 하이픈 제거
+    return parseIsbnFromText(rawText);
+  }
+
+  private String parseIsbnFromText(String rawText) {
     String cleanText = rawText.replaceAll("[\\s-]", "");
 
-    // 정규식 스캔
     Matcher matcher = ISBN_PATTERN.matcher(cleanText);
 
     if (matcher.find()) {
-      // X로 끝나는 10자리 ISBN 검증을 위한 대문자 변환
       return matcher.group(1).toUpperCase();
     }
-
+    
     throw OcrProcessingException.withDetail("이미지에서 ISBN 패턴을 찾을 수 없습니다.");
   }
 }
