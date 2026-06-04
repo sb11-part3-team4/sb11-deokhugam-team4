@@ -2,10 +2,7 @@ package com.part3_team4.deokhoogam.domain.review;
 
 import com.part3_team4.deokhoogam.domain.book.entity.Book;
 import com.part3_team4.deokhoogam.domain.book.repository.BookRepository;
-import com.part3_team4.deokhoogam.domain.review.dto.ReviewCreateRequest;
-import com.part3_team4.deokhoogam.domain.review.dto.ReviewLikeResponse;
-import com.part3_team4.deokhoogam.domain.review.dto.ReviewResponse;
-import com.part3_team4.deokhoogam.domain.review.dto.ReviewUpdateRequest;
+import com.part3_team4.deokhoogam.domain.review.dto.*;
 import com.part3_team4.deokhoogam.domain.review.entity.DeletedReview;
 import com.part3_team4.deokhoogam.domain.review.entity.Review;
 import com.part3_team4.deokhoogam.domain.review.exception.InvalidReviewException;
@@ -15,6 +12,7 @@ import com.part3_team4.deokhoogam.domain.review.repository.DeletedReviewReposito
 import com.part3_team4.deokhoogam.domain.review.repository.ReviewLikeRepository;
 import com.part3_team4.deokhoogam.domain.review.repository.ReviewRepository;
 import com.part3_team4.deokhoogam.domain.review.service.ReviewServiceImpl;
+import com.part3_team4.deokhoogam.global.common.PageResponse;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -23,6 +21,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.time.LocalDate;
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -313,4 +312,30 @@ public class ReviewServiceTest {
         assertThatThrownBy(() -> reviewService.toggleLike(reviewId, userId))
                 .isInstanceOf(ReviewNotFoundException.class);
     }
+
+    @Test
+    @DisplayName("조건 없이 조회하면 전체 리뷰 목록을 반환한다")
+    void getReviews_success() {
+        UUID requestUserId = UUID.randomUUID();
+        UUID bookId = UUID.randomUUID();
+
+        Review review1 = Review.create(UUID.randomUUID(), bookId, 4, "좋은 책이에요");
+        Review review2 = Review.create(UUID.randomUUID(), bookId, 3, "그냥 그래요");
+
+        ReviewListRequest request = new ReviewListRequest(
+                null, null, null, "createdAt","DESC", null, null, 50
+        );
+
+        given(reviewRepository.findReviews(any(ReviewListRequest.class)))
+                .willReturn(List.of(review1, review2));
+        given(reviewLikeRepository.existsByReviewIdAndUserId(any(), eq(requestUserId)))
+                .willReturn(false);
+
+        PageResponse<ReviewResponse> response = reviewService.getReviews(requestUserId, request);
+
+        assertThat(response.content()).hasSize(2);
+        assertThat(response.hasNext()).isFalse();
+
+    }
+
 }
