@@ -15,6 +15,7 @@ import com.part3_team4.deokhoogam.domain.book.repository.BookRepository;
 import com.part3_team4.deokhoogam.domain.book.service.BookService;
 import com.part3_team4.deokhoogam.global.fixture.BookFixtures;
 import com.part3_team4.deokhoogam.global.storage.FileUploader;
+import jakarta.persistence.EntityManager;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -36,6 +37,9 @@ class BookIntegrationTest {
 
   @Autowired
   private BookRepository bookRepository;
+
+  @Autowired
+  private EntityManager em;
 
   @MockitoBean
   private FileUploader fileUploader;
@@ -59,6 +63,9 @@ class BookIntegrationTest {
 
     // when
     BookDto result = bookService.create(request, file);
+
+    em.flush();
+    em.clear();
 
     // then
     assertThat(result.id()).isNotNull();
@@ -92,6 +99,9 @@ class BookIntegrationTest {
     // when
     BookDto result = bookService.update(book.getId(), request, newFile);
 
+    em.flush();
+    em.clear();
+
     // then
     assertThat(result.title()).isEqualTo(request.title());
     assertThat(result.thumbnailUrl()).isEqualTo(newUrl);
@@ -111,6 +121,9 @@ class BookIntegrationTest {
     String isbn = "9781234567890";
 
     bookRepository.save(BookFixtures.validBook(isbn));
+
+    em.flush();
+    em.clear();
 
     BookCreateRequest request = BookFixtures.validBookCreateRequest()
         .toBuilder()
