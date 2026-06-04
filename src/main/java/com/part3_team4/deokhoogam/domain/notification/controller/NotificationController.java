@@ -145,12 +145,22 @@ public class NotificationController {
       @Parameter(description = "페이지 크기", example = "20")
       @RequestParam(defaultValue = "20") int limit
   ) {
+    /**
+     * direction query parameter는 Swagger에서 ASC/DESC로 안내하지만,
+     * 실제 클라이언트가 desc, asc처럼 소문자로 보낼 수도 있습니다.
+     *
+     * Spring MVC가 Sort.Direction enum으로 직접 변환하게 두면
+     * 환경에 따라 대소문자 차이로 400 Bad Request가 발생할 수 있습니다.
+     *
+     * 따라서 Controller에서 문자열로 받은 뒤 Sort.Direction.fromString(...)으로 변환합니다.
+     * fromString은 "DESC", "desc" 모두 처리할 수 있습니다.
+     */
     Sort.Direction sortDirection = Sort.Direction.fromString(direction);
 
     PageResponse<NotificationDto> response = notificationService.findAll(
         requesterId,
         userId,
-        direction,
+        sortDirection,
         cursor,
         after,
         limit
