@@ -3,6 +3,7 @@ package com.part3_team4.deokhoogam.domain.book.service;
 import com.part3_team4.deokhoogam.domain.book.dto.BookCreateRequest;
 import com.part3_team4.deokhoogam.domain.book.dto.BookDto;
 import com.part3_team4.deokhoogam.domain.book.dto.BookUpdateRequest;
+import com.part3_team4.deokhoogam.domain.book.dto.NaverBookDto;
 import com.part3_team4.deokhoogam.domain.book.entity.Book;
 import com.part3_team4.deokhoogam.domain.book.exception.BookNotFoundException;
 import com.part3_team4.deokhoogam.domain.book.exception.IsbnAlreadyExistsException;
@@ -78,5 +79,11 @@ public class BookServiceImpl implements BookService {
         .orElseThrow(() -> BookNotFoundException.withId(bookId));
 
     return BookDto.from(book);
+  }
+
+  @Override
+  public NaverBookDto getByIsbn(String isbn) {
+
+    return new NaverBookDto("","","","", "",isbn,"");
   }
 }

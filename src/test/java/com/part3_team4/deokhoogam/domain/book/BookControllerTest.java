@@ -315,7 +315,7 @@ class BookControllerTest {
     void return_400_when_invalid_isbn() throws Exception {
 
       //given
-      given(bookService.getByIsbn(isbn)).willThrow(InvalidIsbnException.class);
+      given(bookService.getByIsbn(isbn)).willThrow(InvalidIsbnException.withIsbn(isbn));
 
 
 
@@ -327,11 +327,11 @@ class BookControllerTest {
 
     }
     @Test
-    @DisplayName("유효하지 않은 형태의 문자열이 들어오면 400 + 예외를 발생시킨다.")
+    @DisplayName("유효하지 않은 형태의 문자열이 들어오면 404 + 예외를 발생시킨다.")
     void return_404_when_not_found_isbn() throws Exception {
 
       //given
-      given(bookService.getByIsbn(isbn)).willThrow(BookNotFoundException.class);
+      given(bookService.getByIsbn(isbn)).willThrow(BookNotFoundException.withIsbn(isbn));
 
 
 
@@ -352,6 +352,7 @@ class BookControllerTest {
           .title("모비 딕")
           .author("허먼 멜빌")
           .description("『모비 딕』 완역본")
+          .isbn("9791060263004")
           .publisher("작가정신")
           .publishedDate("2024-04-09")
           .thumbnailImage("temp/url")

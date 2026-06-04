@@ -3,6 +3,7 @@ package com.part3_team4.deokhoogam.domain.book.service;
 import com.part3_team4.deokhoogam.domain.book.dto.BookCreateRequest;
 import com.part3_team4.deokhoogam.domain.book.dto.BookDto;
 import com.part3_team4.deokhoogam.domain.book.dto.BookUpdateRequest;
+import com.part3_team4.deokhoogam.domain.book.dto.NaverBookDto;
 import java.util.UUID;
 
 public interface BookService {
@@ -13,4 +14,5 @@ public interface BookService {
 
   BookDto getDetails(UUID bookId);
 
+  NaverBookDto getByIsbn(String isbn);
 }
