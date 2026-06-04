@@ -125,7 +125,7 @@ public class UserServiceImpl implements UserService{
       throw new InvalidCredentialsException();
     }
 
-    String token = jwtProvider.createAccessToken(user.getEmail());
+    String token = jwtProvider.createAccessToken(user.getId());
 
     return new UserLoginResultDto(
         token, user.getId(), user.getEmail(), user.getName(), user.getCreatedAt()

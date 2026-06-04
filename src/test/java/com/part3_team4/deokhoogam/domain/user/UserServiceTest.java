@@ -296,7 +296,7 @@ public class UserServiceTest {
 
     given(userRepository.findByEmail(email)).willReturn(Optional.of(user));
     given(passwordEncoder.matches(rawPassword, user.getPassword())).willReturn(true);
-    given(jwtProvider.createAccessToken(email)).willReturn("eyjh...fakeToken");
+    given(jwtProvider.createAccessToken(user.getId())).willReturn("eyjh...fakeToken");
 
     UserLoginResultDto result = userService.login(email, rawPassword);
 

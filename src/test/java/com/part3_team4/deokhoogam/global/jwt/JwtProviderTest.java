@@ -2,6 +2,7 @@ package com.part3_team4.deokhoogam.global.jwt;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import java.util.UUID;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.security.core.Authentication;
@@ -16,9 +17,9 @@ class JwtProviderTest {
   @Test
   @DisplayName("이메일을 전달하면 JWT 액세스 토큰 발급")
   void createAccessToken() {
-    String email = "test@example.com";
+    UUID userId = UUID.randomUUID();
 
-    String token = jwtProvider.createAccessToken(email);
+    String token = jwtProvider.createAccessToken(userId);
 
     assertThat(token).isNotBlank();
     assertThat(token.split("\\.")).hasSize(3);
@@ -27,8 +28,8 @@ class JwtProviderTest {
   @Test
   @DisplayName("유효한 토큰을 검증하면 true 반환")
   void validateToken_Valid() {
-    String email = "test@example.com";
-    String token = jwtProvider.createAccessToken(email);
+    UUID userId = UUID.randomUUID();
+    String token = jwtProvider.createAccessToken(userId);
 
     boolean isValid = jwtProvider.validateToken(token);
 
@@ -48,13 +49,14 @@ class JwtProviderTest {
   @Test
   @DisplayName("유효한 토큰에서 Authentication 객체를 정상적으로 추출")
   void getAuthentication() {
-    String email = "test@example.com";
-    String token = jwtProvider.createAccessToken(email);
+    UUID userId = UUID.randomUUID();
+    String token = jwtProvider.createAccessToken(userId);
 
     Authentication authentication = jwtProvider.getAuthentication(token);
 
     assertThat(authentication).isNotNull();
-    assertThat(authentication.getName()).isEqualTo(email);
-    assertThat(authentication.getPrincipal()).isEqualTo(email);
+
+    assertThat(authentication.getPrincipal()).isEqualTo(userId);
+    assertThat(authentication.getName()).isEqualTo(userId.toString());
   }
 }
