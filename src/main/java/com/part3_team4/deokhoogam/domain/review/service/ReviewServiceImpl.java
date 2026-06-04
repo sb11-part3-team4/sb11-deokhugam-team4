@@ -119,7 +119,7 @@ public class ReviewServiceImpl implements ReviewService {
             reviewLikeRepository.save(ReviewLike.create(reviewId, userId));
             review.incrementLikeCount();
         }
-        return new ReviewLikeResponse(reviewId, alreadyLiked, review.getLikeCount());
+        return new ReviewLikeResponse(reviewId, !alreadyLiked, review.getLikeCount());
     }
 
 
