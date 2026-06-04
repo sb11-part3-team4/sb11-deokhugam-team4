@@ -24,6 +24,7 @@ import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.BDDMockito.willDoNothing;
 import static org.mockito.BDDMockito.willThrow;
+import static org.mockito.Mockito.verify;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
@@ -108,6 +109,7 @@ class CommentControllerTest {
                                     "content", content))))
                     .andExpect(status().isCreated())
                     .andExpect(jsonPath("$.content").value(content));
+            verify(commentService).createComment(REVIEW_ID, USER_ID, content);
         }
 
         @Test
@@ -127,6 +129,7 @@ class CommentControllerTest {
                                     "userId", bodyUserId.toString(),
                                     "content", content))))
                     .andExpect(status().isCreated());
+            verify(commentService).createComment(REVIEW_ID, headerUserId, content);
         }
 
         @Test
