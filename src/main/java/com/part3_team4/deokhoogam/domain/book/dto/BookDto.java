@@ -24,14 +24,14 @@ public record BookDto(
     int reviewCount,
     BigDecimal rating,
 
-    @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss", timezone = "Asia/Seoul")
+    @JsonFormat(pattern = "yyyy-MM-dd'T'HH:mm:ssXXX", timezone = "Asia/Seoul")
     Instant createdAt,
 
-    @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss", timezone = "Asia/Seoul")
+    @JsonFormat(pattern = "yyyy-MM-dd'T'HH:mm:ssXXX", timezone = "Asia/Seoul")
     Instant updatedAt
 ) {
 
-  public static BookDto from(Book book) {
+
     return BookDto.builder()
         .id(book.getId())
         .title(book.getTitle())
