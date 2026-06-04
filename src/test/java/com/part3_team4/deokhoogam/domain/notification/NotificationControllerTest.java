@@ -253,7 +253,7 @@ class NotificationControllerTest {
     mockMvc.perform(get("/api/notifications")
             .header("Deokhugam-Request-User-ID", userId)
             .param("userId", userId.toString())
-            .param("limit", "0")) // limit은 @Min(1)이므로 0은 허용되지 않습니다.
+            .param("limit", "0")) // limit은 컨트롤러에서 1 이상 100 이하로 직접 검증하므로 0은 허용되지 않습니다.
         .andExpect(status().isBadRequest());
 
     // 컨트롤러 파라미터 검증에서 요청이 막혀야 하므로,
@@ -261,4 +261,20 @@ class NotificationControllerTest {
     then(notificationService).shouldHaveNoInteractions();
   }
 
+  @Test
+  @DisplayName("GET /api/notifications 요청에서 direction 값이 ASC 또는 DESC가 아니면 400 Bad Request를 반환한다")
+  void findAllWithInvalidDirection() throws Exception {
+    UUID userId = UUID.randomUUID();
+
+    mockMvc.perform(get("/api/notifications")
+            .header("Deokhugam-Request-User-ID", userId)
+            .param("userId", userId.toString())
+            .param("direction", "wrong")
+            .param("limit", "20"))
+        .andExpect(status().isBadRequest());
+
+    // direction 값이 잘못되면 컨트롤러에서 요청을 막아야 하므로
+    // 서비스 목록 조회 로직은 호출되지 않아야 합니다.
+    then(notificationService).shouldHaveNoInteractions();
+  }
 }
