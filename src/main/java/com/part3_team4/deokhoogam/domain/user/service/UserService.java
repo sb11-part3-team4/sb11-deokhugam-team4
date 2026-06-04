@@ -2,6 +2,7 @@ package com.part3_team4.deokhoogam.domain.user.service;
 
 import com.part3_team4.deokhoogam.domain.user.dto.PasswordUpdateRequestDto;
 import com.part3_team4.deokhoogam.domain.user.dto.UserDto;
+import com.part3_team4.deokhoogam.domain.user.dto.UserLoginResultDto;
 import com.part3_team4.deokhoogam.domain.user.dto.response.UserResponse;
 import com.part3_team4.deokhoogam.domain.user.dto.UserCreateRequestDto;
 import com.part3_team4.deokhoogam.domain.user.dto.UserUpdateRequestDto;
@@ -20,5 +21,5 @@ public interface UserService {
 
   void deleteUser(UUID userId);
 
-  String login(String email, String password);
+  UserLoginResultDto login(String email, String password);
 }

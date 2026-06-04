@@ -3,6 +3,7 @@ package com.part3_team4.deokhoogam.domain.user.service;
 import com.part3_team4.deokhoogam.domain.user.dto.PasswordUpdateRequestDto;
 import com.part3_team4.deokhoogam.domain.user.dto.UserCreateRequestDto;
 import com.part3_team4.deokhoogam.domain.user.dto.UserDto;
+import com.part3_team4.deokhoogam.domain.user.dto.UserLoginResultDto;
 import com.part3_team4.deokhoogam.domain.user.dto.UserUpdateRequestDto;
 import com.part3_team4.deokhoogam.domain.user.dto.response.UserResponse;
 import com.part3_team4.deokhoogam.domain.user.entity.DeletedUser;
@@ -116,7 +117,7 @@ public class UserServiceImpl implements UserService{
 
   @Override
   @Transactional(readOnly = true)
-  public String login(String email, String password) {
+  public UserLoginResultDto login(String email, String password) {
     User user = userRepository.findByEmail(email)
         .orElseThrow(InvalidCredentialsException::new);
 
@@ -124,6 +125,10 @@ public class UserServiceImpl implements UserService{
       throw new InvalidCredentialsException();
     }
 
-    return jwtProvider.createAccessToken(user.getEmail());
+    String token = jwtProvider.createAccessToken(user.getEmail());
+
+    return new UserLoginResultDto(
+        token, user.getId(), user.getEmail(), user.getName(), user.getCreatedAt()
+    );
   }
 }

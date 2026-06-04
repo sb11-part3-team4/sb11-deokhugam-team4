@@ -10,6 +10,7 @@ import static org.mockito.Mockito.never;
 import com.part3_team4.deokhoogam.domain.user.dto.PasswordUpdateRequestDto;
 import com.part3_team4.deokhoogam.domain.user.dto.UserCreateRequestDto;
 import com.part3_team4.deokhoogam.domain.user.dto.UserDto;
+import com.part3_team4.deokhoogam.domain.user.dto.UserLoginResultDto;
 import com.part3_team4.deokhoogam.domain.user.dto.response.UserResponse;
 import com.part3_team4.deokhoogam.domain.user.dto.UserUpdateRequestDto;
 import com.part3_team4.deokhoogam.domain.user.entity.DeletedUser;
@@ -297,9 +298,10 @@ public class UserServiceTest {
     given(passwordEncoder.matches(rawPassword, user.getPassword())).willReturn(true);
     given(jwtProvider.createAccessToken(email)).willReturn("eyjh...fakeToken");
 
-    String token = userService.login(email, rawPassword);
+    UserLoginResultDto result = userService.login(email, rawPassword);
 
-    assertThat(token).isEqualTo("eyjh...fakeToken");
+    assertThat(result.token()).isEqualTo("eyjh...fakeToken");
+    assertThat(result.nickname()).isEqualTo("testUser");
   }
 
   @Test
