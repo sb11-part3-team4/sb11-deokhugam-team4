@@ -13,6 +13,7 @@ import com.part3_team4.deokhoogam.domain.book.entity.Book;
 import com.part3_team4.deokhoogam.domain.book.exception.IsbnAlreadyExistsException;
 import com.part3_team4.deokhoogam.domain.book.repository.BookRepository;
 import com.part3_team4.deokhoogam.domain.book.service.BookService;
+import com.part3_team4.deokhoogam.domain.book.service.NaverApiService;
 import com.part3_team4.deokhoogam.global.fixture.BookFixtures;
 import com.part3_team4.deokhoogam.global.storage.FileUploader;
 import jakarta.persistence.EntityManager;
@@ -34,6 +35,9 @@ class BookIntegrationTest {
 
   @Autowired
   private BookService bookService;
+
+  @Autowired
+  private NaverApiService naverApiService;
 
   @Autowired
   private BookRepository bookRepository;

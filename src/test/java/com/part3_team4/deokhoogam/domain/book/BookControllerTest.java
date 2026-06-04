@@ -22,7 +22,6 @@ import com.part3_team4.deokhoogam.domain.book.exception.IsbnAlreadyExistsExcepti
 import com.part3_team4.deokhoogam.domain.book.service.BookService;
 import com.part3_team4.deokhoogam.global.exception.ErrorCode;
 import com.part3_team4.deokhoogam.global.fixture.BookFixtures;
-import com.part3_team4.deokhoogam.global.fixture.BookFixtures;
 import com.part3_team4.deokhoogam.global.fixture.NaverBookFixture;
 import com.part3_team4.deokhoogam.global.jwt.JwtFilter;
 import java.math.BigDecimal;
@@ -41,8 +40,8 @@ import org.springframework.mock.web.MockMultipartFile;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
-import org.springframework.test.web.servlet.request.MockMultipartHttpServletRequestBuilder;
 import org.springframework.test.web.servlet.ResultActions;
+import org.springframework.test.web.servlet.request.MockMultipartHttpServletRequestBuilder;
 
 @WebMvcTest(BookController.class)
 @ActiveProfiles("test")
@@ -393,10 +392,13 @@ class BookControllerTest {
     void return_400_when_invalid_isbn() throws Exception {
 
       //given
-      given(bookService.getByIsbn(isbn)).willThrow(InvalidIsbnException.withIsbn(isbn));
+
+      String invalidIsbn = "97910adsf6026!!300";
+
+      given(bookService.getByIsbn(invalidIsbn)).willThrow(InvalidIsbnException.withIsbn(invalidIsbn));
 
       ResultActions result = mockMvc.perform(get("/api/books/info")
-          .param("isbn", isbn));
+          .param("isbn", invalidIsbn));
 
       result.andExpect(status().isBadRequest());
 
@@ -404,7 +406,7 @@ class BookControllerTest {
     }
 
     @Test
-    @DisplayName("유효하지 않은 형태의 문자열이 들어오면 404 + 예외를 발생시킨다.")
+    @DisplayName("존재하지 않는 ISBN이 들어오면 404 + 예외를 발생시킨다.")
     void return_404_when_not_found_isbn() throws Exception {
 
       //given
