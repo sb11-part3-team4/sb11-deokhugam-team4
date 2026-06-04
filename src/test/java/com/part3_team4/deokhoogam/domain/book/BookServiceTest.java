@@ -12,6 +12,7 @@ import static org.springframework.test.util.ReflectionTestUtils.setField;
 import com.part3_team4.deokhoogam.domain.book.dto.BookCreateRequest;
 import com.part3_team4.deokhoogam.domain.book.dto.BookDto;
 import com.part3_team4.deokhoogam.domain.book.dto.BookUpdateRequest;
+import com.part3_team4.deokhoogam.domain.book.dto.NaverBookDto;
 import com.part3_team4.deokhoogam.domain.book.entity.Book;
 import com.part3_team4.deokhoogam.domain.book.exception.BookNotFoundException;
 import com.part3_team4.deokhoogam.domain.book.exception.IsbnAlreadyExistsException;
@@ -277,6 +278,43 @@ class BookServiceTest {
     }
 
   }
+
+  @Nested
+  @DisplayName("isbn으로 네이버 API를 통해 도서 정보를 가져올때")
+  class TestGetBookByIsbn {
+
+    @Test
+    @DisplayName("유효한 isbn이면 도서 정보를 가져오고 200을 리턴한다")
+    void return_200_and_data_when_valid_isbn() {
+      // given
+      String validIsbn = "9788957272541";
+
+      // when
+      NaverBookDto result = bookService.getByIsbn(validIsbn);
+
+      // then
+      assertThat(result).isNotNull();
+      assertThat(result.getTitle()).isEqualTo("리눅스시스템 프로그래밍 V1.0");
+      assertThat(result.getPublisher()).isEqualTo("그린");
+    }
+
+
+
+  }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
   private BookUpdateRequest createValidBookUpdateRequest() {
     return BookUpdateRequest.builder()

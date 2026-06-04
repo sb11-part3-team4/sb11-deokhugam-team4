@@ -20,6 +20,7 @@ import com.part3_team4.deokhoogam.domain.book.exception.IsbnAlreadyExistsExcepti
 import com.part3_team4.deokhoogam.domain.book.service.BookService;
 import com.part3_team4.deokhoogam.global.exception.ErrorCode;
 import com.part3_team4.deokhoogam.global.fixture.BookFixtures;
+import com.part3_team4.deokhoogam.global.fixture.NaverBookFixture;
 import com.part3_team4.deokhoogam.global.jwt.JwtFilter;
 import java.math.BigDecimal;
 import java.time.Instant;
@@ -295,17 +296,16 @@ class BookControllerTest {
       //given
 
       //예시 응답
-      NaverBookDto bookSimpleDto = createValidNaverBookDto();
+      NaverBookDto bookSimpleDto = NaverBookFixture.createValidNaverBookDto(isbn);
       given(bookService.getByIsbn(isbn)).willReturn(bookSimpleDto);
 
       //when
       ResultActions result = mockMvc.perform(get("/api/books/info")
-              .param("isbn", isbn)
+          .param("isbn", isbn)
           .accept(MediaType.APPLICATION_JSON));
 
       result.andExpect(status().isOk());
       result.andExpect(jsonPath("$.isbn").value(isbn));
-
 
 
     }
@@ -317,8 +317,6 @@ class BookControllerTest {
       //given
       given(bookService.getByIsbn(isbn)).willThrow(InvalidIsbnException.withIsbn(isbn));
 
-
-
       ResultActions result = mockMvc.perform(get("/api/books/info")
           .param("isbn", isbn));
 
@@ -326,6 +324,7 @@ class BookControllerTest {
 
 
     }
+
     @Test
     @DisplayName("유효하지 않은 형태의 문자열이 들어오면 404 + 예외를 발생시킨다.")
     void return_404_when_not_found_isbn() throws Exception {
@@ -333,37 +332,13 @@ class BookControllerTest {
       //given
       given(bookService.getByIsbn(isbn)).willThrow(BookNotFoundException.withIsbn(isbn));
 
-
-
       ResultActions result = mockMvc.perform(get("/api/books/info")
           .param("isbn", isbn));
 
       result.andExpect(status().isNotFound());
 
 
-
     }
-
-
-    private NaverBookDto createValidNaverBookDto() {
-
-
-      return NaverBookDto.builder()
-          .title("모비 딕")
-          .author("허먼 멜빌")
-          .description("『모비 딕』 완역본")
-          .isbn("9791060263004")
-          .publisher("작가정신")
-          .publishedDate("2024-04-09")
-          .thumbnailImage("temp/url")
-          .build();
-
-    }
-
-
-
-
-
 
 
 
