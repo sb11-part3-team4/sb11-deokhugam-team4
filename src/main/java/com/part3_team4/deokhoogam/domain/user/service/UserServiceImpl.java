@@ -77,18 +77,18 @@ public class UserServiceImpl implements UserService{
     User user = userRepository.findById(userId)
         .orElseThrow(() -> UserNotFoundException.withId(userId));
 
-    if (request.newName() != null && !user.getName().equals(request.newName())) {
-      if (userRepository.existsByName(request.newName())) {
+    if (request.nickname() != null && !user.getName().equals(request.nickname())) {
+      if (userRepository.existsByName(request.nickname())) {
         throw UserAlreadyExistsException.withName();
       }
-      user.updateName(request.newName());
+      user.updateName(request.nickname());
     }
 
-    if (request.newEmail() != null && !user.getEmail().equals(request.newEmail())) {
-      if (userRepository.existsByEmail(request.newEmail()) || deleteUserRepository.existsByEmail(request.newEmail())) {
+    if (request.email() != null && !user.getEmail().equals(request.email())) {
+      if (userRepository.existsByEmail(request.email()) || deleteUserRepository.existsByEmail(request.email())) {
         throw UserAlreadyExistsException.withEmail();
       }
-      user.updateEmail(request.newEmail());
+      user.updateEmail(request.email());
     }
   }
 

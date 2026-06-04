@@ -164,13 +164,13 @@ public class UserServiceTest {
         "test@deokhugam.com", "testUser", "password123!");
 
     UserUpdateRequestDto request = new UserUpdateRequestDto(
-        "newEmail@deokhugam.com","newName");
+        "email@deokhugam.com","nickname");
 
     given(userRepository.findById(userId)).willReturn(Optional.of(user));
 
     userService.updateUser(userId, request);
 
-    assertThat(user.getName()).isEqualTo("newName");
+    assertThat(user.getName()).isEqualTo("nickname");
   }
 
   @Test
@@ -180,10 +180,10 @@ public class UserServiceTest {
     User user = new User("test@deokhugam.com", "oldName", "password123!");
 
     UserUpdateRequestDto request = new UserUpdateRequestDto(
-        "newEmail@deokhugam.com","newName");
+        "email@deokhugam.com","nickname");
 
     given(userRepository.findById(userId)).willReturn(Optional.of(user));
-    given(userRepository.existsByName(request.newName())).willReturn(true);
+    given(userRepository.existsByName(request.nickname())).willReturn(true);
 
     assertThrows(UserAlreadyExistsException.class, () -> {
       userService.updateUser(userId, request);
@@ -200,7 +200,7 @@ public class UserServiceTest {
         "duplicate@deokhugam.com", "testUser");
 
     given(userRepository.findById(userId)).willReturn(Optional.of(user));
-    given(userRepository.existsByEmail(request.newEmail())).willReturn(true);
+    given(userRepository.existsByEmail(request.email())).willReturn(true);
 
     assertThrows(UserAlreadyExistsException.class, () -> {
       userService.updateUser(userId, request);
@@ -217,9 +217,9 @@ public class UserServiceTest {
         "deleted@deokhugam.com", "testUser");
 
     given(userRepository.findById(userId)).willReturn(Optional.of(user));
-    given(userRepository.existsByEmail(request.newEmail())).willReturn(false);
+    given(userRepository.existsByEmail(request.email())).willReturn(false);
     // 탈퇴한 테이블에 이메일이 존재한다고 가정
-    given(deleteUserRepository.existsByEmail(request.newEmail())).willReturn(true);
+    given(deleteUserRepository.existsByEmail(request.email())).willReturn(true);
 
     assertThrows(UserAlreadyExistsException.class, () -> {
       userService.updateUser(userId, request);
