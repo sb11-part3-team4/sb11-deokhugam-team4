@@ -8,6 +8,7 @@ import com.part3_team4.deokhoogam.domain.notification.entity.Notification;
 import com.part3_team4.deokhoogam.domain.notification.repository.NotificationRepository;
 import com.part3_team4.deokhoogam.domain.notification.service.NotificationServiceImpl;
 import com.part3_team4.deokhoogam.global.common.PageResponse;
+import com.part3_team4.deokhoogam.domain.notification.exception.NotificationAccessDeniedException;
 import java.time.Instant;
 import java.util.List;
 import java.util.UUID;
@@ -20,6 +21,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
 import org.springframework.test.util.ReflectionTestUtils;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 /**
  * 알림 목록 조회 Service 로직을 검증하는 테스트입니다.
@@ -86,6 +88,7 @@ class NotificationListServiceTest {
     // when
     PageResponse<NotificationDto> result = notificationService.findAll(
         userId,
+        userId,
         Sort.Direction.DESC,
         null,
         null,
@@ -137,6 +140,7 @@ class NotificationListServiceTest {
     // when
     PageResponse<NotificationDto> result = notificationService.findAll(
         userId,
+        userId,
         Sort.Direction.DESC,
         cursor,
         after,
@@ -175,5 +179,23 @@ class NotificationListServiceTest {
     ReflectionTestUtils.setField(notification, "updatedAt", createdAt);
 
     return notification;
+  }
+
+  @Test
+  @DisplayName("요청자와 조회 대상 사용자가 다르면 알림 목록을 조회할 수 없다")
+  void findAllAccessDenied() {
+    UUID requesterId = UUID.randomUUID();
+    UUID userId = UUID.randomUUID();
+
+    assertThatThrownBy(() ->
+        notificationService.findAll(
+            requesterId,
+            userId,
+            Sort.Direction.DESC,
+            null,
+            null,
+            20
+        )
+    ).isInstanceOf(NotificationAccessDeniedException.class);
   }
 }

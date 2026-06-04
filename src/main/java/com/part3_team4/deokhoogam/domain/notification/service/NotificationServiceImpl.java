@@ -130,12 +130,16 @@ public class NotificationServiceImpl implements NotificationService {
   @Override
   @Transactional(readOnly = true)
   public PageResponse<NotificationDto> findAll(
+      UUID requesterId,
       UUID userId,
       Sort.Direction direction,
       UUID cursor,
       Instant after,
       int limit
   ) {
+    if (!requesterId.equals(userId)) {
+      throw NotificationAccessDeniedException.withUserId(userId);
+    }
     // hasNext 판단을 위해 요청 limit보다 1개 더 조회합니다.
     PageRequest pageRequest = PageRequest.of(0, limit + 1);
 

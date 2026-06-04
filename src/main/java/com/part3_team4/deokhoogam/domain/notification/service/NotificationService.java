@@ -89,6 +89,7 @@ public interface NotificationService {
    * @return 알림 목록 페이지 응답
    */
   PageResponse<NotificationDto> findAll(
+      UUID requesterId,
       UUID userId,
       Sort.Direction direction,
       UUID cursor,

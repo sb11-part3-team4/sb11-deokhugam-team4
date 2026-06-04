@@ -127,6 +127,9 @@ public class NotificationController {
   )
   @GetMapping
   public ResponseEntity<PageResponse<NotificationDto>> findAll(
+      @Parameter(description = "요청자 ID", required = true)
+      @RequestHeader("Deokhugam-Request-User-ID") UUID requesterId,
+
       @Parameter(description = "사용자 ID", required = true)
       @RequestParam UUID userId,
 
@@ -143,6 +146,7 @@ public class NotificationController {
       @RequestParam(defaultValue = "20") int limit
   ) {
     PageResponse<NotificationDto> response = notificationService.findAll(
+        requesterId,
         userId,
         direction,
         cursor,
