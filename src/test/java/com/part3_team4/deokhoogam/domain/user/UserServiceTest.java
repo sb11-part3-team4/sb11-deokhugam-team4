@@ -254,7 +254,7 @@ public class UserServiceTest {
   }
 
   @Test
-  @DisplayName("회원 탈퇴 성공")
+  @DisplayName("회원 탈퇴 성공 - 논리 삭제")
   void deleteUser_success() {
     UUID userId = UUID.randomUUID();
     User user = new User(
@@ -264,8 +264,11 @@ public class UserServiceTest {
 
     userService.deleteUser(userId);
 
-    then(userRepository).should().delete(user);
+    assertThat(user.getDeletedAt()).isNotNull();
+
     then(deleteUserRepository).should().save(any(DeletedUser.class));
+
+    then(userRepository).should(never()).delete(any(User.class));
   }
 
   @Test
@@ -323,6 +326,18 @@ public class UserServiceTest {
 
     assertThrows(InvalidCredentialsException.class, () -> {
       userService.login(email, rawPassword);
+    });
+  }
+
+  @Test
+  @DisplayName("로그인 실패 - 논리 삭제된 유저")
+  void login_fail_deletedUser() {
+    String email = "deleted@deokhugam.com";
+
+    given(userRepository.findByEmail(email)).willReturn(Optional.empty());
+
+    assertThrows(InvalidCredentialsException.class, () -> {
+    userService.login(email, "password123!");
     });
   }
 }
