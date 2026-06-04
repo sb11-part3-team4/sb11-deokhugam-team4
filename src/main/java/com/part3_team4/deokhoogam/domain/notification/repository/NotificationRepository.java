@@ -56,6 +56,20 @@ public interface NotificationRepository extends JpaRepository<Notification, UUID
   List<Notification> findByUserIdOrderByCreatedAtDescIdDesc(UUID userId, Pageable pageable);
 
   /**
+   * 특정 사용자의 알림 첫 페이지를 오래된 순으로 조회합니다.
+   *
+   * Swagger에서 direction=ASC도 허용하므로 ASC 조회도 준비합니다.
+   */
+  List<Notification> findByUserIdOrderByCreatedAtAscIdAsc(UUID userId, Pageable pageable);
+
+  /**
+   * 특정 사용자의 전체 알림 개수를 조회합니다.
+   *
+   * PageResponse의 totalElements 값을 만들 때 사용합니다.
+   */
+  long countByUserId(UUID userId);
+
+  /**
    * 특정 사용자의 알림 다음 페이지를 최신순으로 조회합니다.
    *
    * 커서 기준:
@@ -87,6 +101,29 @@ public interface NotificationRepository extends JpaRepository<Notification, UUID
    * @return 커서 이후의 알림 목록
    */
   List<Notification> findNextPageDesc(
+      UUID userId,
+      Instant after,
+      UUID cursor,
+      Pageable pageable
+  );
+
+  /**
+   * ASC 방향 커서 다음 페이지를 조회합니다.
+   *
+   * 이전 페이지 마지막 알림이 cursor/after일 때,
+   * 그보다 더 나중에 생성된 알림들을 조회합니다.
+   */
+  @Query("""
+      select n
+      from Notification n
+      where n.userId = :userId
+        and (
+          n.createdAt > :after
+          or (n.createdAt = :after and n.id > :cursor)
+        )
+      order by n.createdAt asc, n.id asc
+      """)
+  List<Notification> findNextPageAsc(
       UUID userId,
       Instant after,
       UUID cursor,

@@ -14,6 +14,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.orm.jpa.DataJpaTest;
 import org.springframework.context.annotation.Import;
 import org.springframework.data.domain.PageRequest;
+import org.springframework.boot.test.autoconfigure.orm.jpa.TestEntityManager;
 
 import org.springframework.test.context.ActiveProfiles;
 
@@ -47,6 +48,9 @@ class NotificationRepositoryTest {
    */
   @Autowired
   private NotificationRepository notificationRepository;
+
+  @Autowired
+  private TestEntityManager entityManager;
 
   /**
    * 커서가 없는 첫 페이지 조회 시,
@@ -130,12 +134,25 @@ class NotificationRepositoryTest {
         createNotification(userId, "세 번째 알림")
     );
 
-    // 최신순 전체 순서는 third -> second -> first 입니다.
+    // 최신순 전체 정렬은 third -> second -> first 입니다.
     //
-    // 첫 페이지에서 third, second를 받았다고 가정하면,
+    // 첫 페이지에서 third, second를 받았다고 가정하면
     // 다음 페이지의 커서는 second가 됩니다.
-    UUID cursor = second.getId();
-    Instant after = second.getCreatedAt();
+    //
+    // 단, createdAt은 DB에 저장될 때 timestamp 정밀도가 일부 잘릴 수 있습니다.
+    // 저장 직후 자바 객체가 들고 있는 createdAt을 그대로 커서로 사용하면,
+    // DB에 저장된 createdAt과 미세하게 달라져 커서 자신인 second가 다시 조회될 수 있습니다.
+    //
+    // 그래서 영속성 컨텍스트를 비운 뒤 second를 DB에서 다시 조회하여
+    // 실제 DB에 저장된 createdAt 값을 커서 기준으로 사용합니다.
+    entityManager.flush();
+    entityManager.clear();
+
+    Notification savedSecond = notificationRepository.findById(second.getId())
+        .orElseThrow();
+
+    UUID cursor = savedSecond.getId();
+    Instant after = savedSecond.getCreatedAt();
 
     // when
     // 커서 이후의 다음 페이지를 조회합니다.
