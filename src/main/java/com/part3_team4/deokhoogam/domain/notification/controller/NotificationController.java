@@ -134,7 +134,7 @@ public class NotificationController {
       @RequestParam UUID userId,
 
       @Parameter(description = "정렬 방향", example = "DESC")
-      @RequestParam(defaultValue = "DESC") Sort.Direction direction,
+      @RequestParam(defaultValue = "DESC") String direction,
 
       @Parameter(description = "커서 페이지네이션 커서")
       @RequestParam(required = false) UUID cursor,
@@ -145,6 +145,8 @@ public class NotificationController {
       @Parameter(description = "페이지 크기", example = "20")
       @RequestParam(defaultValue = "20") int limit
   ) {
+    Sort.Direction sortDirection = Sort.Direction.fromString(direction);
+
     PageResponse<NotificationDto> response = notificationService.findAll(
         requesterId,
         userId,
