@@ -4,6 +4,7 @@ import com.part3_team4.deokhoogam.domain.book.exception.OcrProcessingException;
 import com.part3_team4.deokhoogam.domain.book.infrastructure.ocr.dto.OcrSpaceDto;
 import com.part3_team4.deokhoogam.global.exception.ExternalApiException;
 import java.util.List;
+import java.util.Objects;
 import java.util.stream.Collectors;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.MediaType;
@@ -78,6 +79,15 @@ public class OcrSpaceApiClient {
 
       throw OcrProcessingException.withDetail("OCR 이미지 처리 실패: " + detailMessage);
     }
-    return results;
+
+    List<OcrSpaceDto.ParsedResult> validResults = results.stream()
+        .filter(Objects::nonNull)
+        .filter(r -> r.parsedText() != null && !r.parsedText().isBlank())
+        .toList();
+
+    if (validResults.isEmpty()) {
+      throw OcrProcessingException.withDetail("OCR 이미지 처리 실패: 추출된 텍스트가 없습니다.");
+    }
+    return validResults;
   }
 }

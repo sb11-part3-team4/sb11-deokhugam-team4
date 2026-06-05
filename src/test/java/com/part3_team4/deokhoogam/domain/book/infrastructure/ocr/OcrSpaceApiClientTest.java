@@ -150,4 +150,33 @@ class OcrSpaceApiClientTest {
     assertThatThrownBy(() -> ocrSpaceApiClient.extractTextFromImage(mockFile))
         .isInstanceOf(OcrProcessingException.class);
   }
+
+  @Test
+  @DisplayName("OCR 응답은 성공이지만 parsedText가 모두 null이거나 공백이면 OcrProcessingException 발생")
+  void extractText_BlankParsedText() {
+    // given
+    MockMultipartFile mockFile = new MockMultipartFile(
+        "file",
+        "test.jpg",
+        "image/jpeg",
+        "test-image-data".getBytes());
+
+    String mockBlankTextResponse = """
+        {
+            "IsErroredOnProcessing": false,
+            "ParsedResults": [
+                {"ParsedText": null},
+                {"ParsedText": "   "}
+            ]
+        }
+        """;
+
+    mockServer.expect(requestTo("https://api.ocr.space/parse/image"))
+        .andRespond(withSuccess(mockBlankTextResponse, MediaType.APPLICATION_JSON));
+
+    // when & then
+    assertThatThrownBy(() -> ocrSpaceApiClient.extractTextFromImage(mockFile))
+        .isInstanceOf(OcrProcessingException.class)
+        .hasMessageContaining("유효한 텍스트를 찾을 수 없습니다");
+  }
 }
