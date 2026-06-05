@@ -1,24 +1,5 @@
 package com.part3_team4.deokhoogam.domain.review;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.part3_team4.deokhoogam.domain.book.exception.BookNotFoundException;
-import com.part3_team4.deokhoogam.domain.review.controller.ReviewController;
-import com.part3_team4.deokhoogam.domain.review.dto.ReviewCreateRequest;
-import com.part3_team4.deokhoogam.domain.review.dto.ReviewResponse;
-import com.part3_team4.deokhoogam.domain.review.exception.ReviewAlreadyExistsException;
-import com.part3_team4.deokhoogam.domain.review.service.ReviewService;
-import com.part3_team4.deokhoogam.global.jwt.JwtFilter;
-import org.junit.jupiter.api.DisplayName;
-import org.junit.jupiter.api.Test;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
-import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
-import org.springframework.test.context.bean.override.mockito.MockitoBean;
-import org.springframework.test.web.servlet.MockMvc;
-
-import java.time.Instant;
-import java.util.UUID;
-
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
@@ -27,7 +8,24 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
+
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.part3_team4.deokhoogam.domain.book.exception.BookNotFoundException;
+import com.part3_team4.deokhoogam.domain.review.controller.ReviewController;
+import com.part3_team4.deokhoogam.domain.review.dto.ReviewCreateRequest;
+import com.part3_team4.deokhoogam.domain.review.dto.ReviewResponse;
+import com.part3_team4.deokhoogam.domain.review.exception.ReviewAlreadyExistsException;
+import com.part3_team4.deokhoogam.domain.review.service.ReviewService;
+import java.time.Instant;
+import java.util.UUID;
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Test;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
+import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.http.MediaType;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
+import org.springframework.test.web.servlet.MockMvc;
 
 @WebMvcTest(controllers = ReviewController.class)
 @AutoConfigureMockMvc(addFilters = false)
@@ -41,9 +39,6 @@ public class ReviewControllerTest {
 
     @MockitoBean
     ReviewService reviewService;
-
-    @MockitoBean
-    private JwtFilter jwtFilter;
 
     @Test
     @DisplayName("리뷰 등록 성공 시 201을 반환한다")

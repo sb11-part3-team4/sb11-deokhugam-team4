@@ -4,6 +4,7 @@ import com.part3_team4.deokhoogam.domain.book.controller.api.BookAPI;
 import com.part3_team4.deokhoogam.domain.book.dto.BookCreateRequest;
 import com.part3_team4.deokhoogam.domain.book.dto.BookDto;
 import com.part3_team4.deokhoogam.domain.book.dto.BookUpdateRequest;
+import com.part3_team4.deokhoogam.domain.book.dto.NaverBookDto;
 import com.part3_team4.deokhoogam.domain.book.service.BookService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -13,6 +14,8 @@ import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
+import java.util.Collections;
+import java.util.Map;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -86,6 +89,23 @@ public class BookController implements BookAPI {
 
     return ResponseEntity.ok().body(response);
 
+  }
 
+  @Override
+  @GetMapping("/info")
+  public ResponseEntity<NaverBookDto> getByISBN(String isbn) {
+    NaverBookDto response = bookService.getByIsbn(isbn);
+    return ResponseEntity.ok().body(response);
+  }
+
+  // TODO: 임시 Mock 응답 - 실제 인기 도서 페이지네이션 로직 구현 필요
+  @GetMapping("/popular")
+  public ResponseEntity<Map<String, Object>> getPopularBooks() {
+    return ResponseEntity.ok(Map.of(
+        "content", Collections.emptyList(),
+        "hasNext", false,
+        "totalElements", 0,
+        "size", 0
+    ));
   }
 }

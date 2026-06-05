@@ -15,12 +15,15 @@ import com.part3_team4.deokhoogam.domain.book.controller.BookController;
 import com.part3_team4.deokhoogam.domain.book.dto.BookCreateRequest;
 import com.part3_team4.deokhoogam.domain.book.dto.BookDto;
 import com.part3_team4.deokhoogam.domain.book.dto.BookUpdateRequest;
+import com.part3_team4.deokhoogam.domain.book.dto.NaverBookDto;
 import com.part3_team4.deokhoogam.domain.book.exception.BookNotFoundException;
+import com.part3_team4.deokhoogam.domain.book.exception.InvalidIsbnException;
 import com.part3_team4.deokhoogam.domain.book.exception.IsbnAlreadyExistsException;
 import com.part3_team4.deokhoogam.domain.book.service.BookService;
 import com.part3_team4.deokhoogam.global.exception.ErrorCode;
 import com.part3_team4.deokhoogam.global.fixture.BookFixtures;
-import com.part3_team4.deokhoogam.global.jwt.JwtFilter;
+
+import com.part3_team4.deokhoogam.global.fixture.NaverBookFixture;
 import java.math.BigDecimal;
 import java.time.Instant;
 import java.time.LocalDate;
@@ -37,8 +40,8 @@ import org.springframework.mock.web.MockMultipartFile;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
-import org.springframework.test.web.servlet.request.MockMultipartHttpServletRequestBuilder;
 import org.springframework.test.web.servlet.ResultActions;
+import org.springframework.test.web.servlet.request.MockMultipartHttpServletRequestBuilder;
 
 @WebMvcTest(BookController.class)
 @ActiveProfiles("test")
@@ -54,9 +57,6 @@ class BookControllerTest {
 
   @MockitoBean
   private BookService bookService;
-
-  @MockitoBean
-  private JwtFilter jwtFilter;
 
   @Test
   @DisplayName("올바른 도서 정보로 생성 요청 시에 201 Created를 반환한다")
@@ -353,6 +353,72 @@ class BookControllerTest {
           .updatedAt(at)
           .build();
     }
+
+
+  }
+
+  @Nested
+  @DisplayName("isbn으로 도서 정보 조회 api 에서")
+  class TestGetBookByIsbn {
+
+    String isbn = "9791060263004";
+
+    @Test
+    @DisplayName("유효한 isbn이 들어오면 도서 정보와 200을 리턴한다")
+    void return_200_and_data_when_valid_isbn() throws Exception {
+
+      //given
+
+      //예시 응답
+      NaverBookDto bookSimpleDto = NaverBookFixture.createValidNaverBookDto(isbn);
+      given(bookService.getByIsbn(isbn)).willReturn(bookSimpleDto);
+
+      //when
+      ResultActions result = mockMvc.perform(get("/api/books/info")
+          .param("isbn", isbn)
+          .accept(MediaType.APPLICATION_JSON));
+
+      result.andExpect(status().isOk());
+      result.andExpect(jsonPath("$.isbn").value(isbn));
+
+
+    }
+
+    @Test
+    @DisplayName("유효하지 않은 형태의 문자열이 들어오면 400 + 예외를 발생시킨다.")
+    void return_400_when_invalid_isbn() throws Exception {
+
+      //given
+
+      String invalidIsbn = "97910adsf6026!!300";
+
+      given(bookService.getByIsbn(invalidIsbn)).willThrow(InvalidIsbnException.withIsbn(invalidIsbn));
+
+      ResultActions result = mockMvc.perform(get("/api/books/info")
+          .param("isbn", invalidIsbn));
+
+      result.andExpect(status().isBadRequest());
+
+
+    }
+
+    @Test
+    @DisplayName("존재하지 않는 ISBN이 들어오면 404 + 예외를 발생시킨다.")
+    void return_404_when_not_found_isbn() throws Exception {
+
+      //given
+      given(bookService.getByIsbn(isbn)).willThrow(BookNotFoundException.withIsbn(isbn));
+
+      ResultActions result = mockMvc.perform(get("/api/books/info")
+          .param("isbn", isbn));
+
+      result.andExpect(status().isNotFound());
+
+
+    }
+
+
+
 
 
   }

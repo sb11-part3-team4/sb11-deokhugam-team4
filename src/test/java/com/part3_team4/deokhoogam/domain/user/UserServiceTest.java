@@ -11,10 +11,11 @@ import com.part3_team4.deokhoogam.domain.user.dto.PasswordUpdateRequestDto;
 import com.part3_team4.deokhoogam.domain.user.dto.UserCreateRequestDto;
 import com.part3_team4.deokhoogam.domain.user.dto.UserDto;
 import com.part3_team4.deokhoogam.domain.user.dto.UserLoginResultDto;
-import com.part3_team4.deokhoogam.domain.user.dto.response.UserResponse;
 import com.part3_team4.deokhoogam.domain.user.dto.UserUpdateRequestDto;
+import com.part3_team4.deokhoogam.domain.user.dto.response.UserResponse;
 import com.part3_team4.deokhoogam.domain.user.entity.DeletedUser;
 import com.part3_team4.deokhoogam.domain.user.entity.User;
+import com.part3_team4.deokhoogam.domain.user.entity.UserDeletedEvent;
 import com.part3_team4.deokhoogam.domain.user.exception.InvalidCredentialsException;
 import com.part3_team4.deokhoogam.domain.user.exception.PasswordMismatchException;
 import com.part3_team4.deokhoogam.domain.user.exception.UserAlreadyExistsException;
@@ -23,7 +24,6 @@ import com.part3_team4.deokhoogam.domain.user.mapper.UserMapper;
 import com.part3_team4.deokhoogam.domain.user.repository.DeletedUserRepository;
 import com.part3_team4.deokhoogam.domain.user.repository.UserRepository;
 import com.part3_team4.deokhoogam.domain.user.service.UserServiceImpl;
-import com.part3_team4.deokhoogam.global.jwt.JwtProvider;
 import java.util.Optional;
 import java.util.UUID;
 import org.junit.jupiter.api.DisplayName;
@@ -32,6 +32,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.security.crypto.password.PasswordEncoder;
 
 @ExtendWith(MockitoExtension.class)
@@ -52,7 +53,7 @@ public class UserServiceTest {
   private PasswordEncoder passwordEncoder;
 
   @Mock
-  private JwtProvider jwtProvider;
+  private ApplicationEventPublisher eventPublisher;
 
   @Test
   @DisplayName("회원가입 성공")
@@ -136,7 +137,7 @@ public class UserServiceTest {
     UserResponse response = userService.getUser(userId);
 
     assertThat(response.email()).isEqualTo("test@deokhugam.com");
-    assertThat(response.name()).isEqualTo("testUser");
+    assertThat(response.nickname()).isEqualTo("testUser");
   }
 
   @Test
@@ -159,13 +160,13 @@ public class UserServiceTest {
         "test@deokhugam.com", "testUser", "password123!");
 
     UserUpdateRequestDto request = new UserUpdateRequestDto(
-        "newEmail@deokhugam.com","newName");
+        "email@deokhugam.com","nickname");
 
     given(userRepository.findById(userId)).willReturn(Optional.of(user));
 
     userService.updateUser(userId, request);
 
-    assertThat(user.getName()).isEqualTo("newName");
+    assertThat(user.getName()).isEqualTo("nickname");
   }
 
   @Test
@@ -175,10 +176,10 @@ public class UserServiceTest {
     User user = new User("test@deokhugam.com", "oldName", "password123!");
 
     UserUpdateRequestDto request = new UserUpdateRequestDto(
-        "newEmail@deokhugam.com","newName");
+        "email@deokhugam.com","nickname");
 
     given(userRepository.findById(userId)).willReturn(Optional.of(user));
-    given(userRepository.existsByName(request.newName())).willReturn(true);
+    given(userRepository.existsByName(request.nickname())).willReturn(true);
 
     assertThrows(UserAlreadyExistsException.class, () -> {
       userService.updateUser(userId, request);
@@ -195,7 +196,7 @@ public class UserServiceTest {
         "duplicate@deokhugam.com", "testUser");
 
     given(userRepository.findById(userId)).willReturn(Optional.of(user));
-    given(userRepository.existsByEmail(request.newEmail())).willReturn(true);
+    given(userRepository.existsByEmail(request.email())).willReturn(true);
 
     assertThrows(UserAlreadyExistsException.class, () -> {
       userService.updateUser(userId, request);
@@ -212,9 +213,9 @@ public class UserServiceTest {
         "deleted@deokhugam.com", "testUser");
 
     given(userRepository.findById(userId)).willReturn(Optional.of(user));
-    given(userRepository.existsByEmail(request.newEmail())).willReturn(false);
+    given(userRepository.existsByEmail(request.email())).willReturn(false);
     // 탈퇴한 테이블에 이메일이 존재한다고 가정
-    given(deleteUserRepository.existsByEmail(request.newEmail())).willReturn(true);
+    given(deleteUserRepository.existsByEmail(request.email())).willReturn(true);
 
     assertThrows(UserAlreadyExistsException.class, () -> {
       userService.updateUser(userId, request);
@@ -255,21 +256,18 @@ public class UserServiceTest {
   }
 
   @Test
-  @DisplayName("회원 탈퇴 성공 - 논리 삭제")
+  @DisplayName("회원 탈퇴 성공 - 백업 테이블 저장 및 본 테이블 물리 삭제")
   void deleteUser_success() {
     UUID userId = UUID.randomUUID();
-    User user = new User(
-        "test@deokhugam.com", "testUser", "password123!");
+    User user = new User("test@deokhugam.com", "testUser", "password123!");
 
     given(userRepository.findById(userId)).willReturn(Optional.of(user));
 
     userService.deleteUser(userId);
 
-    assertThat(user.getDeletedAt()).isNotNull();
-
     then(deleteUserRepository).should().save(any(DeletedUser.class));
-
-    then(userRepository).should(never()).delete(any(User.class));
+    then(eventPublisher).should().publishEvent(any(UserDeletedEvent.class));
+    then(userRepository).should().delete(user);
   }
 
   @Test
@@ -288,7 +286,39 @@ public class UserServiceTest {
   }
 
   @Test
-  @DisplayName("로그인 성공 - 토큰 발급")
+  @DisplayName("회원 물리 삭제 성공 - DB 삭제 및 이벤트 발생")
+  void hardDeleteUser_success() {
+    UUID userId = UUID.randomUUID();
+    User user = new User(
+        "test@deokhugam.com", "testUser", "password123!");
+
+    given(userRepository.findById(userId)).willReturn(Optional.of(user));
+
+    userService.hardDeleteUser(userId);
+
+    then(userRepository).should().delete(user);
+    then(eventPublisher).should().publishEvent(any(UserDeletedEvent.class));
+    then(deleteUserRepository).should(never()).save(any(DeletedUser.class));
+  }
+
+  @Test
+  @DisplayName("회원 물리 삭제 실패 - 존재하지 않는 유저는 예외 발생")
+  void hardDeleteUser_fail_userNotFound() {
+    UUID userId = UUID.randomUUID();
+
+    given(userRepository.findById(userId)).willReturn(Optional.empty());
+
+    assertThrows(UserNotFoundException.class, () -> {
+      userService.hardDeleteUser(userId);
+    });
+
+    then(userRepository).should(never()).delete(any());
+    then(deleteUserRepository).should(never()).delete(any());
+    then(eventPublisher).should(never()).publishEvent(any());
+  }
+
+  @Test
+  @DisplayName("로그인 성공")
   void login_success() {
     String email = "test@deokhugam.com";
     String rawPassword = "password123!";
@@ -296,11 +326,10 @@ public class UserServiceTest {
 
     given(userRepository.findByEmail(email)).willReturn(Optional.of(user));
     given(passwordEncoder.matches(rawPassword, user.getPassword())).willReturn(true);
-    given(jwtProvider.createAccessToken(email)).willReturn("eyjh...fakeToken");
 
     UserLoginResultDto result = userService.login(email, rawPassword);
 
-    assertThat(result.token()).isEqualTo("eyjh...fakeToken");
+    assertThat(result.token()).isEqualTo(""); // 빈 문자열로 변경
     assertThat(result.nickname()).isEqualTo("testUser");
   }
 
