@@ -7,6 +7,7 @@ import static org.mockito.BDDMockito.given;
 import com.part3_team4.deokhoogam.domain.book.exception.OcrProcessingException;
 import com.part3_team4.deokhoogam.domain.book.infrastructure.ocr.OcrSpaceApiClient;
 import com.part3_team4.deokhoogam.domain.book.service.OcrService;
+import com.part3_team4.deokhoogam.global.exception.ErrorCode;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -108,6 +109,21 @@ class OcrServiceTest {
         .isInstanceOf(OcrProcessingException.class);
   }
 
+  @Test
+  @DisplayName("10자리 뒤에 하이픈과 숫자가 더 이어지는 긴 숫자열은 ISBN으로 오인식하지 않고 예외가 발생한다")
+  void extractIsbn_LongNumericStringWithHyphen_NotFound() {
+    // given
+    MockMultipartFile file = createMockImageFile();
+    String longNumericText = "시리얼 번호: 1234567890-123";
+    given(ocrSpaceApiClient.extractTextFromImage(file)).willReturn(longNumericText);
+
+    // when & then
+    assertThatThrownBy(() -> ocrService.extractIsbnFromImage(file))
+        .isInstanceOf(OcrProcessingException.class)
+        .hasMessageContaining(ErrorCode.OCR_PROCESSING_FAILED.getMessage());
+  }
+
+  
   private MockMultipartFile createMockImageFile() {
     return new MockMultipartFile(
         "file",
