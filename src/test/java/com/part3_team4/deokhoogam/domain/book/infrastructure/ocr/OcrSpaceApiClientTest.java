@@ -3,11 +3,14 @@ package com.part3_team4.deokhoogam.domain.book.infrastructure.ocr;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.springframework.test.web.client.match.MockRestRequestMatchers.requestTo;
+import static org.springframework.test.web.client.response.MockRestResponseCreators.withException;
 import static org.springframework.test.web.client.response.MockRestResponseCreators.withServerError;
 import static org.springframework.test.web.client.response.MockRestResponseCreators.withSuccess;
 
 import com.part3_team4.deokhoogam.domain.book.exception.OcrProcessingException;
+import com.part3_team4.deokhoogam.global.exception.ErrorCode;
 import com.part3_team4.deokhoogam.global.exception.ExternalApiException;
+import java.net.SocketTimeoutException;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -154,6 +157,21 @@ class OcrSpaceApiClientTest {
     // when & then
     assertThatThrownBy(() -> ocrSpaceApiClient.extractTextFromImage(mockFile))
         .isInstanceOf(OcrProcessingException.class);
+  }
+
+  @Test
+  @DisplayName("OCR 서버 통신 중 타임아웃 발생 시 ExternalApiException 예외로 변환된다")
+  void extractText_TimeoutError() {
+    // given
+    MockMultipartFile mockFile = createMockFile();
+
+    mockServer.expect(requestTo(OCR_API_URL))
+        .andRespond(withException(new SocketTimeoutException("Read timed out")));
+
+    // when & then
+    assertThatThrownBy(() -> ocrSpaceApiClient.extractTextFromImage(mockFile))
+        .isInstanceOf(ExternalApiException.class)
+        .hasMessageContaining(ErrorCode.EXTERNAL_API_ERROR.getMessage());
   }
 
 
