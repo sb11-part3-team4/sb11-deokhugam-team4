@@ -2,7 +2,10 @@ package com.part3_team4.deokhoogam.domain.notification.service;
 
 import com.part3_team4.deokhoogam.domain.notification.dto.NotificationDto;
 import com.part3_team4.deokhoogam.domain.notification.dto.NotificationUpdateRequest;
+import com.part3_team4.deokhoogam.global.common.PageResponse;
+import java.time.Instant;
 import java.util.UUID;
+import org.springframework.data.domain.Sort;
 
 /**
  * 알림 도메인의 비즈니스 로직을 정의하는 Service 인터페이스입니다.
@@ -74,4 +77,23 @@ public interface NotificationService {
    * @param requesterId 요청자 ID
    */
   void readAll(UUID requesterId);
+
+  /**
+   * 사용자의 알림 목록을 커서 페이지네이션으로 조회합니다.
+   *
+   * @param userId 알림을 조회할 사용자 ID
+   * @param direction 정렬 방향
+   * @param cursor 이전 페이지 마지막 알림 ID
+   * @param after 이전 페이지 마지막 알림 생성 시각
+   * @param limit 페이지 크기
+   * @return 알림 목록 페이지 응답
+   */
+  PageResponse<NotificationDto> findAll(
+      UUID requesterId,
+      UUID userId,
+      Sort.Direction direction,
+      UUID cursor,
+      Instant after,
+      int limit
+  );
 }

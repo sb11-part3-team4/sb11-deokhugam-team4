@@ -4,7 +4,10 @@ import com.part3_team4.deokhoogam.domain.comment.entity.Comment;
 import com.part3_team4.deokhoogam.domain.comment.entity.DeletedComment;
 import com.part3_team4.deokhoogam.domain.comment.repository.CommentRepository;
 import com.part3_team4.deokhoogam.domain.comment.repository.DeletedCommentRepository;
+import com.part3_team4.deokhoogam.domain.review.entity.Review;
+import com.part3_team4.deokhoogam.domain.user.entity.User;
 import com.part3_team4.deokhoogam.global.config.JpaAuditingConfig;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -32,19 +35,28 @@ class DeletedCommentRepositoryTest {
     @Autowired
     private TestEntityManager em;
 
-    private static final UUID REVIEW_ID = UUID.randomUUID();
-    private static final UUID USER_ID = UUID.randomUUID();
+    private User testUser;
+    private Review testReview;
+
+    @BeforeEach
+    void setUp() {
+        testUser = new User("test@email.com", "테스트유저", "password");
+        em.persist(testUser);
+        testReview = Review.create(testUser.getId(), UUID.randomUUID(), 5, "테스트 리뷰입니다.");
+        em.persist(testReview);
+        em.flush();
+    }
 
     private Comment persistedComment(String content) {
-        Comment comment = Comment.create(REVIEW_ID, USER_ID, content);
+        Comment comment = Comment.create(testReview, testUser, content);
         commentRepository.save(comment);
         em.flush();
         em.clear();
         return commentRepository.findById(comment.getId()).get();
     }
 
-    private DeletedComment persistedDeletedComment(UUID reviewId, UUID userId, String content) {
-        Comment comment = Comment.create(reviewId, userId, content);
+    private DeletedComment persistedDeletedComment(Review review, User user, String content) {
+        Comment comment = Comment.create(review, user, content);
         commentRepository.save(comment);
         em.flush();
         em.clear();
@@ -72,8 +84,8 @@ class DeletedCommentRepositoryTest {
 
         assertThat(result).isPresent();
         assertThat(result.get().getContent()).isEqualTo("삭제될 댓글입니다.");
-        assertThat(result.get().getReviewId()).isEqualTo(REVIEW_ID);
-        assertThat(result.get().getUserId()).isEqualTo(USER_ID);
+        assertThat(result.get().getReviewId()).isEqualTo(testReview.getId());
+        assertThat(result.get().getUserId()).isEqualTo(testUser.getId());
         assertThat(result.get().getDeletedAt()).isNotNull();
     }
 
@@ -116,40 +128,49 @@ class DeletedCommentRepositoryTest {
     @Test
     @DisplayName("해당 reviewId의 논리 삭제된 댓글이 모두 물리 삭제된다")
     void deleteByReviewId_removesAllMatchingDeletedComments() {
-        UUID otherReviewId = UUID.randomUUID();
-        persistedDeletedComment(REVIEW_ID, USER_ID, "리뷰A 삭제 댓글 1");
-        persistedDeletedComment(REVIEW_ID, USER_ID, "리뷰A 삭제 댓글 2");
-        DeletedComment dc3 = persistedDeletedComment(otherReviewId, USER_ID, "리뷰B 삭제 댓글");
+        Review otherReview = Review.create(testUser.getId(), UUID.randomUUID(), 3, "다른 리뷰입니다.");
+        em.persist(otherReview);
+        em.flush();
 
-        deletedCommentRepository.deleteByReviewId(REVIEW_ID);
+        persistedDeletedComment(testReview, testUser, "리뷰A 삭제 댓글 1");
+        persistedDeletedComment(testReview, testUser, "리뷰A 삭제 댓글 2");
+        DeletedComment dc3 = persistedDeletedComment(otherReview, testUser, "리뷰B 삭제 댓글");
+
+        deletedCommentRepository.deleteByReviewId(testReview.getId());
         em.flush();
         em.clear();
 
-        assertThat(deletedCommentRepository.countByReviewId(REVIEW_ID)).isZero();
+        assertThat(deletedCommentRepository.countByReviewId(testReview.getId())).isZero();
         assertThat(deletedCommentRepository.findById(dc3.getId())).isPresent();
     }
 
     @Test
     @DisplayName("해당 reviewId의 논리 삭제된 댓글 수를 정확히 반환한다")
     void countByReviewId_returnsAccurateCount() {
-        UUID otherReviewId = UUID.randomUUID();
-        persistedDeletedComment(REVIEW_ID, USER_ID, "리뷰A 삭제 댓글 1");
-        persistedDeletedComment(REVIEW_ID, USER_ID, "리뷰A 삭제 댓글 2");
-        persistedDeletedComment(otherReviewId, USER_ID, "리뷰B 삭제 댓글");
+        Review otherReview = Review.create(testUser.getId(), UUID.randomUUID(), 3, "다른 리뷰입니다.");
+        em.persist(otherReview);
+        em.flush();
 
-        assertThat(deletedCommentRepository.countByReviewId(REVIEW_ID)).isEqualTo(2);
-        assertThat(deletedCommentRepository.countByReviewId(otherReviewId)).isEqualTo(1);
+        persistedDeletedComment(testReview, testUser, "리뷰A 삭제 댓글 1");
+        persistedDeletedComment(testReview, testUser, "리뷰A 삭제 댓글 2");
+        persistedDeletedComment(otherReview, testUser, "리뷰B 삭제 댓글");
+
+        assertThat(deletedCommentRepository.countByReviewId(testReview.getId())).isEqualTo(2);
+        assertThat(deletedCommentRepository.countByReviewId(otherReview.getId())).isEqualTo(1);
     }
 
     @Test
     @DisplayName("해당 userId의 논리 삭제된 댓글 수를 정확히 반환한다")
     void countByUserId_returnsAccurateCount() {
-        UUID otherUserId = UUID.randomUUID();
-        persistedDeletedComment(REVIEW_ID, USER_ID, "유저A 삭제 댓글 1");
-        persistedDeletedComment(REVIEW_ID, USER_ID, "유저A 삭제 댓글 2");
-        persistedDeletedComment(REVIEW_ID, otherUserId, "유저B 삭제 댓글");
+        User otherUser = new User("other@email.com", "다른유저", "password");
+        em.persist(otherUser);
+        em.flush();
 
-        assertThat(deletedCommentRepository.countByUserId(USER_ID)).isEqualTo(2);
-        assertThat(deletedCommentRepository.countByUserId(otherUserId)).isEqualTo(1);
+        persistedDeletedComment(testReview, testUser, "유저A 삭제 댓글 1");
+        persistedDeletedComment(testReview, testUser, "유저A 삭제 댓글 2");
+        persistedDeletedComment(testReview, otherUser, "유저B 삭제 댓글");
+
+        assertThat(deletedCommentRepository.countByUserId(testUser.getId())).isEqualTo(2);
+        assertThat(deletedCommentRepository.countByUserId(otherUser.getId())).isEqualTo(1);
     }
 }

@@ -4,6 +4,21 @@ spring:
   profiles:
     active: ${SPRING_PROFILES_ACTIVE:dev}
 
+  servlet:
+    multipart:
+      max-file-size: 5MB
+      max-request-size: 10MB
+
+  cloud:
+    aws:
+      credentials:
+        access-key: ${AWS_ACCESS_KEY}
+        secret-key: ${AWS_SECRET_KEY}
+      region:
+        static: ${AWS_S3_REGION}
+      s3:
+        bucket: ${AWS_S3_BUCKET_NAME}
+
   jpa:
     open-in-view: false
     show-sql: false
@@ -18,3 +33,10 @@ logging:
 jwt:
   secret: ${JWT_SECRET:dGVhbTQtZGVva2h1Z2FtLWxvY2FsLWRldi1zZWNyZXQta2V5LTEyMzQ1Njc4OTA=}
   expiration_time: 3600000
+
+
+naver:
+  client:
+    id: ${NAVER_ID:}
+    secret: ${NAVER_SECRET:}
+

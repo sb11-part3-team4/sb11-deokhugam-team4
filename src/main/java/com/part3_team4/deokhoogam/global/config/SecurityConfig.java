@@ -3,12 +3,16 @@ package com.part3_team4.deokhoogam.global.config;
 import com.part3_team4.deokhoogam.global.jwt.JwtFilter;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.http.HttpMethod;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
+import org.springframework.security.config.annotation.web.configuration.WebSecurityCustomizer;
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
+import org.springframework.security.web.firewall.HttpFirewall;
+import org.springframework.security.web.firewall.StrictHttpFirewall;
 
 @Configuration
 public class SecurityConfig {
@@ -31,8 +35,12 @@ public class SecurityConfig {
         .sessionManagement(session
             -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
         .authorizeHttpRequests(auth -> auth
-            .requestMatchers("/swagger-ui/**", "/v3/api-docs/**", "/swagger-resources/**",
-                "/api/users/signup", "/api/users/login"
+            .requestMatchers(HttpMethod.POST, "/api/users").permitAll()
+            .requestMatchers(
+                "/", "/index.html", "/favicon.ico", "/error",
+                "/css/**", "/js/**", "/images/**", "/assets/**",
+                "/swagger-ui/**", "/v3/api-docs/**", "/swagger-resources/**",
+                "/api/users/login"
             ).permitAll()
             .anyRequest().authenticated()
         )
@@ -42,5 +50,17 @@ public class SecurityConfig {
     http.addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class);
 
     return http.build();
+  }
+
+  @Bean
+  public HttpFirewall httpFirewall() {
+    StrictHttpFirewall firewall = new StrictHttpFirewall();
+    firewall.setAllowUrlEncodedDoubleSlash(true);
+    return  firewall;
+  }
+
+  @Bean
+  public WebSecurityCustomizer webSecurityCustomizer(HttpFirewall httpFirewall) {
+    return (web) -> web.httpFirewall(httpFirewall);
   }
 }

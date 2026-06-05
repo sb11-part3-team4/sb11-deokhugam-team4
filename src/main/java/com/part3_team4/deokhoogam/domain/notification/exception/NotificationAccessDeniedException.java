@@ -30,4 +30,10 @@ public class NotificationAccessDeniedException extends NotificationException {
     exception.addDetail(ErrorKey.NOTIFICATION_ID, notificationId);
     return exception;
   }
+
+  public static NotificationAccessDeniedException withUserId(UUID userId) {
+    NotificationAccessDeniedException exception = new NotificationAccessDeniedException();
+    exception.addDetail(ErrorKey.USER_ID, userId);
+    return exception;
+  }
 }

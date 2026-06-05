@@ -3,6 +3,7 @@ package com.part3_team4.deokhoogam.domain.user.service;
 import com.part3_team4.deokhoogam.domain.user.dto.PasswordUpdateRequestDto;
 import com.part3_team4.deokhoogam.domain.user.dto.UserCreateRequestDto;
 import com.part3_team4.deokhoogam.domain.user.dto.UserDto;
+import com.part3_team4.deokhoogam.domain.user.dto.UserLoginResultDto;
 import com.part3_team4.deokhoogam.domain.user.dto.UserUpdateRequestDto;
 import com.part3_team4.deokhoogam.domain.user.dto.response.UserResponse;
 import com.part3_team4.deokhoogam.domain.user.entity.DeletedUser;
@@ -40,7 +41,7 @@ public class UserServiceImpl implements UserService{
   @Override
   @Transactional
   public UserDto createUser(UserCreateRequestDto request) {
-    if (userRepository.existsByName(request.name())) {
+    if (userRepository.existsByName(request.nickname())) {
       throw UserAlreadyExistsException.withName();
     }
     if (userRepository.existsByEmail(request.email())) {
@@ -51,7 +52,7 @@ public class UserServiceImpl implements UserService{
     }
 
     String encodedPassword = passwordEncoder.encode(request.password());
-    User user = new User(request.email(), request.name(), encodedPassword);
+    User user = new User(request.email(), request.nickname(), encodedPassword);
 
     userRepository.save(user);
 
@@ -111,12 +112,12 @@ public class UserServiceImpl implements UserService{
 
     deleteUserRepository.save(deletedUser);
 
-    userRepository.delete(user);
+    user.softDelete();
   }
 
   @Override
   @Transactional(readOnly = true)
-  public String login(String email, String password) {
+  public UserLoginResultDto login(String email, String password) {
     User user = userRepository.findByEmail(email)
         .orElseThrow(InvalidCredentialsException::new);
 
@@ -124,6 +125,10 @@ public class UserServiceImpl implements UserService{
       throw new InvalidCredentialsException();
     }
 
-    return jwtProvider.createAccessToken(user.getEmail());
+    String token = jwtProvider.createAccessToken(user.getEmail());
+
+    return new UserLoginResultDto(
+        token, user.getId(), user.getEmail(), user.getName(), user.getCreatedAt()
+    );
   }
 }

@@ -3,12 +3,16 @@ package com.part3_team4.deokhoogam.domain.review.service;
 import com.part3_team4.deokhoogam.domain.book.exception.BookNotFoundException;
 import com.part3_team4.deokhoogam.domain.book.repository.BookRepository;
 import com.part3_team4.deokhoogam.domain.review.dto.ReviewCreateRequest;
+import com.part3_team4.deokhoogam.domain.review.dto.ReviewLikeResponse;
 import com.part3_team4.deokhoogam.domain.review.dto.ReviewResponse;
 import com.part3_team4.deokhoogam.domain.review.dto.ReviewUpdateRequest;
+import com.part3_team4.deokhoogam.domain.review.entity.DeletedReview;
 import com.part3_team4.deokhoogam.domain.review.entity.Review;
+import com.part3_team4.deokhoogam.domain.review.entity.ReviewLike;
 import com.part3_team4.deokhoogam.domain.review.exception.ReviewAlreadyExistsException;
 import com.part3_team4.deokhoogam.domain.review.exception.ReviewNotFoundException;
 import com.part3_team4.deokhoogam.domain.review.exception.ReviewNotOwnerException;
+import com.part3_team4.deokhoogam.domain.review.repository.DeletedReviewRepository;
 import com.part3_team4.deokhoogam.domain.review.repository.ReviewLikeRepository;
 import com.part3_team4.deokhoogam.domain.review.repository.ReviewRepository;
 import java.util.UUID;
@@ -24,6 +28,7 @@ public class ReviewServiceImpl implements ReviewService {
     private final ReviewRepository reviewRepository;
     private final BookRepository bookRepository;
     private final ReviewLikeRepository reviewLikeRepository;
+    private final DeletedReviewRepository deletedReviewRepository;
 
     @Override
     @Transactional
@@ -87,5 +92,35 @@ public class ReviewServiceImpl implements ReviewService {
                 review.getLikeCount(), review.getCommentCount(), likedByMe, review.getCreatedAt(), review.getUpdatedAt()
         );
     }
+
+    @Override
+    @Transactional
+    public void deleteReview(UUID reviewId, UUID userId) {
+        Review review = reviewRepository.findById(reviewId)
+                .orElseThrow(() -> ReviewNotFoundException.withId(reviewId));
+        if (!review.getUserId().equals(userId))
+            throw ReviewNotOwnerException.withUserId(userId);
+        reviewLikeRepository.deleteAllByReviewId(reviewId);
+        deletedReviewRepository.save(DeletedReview.from(review));
+        reviewRepository.delete(review);
+    }
+
+    @Override
+    @Transactional
+    public ReviewLikeResponse toggleLike(UUID reviewId, UUID userId) {
+        Review review = reviewRepository.findById(reviewId)
+                .orElseThrow(() -> ReviewNotFoundException.withId(reviewId));
+
+        boolean alreadyLiked = reviewLikeRepository.existsByReviewIdAndUserId(reviewId, userId);
+        if (alreadyLiked) {
+            reviewLikeRepository.deleteByReviewIdAndUserId(reviewId, userId);
+            review.decrementLikeCount();
+        } else {
+            reviewLikeRepository.save(ReviewLike.create(reviewId, userId));
+            review.incrementLikeCount();
+        }
+        return new ReviewLikeResponse(reviewId, !alreadyLiked, review.getLikeCount());
+    }
+
 
 }
