@@ -1,10 +1,8 @@
 package com.part3_team4.deokhoogam.domain.review.controller;
 
-import com.part3_team4.deokhoogam.domain.review.dto.ReviewCreateRequest;
-import com.part3_team4.deokhoogam.domain.review.dto.ReviewLikeResponse;
-import com.part3_team4.deokhoogam.domain.review.dto.ReviewResponse;
-import com.part3_team4.deokhoogam.domain.review.dto.ReviewUpdateRequest;
+import com.part3_team4.deokhoogam.domain.review.dto.*;
 import com.part3_team4.deokhoogam.domain.review.service.ReviewService;
+import com.part3_team4.deokhoogam.global.common.PageResponse;
 import jakarta.validation.Valid;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
@@ -53,6 +51,25 @@ public class ReviewController {
             @PathVariable UUID reviewId
     ) {
         ReviewLikeResponse response = reviewService.toggleLike(reviewId, userId);
+        return ResponseEntity.ok(response);
+    }
+
+    @GetMapping
+    public ResponseEntity<PageResponse<ReviewResponse>> getReviews(
+            @RequestHeader("Deokhugam-Request-User-ID") UUID userId,
+            @RequestParam(required = false) UUID filterUserId,
+            @RequestParam(required = false) UUID bookId,
+            @RequestParam(required = false) String keyword,
+            @RequestParam(defaultValue = "createdAt") String orderBy,
+            @RequestParam(defaultValue = "DESC") String direction,
+            @RequestParam(required = false) String cursor,
+            @RequestParam(required = false) String after,
+            @RequestParam(defaultValue = "50") int limit
+    ) {
+        ReviewListRequest request = new ReviewListRequest(
+                filterUserId, bookId, keyword, orderBy, direction, cursor, after, limit
+        );
+        PageResponse<ReviewResponse> response = reviewService.getReviews(userId, request);
         return ResponseEntity.ok(response);
     }
 
