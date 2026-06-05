@@ -17,6 +17,12 @@ spring:
         format_sql: true
         use_sql_comments: true
 
+  batch:
+    jdbc:
+      initialize-schema: always
+    job:
+      enabled: false
+
   cloud:
     aws:
       s3:
