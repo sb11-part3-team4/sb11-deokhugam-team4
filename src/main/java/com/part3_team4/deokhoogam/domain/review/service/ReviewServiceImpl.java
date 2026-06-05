@@ -19,6 +19,9 @@ import java.util.UUID;
 import com.part3_team4.deokhoogam.global.common.PageResponse;
 import lombok.RequiredArgsConstructor;
 import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -125,14 +128,13 @@ public class ReviewServiceImpl implements ReviewService {
 
     @Override
     @Transactional(readOnly = true)
-    public PageResponse<ReviewResponse> getReviews(UUID userId, ReviewListRequest request) {
-        ReviewListRequest queryRequest = new ReviewListRequest(
-                request.userId(), request.bookId(), request.keyword(),
-                request.orderBy(), request.direction(), request.cursor(), request.after(),
-                request.limit() + 1
-        );
+    public PageResponse<ReviewResponse> getReviews(UUID userId, ReviewListRequest request)
+    {
 
-        List<Review> reviews = reviewRepository.findReviews(queryRequest);
+        Sort sort = Sort.by(Sort.Direction.fromString(request.direction()),
+        request.orderBy());
+        Pageable pageable = PageRequest.of(0, request.limit() + 1, sort);
+        List<Review> reviews = reviewRepository.findReviews(request.userId(), request.bookId(), request.keyword(), pageable);
 
         boolean hasNext = reviews.size() > request.limit();
         if (hasNext) {

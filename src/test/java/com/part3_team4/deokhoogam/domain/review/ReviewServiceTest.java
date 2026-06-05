@@ -27,6 +27,7 @@ import java.util.UUID;
 
 import com.part3_team4.deokhoogam.domain.book.exception.BookNotFoundException;
 import com.part3_team4.deokhoogam.domain.review.exception.ReviewAlreadyExistsException;
+import org.springframework.data.domain.Pageable;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -326,7 +327,7 @@ public class ReviewServiceTest {
                 null, null, null, "createdAt","DESC", null, null, 50
         );
 
-        given(reviewRepository.findReviews(any(ReviewListRequest.class)))
+        given(reviewRepository.findReviews(any(), any(), any(), any(Pageable.class)))
                 .willReturn(List.of(review1, review2));
         given(reviewLikeRepository.existsByReviewIdAndUserId(any(), eq(requestUserId)))
                 .willReturn(false);
@@ -352,7 +353,7 @@ public class ReviewServiceTest {
                 targetUserId, null, null, "createdAt","DESC", null, null, 50
         );
 
-        given(reviewRepository.findReviews(any(ReviewListRequest.class)))
+        given(reviewRepository.findReviews(any(), any(), any(), any(Pageable.class)))
                 .willReturn(List.of(review1, review2));
         given(reviewLikeRepository.existsByReviewIdAndUserId(any(), eq(requestUserId)))
                 .willReturn(false);
@@ -376,7 +377,7 @@ public class ReviewServiceTest {
                 null, targetBookId, null, "createdAt","DESC", null, null, 50
         );
 
-        given(reviewRepository.findReviews(any(ReviewListRequest.class)))
+        given(reviewRepository.findReviews(any(), any(), any(), any(Pageable.class)))
                 .willReturn(List.of(review1, review2));
         given(reviewLikeRepository.existsByReviewIdAndUserId(any(), eq(requestUserId)))
                 .willReturn(false);
@@ -399,7 +400,7 @@ public class ReviewServiceTest {
                 null, null, "좋은", "createdAt","DESC", null, null, 50
         );
 
-        given(reviewRepository.findReviews(any(ReviewListRequest.class)))
+        given(reviewRepository.findReviews(any(), any(), any(), any(Pageable.class)))
                 .willReturn(List.of(review1, review2));
         given(reviewLikeRepository.existsByReviewIdAndUserId(any(), eq(requestUserId)))
                 .willReturn(false);
@@ -422,7 +423,7 @@ public class ReviewServiceTest {
                 null, null, null, "createdAt","DESC", null, null, 50
         );
 
-        given(reviewRepository.findReviews(any(ReviewListRequest.class)))
+        given(reviewRepository.findReviews(any(), any(), any(), any(Pageable.class)))
                 .willReturn(List.of(review1, review2));
         given(reviewLikeRepository.existsByReviewIdAndUserId(any(), eq(requestUserId)))
                 .willReturn(false);
@@ -446,7 +447,7 @@ public class ReviewServiceTest {
                 null, null, null, "rating","DESC", null, null, 50
         );
 
-        given(reviewRepository.findReviews(any(ReviewListRequest.class)))
+        given(reviewRepository.findReviews(any(), any(), any(), any(Pageable.class)))
                 .willReturn(List.of(review1, review2));
         given(reviewLikeRepository.existsByReviewIdAndUserId(any(), eq(requestUserId)))
                 .willReturn(false);
@@ -470,7 +471,7 @@ public class ReviewServiceTest {
                 null, null, null, "createdAt","DESC", null, null, 50
         );
 
-        given(reviewRepository.findReviews(any(ReviewListRequest.class)))
+        given(reviewRepository.findReviews(any(), any(), any(), any(Pageable.class)))
                 .willReturn(List.of(review1, review2));
         given(reviewLikeRepository.existsByReviewIdAndUserId(any(), eq(requestUserId)))
                 .willReturn(true);
@@ -489,7 +490,7 @@ public class ReviewServiceTest {
                 null, null, null, "createdAt","DESC", null, null, 50
         );
 
-        given(reviewRepository.findReviews(any(ReviewListRequest.class)))
+        given(reviewRepository.findReviews(any(), any(), any(), any(Pageable.class)))
                 .willReturn(List.of());
 
         PageResponse<ReviewResponse> response = reviewService.getReviews(requestUserId, request);
@@ -510,7 +511,7 @@ public class ReviewServiceTest {
                 null, null, null, "createdAt", "DESC", null, null, 2
         );
 
-        given(reviewRepository.findReviews(any(ReviewListRequest.class)))
+        given(reviewRepository.findReviews(any(), any(), any(), any(Pageable.class)))
                 .willReturn(List.of(review1, review2));
         given(reviewLikeRepository.existsByReviewIdAndUserId(any(), eq(requestUserId)))
                 .willReturn(false);
