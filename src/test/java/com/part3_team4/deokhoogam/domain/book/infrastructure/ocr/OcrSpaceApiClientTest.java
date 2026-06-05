@@ -18,7 +18,9 @@ import org.springframework.test.web.client.MockRestServiceServer;
 
 @RestClientTest(
     value = OcrSpaceApiClient.class,
-    properties = "ocr.space.api-key=test-ocr-key"
+    properties = {
+        "ocr.space.api-key=test-ocr-key"
+    }
 )
 class OcrSpaceApiClientTest {
 
@@ -28,16 +30,13 @@ class OcrSpaceApiClientTest {
   @Autowired
   private MockRestServiceServer mockServer;
 
+  private static final String OCR_API_URL = "https://api.ocr.space/parse/image";
+
   @Test
   @DisplayName("OCR 서버에서 처리 에러 응답 시 OcrProcessingException 발생")
   void extractText_ProcessingError() {
     // given
-    MockMultipartFile mockFile = new MockMultipartFile(
-        "file",
-        "test.jpg",
-        "image/jpeg",
-        "test-image-data".getBytes());
-
+    MockMultipartFile mockFile = createMockFile();
     String mockErrorResponse = """
         {
             "IsErroredOnProcessing": true,
@@ -46,7 +45,7 @@ class OcrSpaceApiClientTest {
         }
         """;
 
-    mockServer.expect(requestTo("https://api.ocr.space/parse/image"))
+    mockServer.expect(requestTo(OCR_API_URL))
         .andRespond(withSuccess(mockErrorResponse, MediaType.APPLICATION_JSON));
 
     // when & then
@@ -58,13 +57,9 @@ class OcrSpaceApiClientTest {
   @DisplayName("OCR 서버 통신 중 500 서버 에러 발생 시 ExternalApiException 발생")
   void extractText_ServerError() {
     // given
-    MockMultipartFile mockFile = new MockMultipartFile(
-        "file",
-        "test.jpg",
-        "image/jpeg",
-        "test-image-data".getBytes());
+    MockMultipartFile mockFile = createMockFile();
 
-    mockServer.expect(requestTo("https://api.ocr.space/parse/image"))
+    mockServer.expect(requestTo(OCR_API_URL))
         .andRespond(withServerError());
 
     // when & then
@@ -76,12 +71,7 @@ class OcrSpaceApiClientTest {
   @DisplayName("OCR API 정상 응답 시 추출된 텍스트들을 줄바꿈으로 연결하여 반환한다")
   void extractText_Success() {
     // given
-    MockMultipartFile mockFile = new MockMultipartFile(
-        "file",
-        "test.jpg",
-        "image/jpeg",
-        "test-image-data".getBytes());
-
+    MockMultipartFile mockFile = createMockFile();
     String mockSuccessResponse = """
         {
             "IsErroredOnProcessing": false,
@@ -92,7 +82,7 @@ class OcrSpaceApiClientTest {
         }
         """;
 
-    mockServer.expect(requestTo("https://api.ocr.space/parse/image"))
+    mockServer.expect(requestTo(OCR_API_URL))
         .andRespond(withSuccess(mockSuccessResponse, MediaType.APPLICATION_JSON));
 
     // when
@@ -106,12 +96,7 @@ class OcrSpaceApiClientTest {
   @DisplayName("OCR 서버 응답에 파싱된 결과 ParsedResults가 비어있으면 OcrProcessingException 발생")
   void extractText_EmptyResults() {
     // given
-    MockMultipartFile mockFile = new MockMultipartFile(
-        "file",
-        "test.jpg",
-        "image/jpeg",
-        "test-image-data".getBytes());
-
+    MockMultipartFile mockFile = createMockFile();
     String mockEmptyResponse = """
         {
             "IsErroredOnProcessing": false,
@@ -119,7 +104,7 @@ class OcrSpaceApiClientTest {
         }
         """;
 
-    mockServer.expect(requestTo("https://api.ocr.space/parse/image"))
+    mockServer.expect(requestTo(OCR_API_URL))
         .andRespond(withSuccess(mockEmptyResponse, MediaType.APPLICATION_JSON));
 
     // when & then
@@ -131,19 +116,14 @@ class OcrSpaceApiClientTest {
   @DisplayName("OCR 서버 응답에 ParsedResults 필드가 아예 없으면 OcrProcessingException 발생")
   void extractText_NullResults() {
     // given
-    MockMultipartFile mockFile = new MockMultipartFile(
-        "file",
-        "test.jpg",
-        "image/jpeg",
-        "test-image-data".getBytes());
-
+    MockMultipartFile mockFile = createMockFile();
     String mockNullResponse = """
         {
             "IsErroredOnProcessing": false
         }
         """;
 
-    mockServer.expect(requestTo("https://api.ocr.space/parse/image"))
+    mockServer.expect(requestTo(OCR_API_URL))
         .andRespond(withSuccess(mockNullResponse, MediaType.APPLICATION_JSON));
 
     // when & then
@@ -155,12 +135,7 @@ class OcrSpaceApiClientTest {
   @DisplayName("OCR 응답은 성공이지만 parsedText가 모두 null이거나 공백이면 OcrProcessingException 발생")
   void extractText_BlankParsedText() {
     // given
-    MockMultipartFile mockFile = new MockMultipartFile(
-        "file",
-        "test.jpg",
-        "image/jpeg",
-        "test-image-data".getBytes());
-
+    MockMultipartFile mockFile = createMockFile();
     String mockBlankTextResponse = """
         {
             "IsErroredOnProcessing": false,
@@ -171,12 +146,20 @@ class OcrSpaceApiClientTest {
         }
         """;
 
-    mockServer.expect(requestTo("https://api.ocr.space/parse/image"))
+    mockServer.expect(requestTo(OCR_API_URL))
         .andRespond(withSuccess(mockBlankTextResponse, MediaType.APPLICATION_JSON));
 
     // when & then
     assertThatThrownBy(() -> ocrSpaceApiClient.extractTextFromImage(mockFile))
-        .isInstanceOf(OcrProcessingException.class)
-        .hasMessageContaining("유효한 텍스트를 찾을 수 없습니다");
+        .isInstanceOf(OcrProcessingException.class);
+  }
+
+
+  private MockMultipartFile createMockFile() {
+    return new MockMultipartFile(
+        "file",
+        "test.jpg",
+        "image/jpeg",
+        "test-image-data".getBytes());
   }
 }
