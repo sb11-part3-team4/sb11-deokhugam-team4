@@ -13,7 +13,9 @@ import com.part3_team4.deokhoogam.domain.review.repository.DeletedReviewReposito
 import com.part3_team4.deokhoogam.domain.review.repository.ReviewLikeRepository;
 import com.part3_team4.deokhoogam.domain.review.repository.ReviewRepository;
 
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 import java.util.UUID;
 
 import com.part3_team4.deokhoogam.global.common.PageResponse;
@@ -141,17 +143,18 @@ public class ReviewServiceImpl implements ReviewService {
             reviews = reviews.subList(0, request.limit());
         }
 
+        List<UUID> reviewIds = reviews.stream().map(Review::getId).toList();
+        Set<UUID> likedReviewIds = new HashSet<>(
+                reviewLikeRepository.findLikedReviewIds(userId, reviewIds));
+
         List<ReviewResponse> content = reviews.stream()
-                .map(review -> {
-                    boolean likedByMe =
-                reviewLikeRepository.existsByReviewIdAndUserId(review.getId(), userId);
-                    return new ReviewResponse(
-                            review.getId(), review.getUserId(), review.getBookId(),
-                            review.getRating(), review.getContent(),
-                            review.getLikeCount(), review.getCommentCount(),
-                            likedByMe, review.getCreatedAt(), review.getUpdatedAt()
-                    );
-                })
+                .map(review -> new ReviewResponse(
+                        review.getId(), review.getUserId(), review.getBookId(),
+                        review.getRating(), review.getContent(),
+                        review.getLikeCount(), review.getCommentCount(),
+                        likedReviewIds.contains(review.getId()),
+                        review.getCreatedAt(), review.getUpdatedAt()
+                ))
                 .toList();
 
         String nextCursor = null;

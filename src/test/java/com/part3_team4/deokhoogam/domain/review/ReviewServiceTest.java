@@ -324,19 +324,18 @@ public class ReviewServiceTest {
         Review review2 = Review.create(UUID.randomUUID(), bookId, 3, "그냥 그래요");
 
         ReviewListRequest request = new ReviewListRequest(
-                null, null, null, "createdAt","DESC", null, null, 50
+                null, null, null, "createdAt", "DESC", null, null, 50
         );
 
         given(reviewRepository.findReviews(any(), any(), any(), any(Pageable.class)))
                 .willReturn(List.of(review1, review2));
-        given(reviewLikeRepository.existsByReviewIdAndUserId(any(), eq(requestUserId)))
-                .willReturn(false);
+        given(reviewLikeRepository.findLikedReviewIds(any(), any()))
+                .willReturn(List.of());
 
         PageResponse<ReviewResponse> response = reviewService.getReviews(requestUserId, request);
 
         assertThat(response.content()).hasSize(2);
         assertThat(response.hasNext()).isFalse();
-
     }
 
     @Test
@@ -350,13 +349,13 @@ public class ReviewServiceTest {
         Review review2 = Review.create(targetUserId, bookId, 2, "별로에요");
 
         ReviewListRequest request = new ReviewListRequest(
-                targetUserId, null, null, "createdAt","DESC", null, null, 50
+                targetUserId, null, null, "createdAt", "DESC", null, null, 50
         );
 
         given(reviewRepository.findReviews(any(), any(), any(), any(Pageable.class)))
                 .willReturn(List.of(review1, review2));
-        given(reviewLikeRepository.existsByReviewIdAndUserId(any(), eq(requestUserId)))
-                .willReturn(false);
+        given(reviewLikeRepository.findLikedReviewIds(any(), any()))
+                .willReturn(List.of());
 
         PageResponse<ReviewResponse> response = reviewService.getReviews(requestUserId, request);
 
@@ -374,13 +373,13 @@ public class ReviewServiceTest {
         Review review2 = Review.create(UUID.randomUUID(), targetBookId, 3, "괜찮아요");
 
         ReviewListRequest request = new ReviewListRequest(
-                null, targetBookId, null, "createdAt","DESC", null, null, 50
+                null, targetBookId, null, "createdAt", "DESC", null, null, 50
         );
 
         given(reviewRepository.findReviews(any(), any(), any(), any(Pageable.class)))
                 .willReturn(List.of(review1, review2));
-        given(reviewLikeRepository.existsByReviewIdAndUserId(any(), eq(requestUserId)))
-                .willReturn(false);
+        given(reviewLikeRepository.findLikedReviewIds(any(), any()))
+                .willReturn(List.of());
 
         PageResponse<ReviewResponse> response = reviewService.getReviews(requestUserId, request);
 
@@ -394,20 +393,21 @@ public class ReviewServiceTest {
         UUID requestUserId = UUID.randomUUID();
 
         Review review1 = Review.create(UUID.randomUUID(), UUID.randomUUID(), 4, "좋은 책이에요");
-        Review review2 = Review.create(UUID.randomUUID(), UUID.randomUUID(), 3, "괜찮아요");
+        Review review2 = Review.create(UUID.randomUUID(), UUID.randomUUID(), 3, "좋은 내용이에요");
 
         ReviewListRequest request = new ReviewListRequest(
-                null, null, "좋은", "createdAt","DESC", null, null, 50
+                null, null, "좋은", "createdAt", "DESC", null, null, 50
         );
 
         given(reviewRepository.findReviews(any(), any(), any(), any(Pageable.class)))
                 .willReturn(List.of(review1, review2));
-        given(reviewLikeRepository.existsByReviewIdAndUserId(any(), eq(requestUserId)))
-                .willReturn(false);
+        given(reviewLikeRepository.findLikedReviewIds(any(), any()))
+                .willReturn(List.of());
 
         PageResponse<ReviewResponse> response = reviewService.getReviews(requestUserId, request);
 
         assertThat(response.content()).hasSize(2);
+        assertThat(response.content()).allMatch(r -> r.content().contains("좋은"));
     }
 
     @Test
@@ -415,24 +415,22 @@ public class ReviewServiceTest {
     void getReviews_createdAt() {
         UUID requestUserId = UUID.randomUUID();
 
-
         Review review1 = Review.create(UUID.randomUUID(), UUID.randomUUID(), 4, "좋은 책이에요");
         Review review2 = Review.create(UUID.randomUUID(), UUID.randomUUID(), 3, "괜찮아요");
 
         ReviewListRequest request = new ReviewListRequest(
-                null, null, null, "createdAt","DESC", null, null, 50
+                null, null, null, "createdAt", "DESC", null, null, 50
         );
 
         given(reviewRepository.findReviews(any(), any(), any(), any(Pageable.class)))
                 .willReturn(List.of(review1, review2));
-        given(reviewLikeRepository.existsByReviewIdAndUserId(any(), eq(requestUserId)))
-                .willReturn(false);
+        given(reviewLikeRepository.findLikedReviewIds(any(), any()))
+                .willReturn(List.of());
 
         PageResponse<ReviewResponse> response = reviewService.getReviews(requestUserId, request);
 
         assertThat(response.content().get(0).id()).isEqualTo(review1.getId());
         assertThat(response.content().get(1).id()).isEqualTo(review2.getId());
-
     }
 
     @Test
@@ -444,13 +442,13 @@ public class ReviewServiceTest {
         Review review2 = Review.create(UUID.randomUUID(), UUID.randomUUID(), 3, "괜찮아요");
 
         ReviewListRequest request = new ReviewListRequest(
-                null, null, null, "rating","DESC", null, null, 50
+                null, null, null, "rating", "DESC", null, null, 50
         );
 
         given(reviewRepository.findReviews(any(), any(), any(), any(Pageable.class)))
                 .willReturn(List.of(review1, review2));
-        given(reviewLikeRepository.existsByReviewIdAndUserId(any(), eq(requestUserId)))
-                .willReturn(false);
+        given(reviewLikeRepository.findLikedReviewIds(any(), any()))
+                .willReturn(List.of());
 
         PageResponse<ReviewResponse> response = reviewService.getReviews(requestUserId, request);
 
@@ -463,18 +461,17 @@ public class ReviewServiceTest {
     void getReviews_likedByMe() {
         UUID requestUserId = UUID.randomUUID();
 
-
         Review review1 = Review.create(UUID.randomUUID(), UUID.randomUUID(), 4, "좋은 책이에요");
         Review review2 = Review.create(UUID.randomUUID(), UUID.randomUUID(), 3, "괜찮아요");
 
         ReviewListRequest request = new ReviewListRequest(
-                null, null, null, "createdAt","DESC", null, null, 50
+                null, null, null, "createdAt", "DESC", null, null, 50
         );
 
         given(reviewRepository.findReviews(any(), any(), any(), any(Pageable.class)))
                 .willReturn(List.of(review1, review2));
-        given(reviewLikeRepository.existsByReviewIdAndUserId(any(), eq(requestUserId)))
-                .willReturn(true);
+        given(reviewLikeRepository.findLikedReviewIds(any(), any()))
+                .willReturn(List.of(review1.getId(), review2.getId()));
 
         PageResponse<ReviewResponse> response = reviewService.getReviews(requestUserId, request);
 
@@ -487,10 +484,12 @@ public class ReviewServiceTest {
         UUID requestUserId = UUID.randomUUID();
 
         ReviewListRequest request = new ReviewListRequest(
-                null, null, null, "createdAt","DESC", null, null, 50
+                null, null, null, "createdAt", "DESC", null, null, 50
         );
 
         given(reviewRepository.findReviews(any(), any(), any(), any(Pageable.class)))
+                .willReturn(List.of());
+        given(reviewLikeRepository.findLikedReviewIds(any(), any()))
                 .willReturn(List.of());
 
         PageResponse<ReviewResponse> response = reviewService.getReviews(requestUserId, request);
@@ -505,7 +504,7 @@ public class ReviewServiceTest {
         UUID requestUserId = UUID.randomUUID();
 
         Review review1 = Review.create(UUID.randomUUID(), UUID.randomUUID(), 4, "좋은 책이에요");
-                Review review2 = Review.create(UUID.randomUUID(), UUID.randomUUID(), 3, "괜찮아요");
+        Review review2 = Review.create(UUID.randomUUID(), UUID.randomUUID(), 3, "괜찮아요");
 
         ReviewListRequest request = new ReviewListRequest(
                 null, null, null, "createdAt", "DESC", null, null, 2
@@ -513,11 +512,10 @@ public class ReviewServiceTest {
 
         given(reviewRepository.findReviews(any(), any(), any(), any(Pageable.class)))
                 .willReturn(List.of(review1, review2));
-        given(reviewLikeRepository.existsByReviewIdAndUserId(any(), eq(requestUserId)))
-                .willReturn(false);
+        given(reviewLikeRepository.findLikedReviewIds(any(), any()))
+                .willReturn(List.of());
 
-        PageResponse<ReviewResponse> response = reviewService.getReviews(requestUserId,
-                request);
+        PageResponse<ReviewResponse> response = reviewService.getReviews(requestUserId, request);
 
         assertThat(response.hasNext()).isFalse();
         assertThat(response.nextCursor()).isNull();
