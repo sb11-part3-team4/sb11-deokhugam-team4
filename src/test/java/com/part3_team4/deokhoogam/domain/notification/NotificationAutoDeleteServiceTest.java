@@ -8,7 +8,6 @@ import com.part3_team4.deokhoogam.domain.notification.repository.NotificationRep
 import com.part3_team4.deokhoogam.domain.notification.service.NotificationAutoDeleteService;
 import java.time.Clock;
 import java.time.Instant;
-import java.time.ZoneOffset;
 import java.time.temporal.ChronoUnit;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -63,10 +62,8 @@ class NotificationAutoDeleteServiceTest {
     Instant expectedThreshold = fixedNow.minus(7, ChronoUnit.DAYS);
 
     // Clock.instant()가 고정 현재 시각을 반환하도록 설정합니다.
+    // Service는 이 값을 기준으로 7일 전 threshold를 계산합니다.
     given(clock.instant()).willReturn(fixedNow);
-
-    // Clock은 zone 정보도 필요할 수 있으므로 UTC로 고정합니다.
-    given(clock.getZone()).willReturn(ZoneOffset.UTC);
 
     // Repository가 삭제된 알림 개수 3개를 반환한다고 가정합니다.
     given(notificationRepository.deleteByConfirmedTrueAndUpdatedAtBefore(expectedThreshold))
