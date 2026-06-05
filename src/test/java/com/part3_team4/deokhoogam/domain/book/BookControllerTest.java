@@ -22,8 +22,8 @@ import com.part3_team4.deokhoogam.domain.book.exception.IsbnAlreadyExistsExcepti
 import com.part3_team4.deokhoogam.domain.book.service.BookService;
 import com.part3_team4.deokhoogam.global.exception.ErrorCode;
 import com.part3_team4.deokhoogam.global.fixture.BookFixtures;
+
 import com.part3_team4.deokhoogam.global.fixture.NaverBookFixture;
-import com.part3_team4.deokhoogam.global.jwt.JwtFilter;
 import java.math.BigDecimal;
 import java.time.Instant;
 import java.time.LocalDate;
@@ -57,9 +57,6 @@ class BookControllerTest {
 
   @MockitoBean
   private BookService bookService;
-
-  @MockitoBean
-  private JwtFilter jwtFilter;
 
   @Test
   @DisplayName("올바른 도서 정보로 생성 요청 시에 201 Created를 반환한다")
