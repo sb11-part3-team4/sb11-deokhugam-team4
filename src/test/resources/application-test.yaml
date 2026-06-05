@@ -26,6 +26,10 @@ spring:
     exclude:
       - io.awspring.cloud.autoconfigure.s3.S3AutoConfiguration
 
+ocr:
+  space:
+    api-key: test-dummy-key-1234
+
 logging:
   level:
     root: INFO
