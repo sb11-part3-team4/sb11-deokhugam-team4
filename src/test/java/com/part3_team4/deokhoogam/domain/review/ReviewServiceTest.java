@@ -409,4 +409,28 @@ public class ReviewServiceTest {
         assertThat(response.content()).hasSize(2);
     }
 
+    @Test
+    @DisplayName("createdAt 내림차순 정렬로 조회하면 최신 리뷰가 먼저 반환된다")
+    void getReviews_createdAt() {
+        UUID requestUserId = UUID.randomUUID();
+
+
+        Review review1 = Review.create(UUID.randomUUID(), UUID.randomUUID(), 4, "좋은 책이에요");
+        Review review2 = Review.create(UUID.randomUUID(), UUID.randomUUID(), 3, "괜찮아요");
+
+        ReviewListRequest request = new ReviewListRequest(
+                null, null, null, "createdAt","DESC", null, null, 50
+        );
+
+        given(reviewRepository.findReviews(any(ReviewListRequest.class)))
+                .willReturn(List.of(review1, review2));
+        given(reviewLikeRepository.existsByReviewIdAndUserId(any(), eq(requestUserId)))
+                .willReturn(false);
+
+        PageResponse<ReviewResponse> response = reviewService.getReviews(requestUserId, request);
+
+        assertThat(response.content().get(0).id()).isEqualTo(review1.getId());
+        assertThat(response.content().get(1).id()).isEqualTo(review2.getId());
+
+    }
 }
