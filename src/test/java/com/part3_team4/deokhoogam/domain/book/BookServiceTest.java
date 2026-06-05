@@ -27,7 +27,6 @@ import com.part3_team4.deokhoogam.global.fixture.BookFixtures;
 import com.part3_team4.deokhoogam.global.fixture.NaverBookFixture;
 import com.part3_team4.deokhoogam.global.storage.FileUploader;
 import java.sql.SQLException;
-import java.time.Instant;
 import java.time.LocalDate;
 import java.util.Optional;
 import java.util.UUID;
@@ -468,10 +467,9 @@ class BookServiceTest {
     void deleteBook_success_and_move_to_deleted_table() {
 
       //given
-      given(bookRepository.findById(any())).willReturn(Optional.of(createBook(mockId)));
+      given(bookRepository.findById(any())).willReturn(Optional.of(BookFixtures.validBookToId(mockId)));
 
-      DeletedBook deletedBook = DeletedBook.from(createBook(mockId));
-      ReflectionTestUtils.setField(deletedBook, "deletedAt", Instant.now());
+      DeletedBook deletedBook = BookFixtures.deletedBook(mockId);
 
       given(deletedBookRepository.save(any())).willReturn(deletedBook);
 
@@ -496,28 +494,6 @@ class BookServiceTest {
     }
 
 
-    private Book createBook(UUID mockId) {
-
-      Instant createdAt = Instant.now().minusSeconds(100);
-      Instant updatedAt = Instant.now().minusSeconds(50);
-
-      Book book = Book.builder()
-          .title("모비 딕")
-          .author("허먼 멜빌")
-          .description("『모비 딕』 완역본")
-          .publisher("작가정신")
-          .publishedDate(LocalDate.of(2024, 4, 9))
-          .thumbnailUrl("temp/url")
-          .isbn("9791160263404")
-          .build();
-
-      ReflectionTestUtils.setField(book, "id", mockId);
-      ReflectionTestUtils.setField(book, "createdAt", createdAt);
-      ReflectionTestUtils.setField(book, "updatedAt", updatedAt);
-
-      return book;
-
-    }
 
   }
 
@@ -530,12 +506,16 @@ class BookServiceTest {
     @DisplayName("유효한 도서 아이디가 들어올 경우 삭제한다")
     void successful_delete_book_hard() {
 
-      given(deletedBookRepository.existsById(any())).willReturn(true);
+      UUID mockId = UUID.randomUUID();
+
+      given(deletedBookRepository.findById(any())).willReturn(Optional.of(BookFixtures.deletedBook(mockId)));
 
       bookService.deleteHard(UUID.randomUUID());
 
-      then(deletedBookRepository).should().existsById(any());
+      then(deletedBookRepository).should().findById(any());
       then(deletedBookRepository).should().deleteById(any());
+      then(fileUploader).should().delete(any());
+      then(fileUploader).shouldHaveNoMoreInteractions();
 
     }
 
@@ -543,13 +523,15 @@ class BookServiceTest {
     @DisplayName("유효한 도서 아이디가 아닐경우 예외를 발생시킨다")
     void fail_delete_book_hard_when_book_not_found() {
 
-      given(deletedBookRepository.existsById(any())).willReturn(false);
+
+      given(deletedBookRepository.findById(any())).willReturn(Optional.empty());
 
       assertThatThrownBy(() -> bookService.deleteHard(UUID.randomUUID()))
           .isInstanceOf(BookNotFoundException.class);
 
-      then(deletedBookRepository).should().existsById(any());
+      then(deletedBookRepository).should().findById(any());
       then(deletedBookRepository).shouldHaveNoMoreInteractions();
+      then(fileUploader).shouldHaveNoMoreInteractions();
     }
 
 

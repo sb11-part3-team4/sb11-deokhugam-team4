@@ -144,11 +144,12 @@ public class BookServiceImpl implements BookService {
   @Transactional
   public void deleteHard(UUID bookId) {
 
-    //존재 여부 체크
-    if(!deletedBookRepository.existsById(bookId))
-      throw BookNotFoundException.withId(bookId);
-    //삭제
+    //S3 삭제 및 URL 가져오기
+    DeletedBook deletedBook = deletedBookRepository.findById(bookId).orElseThrow(()->BookNotFoundException.withId(bookId));
+
     deletedBookRepository.deleteById(bookId);
+
+    fileUploader.delete(deletedBook.getThumbnailUrl());
 
     //고아 파일 처리는 하위 도메인의 배치 연산으로 정리
   }
