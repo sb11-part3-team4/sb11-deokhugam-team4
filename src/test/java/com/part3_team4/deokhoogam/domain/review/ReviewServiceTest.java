@@ -498,4 +498,29 @@ public class ReviewServiceTest {
         assertThat(response.hasNext()).isFalse();
     }
 
+    @Test
+    @DisplayName("마지막 페이지 조회 시 nextCursor=null, hasNext=false를 반환한다")
+    void getReviews_lastPage() {
+        UUID requestUserId = UUID.randomUUID();
+
+        Review review1 = Review.create(UUID.randomUUID(), UUID.randomUUID(), 4, "좋은 책이에요");
+                Review review2 = Review.create(UUID.randomUUID(), UUID.randomUUID(), 3, "괜찮아요");
+
+        ReviewListRequest request = new ReviewListRequest(
+                null, null, null, "createdAt", "DESC", null, null, 2
+        );
+
+        given(reviewRepository.findReviews(any(ReviewListRequest.class)))
+                .willReturn(List.of(review1, review2));
+        given(reviewLikeRepository.existsByReviewIdAndUserId(any(), eq(requestUserId)))
+                .willReturn(false);
+
+        PageResponse<ReviewResponse> response = reviewService.getReviews(requestUserId,
+                request);
+
+        assertThat(response.hasNext()).isFalse();
+        assertThat(response.nextCursor()).isNull();
+    }
+
+
 }
