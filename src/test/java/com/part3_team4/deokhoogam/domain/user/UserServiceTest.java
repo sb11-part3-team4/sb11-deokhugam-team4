@@ -302,18 +302,17 @@ public class UserServiceTest {
   }
 
   @Test
-  @DisplayName("회원 물리 삭제 실패 - 존재하지 않는 유저")
-  void hardDeleteUser_fail_userNotFound() {
+  @DisplayName("회원 물리 삭제 - 유저가 DB에 없어도 에러 없이 정상 종료")
+  void hardDeleteUser_not_found_does_nothing() {
     UUID userId = UUID.randomUUID();
 
     given(userRepository.findById(userId)).willReturn(Optional.empty());
+    given(deleteUserRepository.findById(userId)).willReturn(Optional.empty());
 
-    assertThrows(UserNotFoundException.class, () -> {
-      userService.hardDeleteUser(userId);
-    });
+    userService.hardDeleteUser(userId);
 
-    then(userRepository).should(never()).delete(any(User.class));
-    then(eventPublisher).should(never()).publishEvent(any(UserDeletedEvent.class));
+    then(userRepository).should(never()).delete(any());
+    then(deleteUserRepository).should(never()).delete(any());
   }
 
   @Test
