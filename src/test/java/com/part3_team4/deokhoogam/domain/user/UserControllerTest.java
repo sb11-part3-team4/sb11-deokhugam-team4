@@ -228,4 +228,15 @@ public class UserControllerTest {
         .andExpect(status().isBadRequest())
         .andExpect(jsonPath("$.code").value("COMMON-002"));
   }
+
+  @Test
+  @DisplayName("파워 유저 조회 (임시 API) 성공 - 빈 맵 반환")
+  void getPowerUsers_success() throws Exception {
+    mockMvc.perform(get("/api/users/power"))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.content").isEmpty())
+        .andExpect(jsonPath("$.hasNext").value(false))
+        .andExpect(jsonPath("$.totalElements").value(0))
+        .andExpect(jsonPath("$.size").value(0));
+  }
 }
