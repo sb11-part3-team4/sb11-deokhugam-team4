@@ -338,4 +338,30 @@ public class ReviewServiceTest {
 
     }
 
+    @Test
+    @DisplayName("유저명으로 리뷰를 검색하면 해당 유저의 리뷰만 반환한다")
+    void getReviews_userID() {
+        UUID targetUserId = UUID.randomUUID();
+        UUID bookId = UUID.randomUUID();
+        UUID requestUserId = UUID.randomUUID();
+
+        Review review1 = Review.create(targetUserId, bookId, 4, "좋은 책이에요");
+        Review review2 = Review.create(targetUserId, bookId, 2, "별로에요");
+
+        ReviewListRequest request = new ReviewListRequest(
+                targetUserId, null, null, "createdAt","DESC", null, null, 50
+        );
+
+        given(reviewRepository.findReviews(any(ReviewListRequest.class)))
+                .willReturn(List.of(review1, review2));
+        given(reviewLikeRepository.existsByReviewIdAndUserId(any(), eq(requestUserId)))
+                .willReturn(false);
+
+        PageResponse<ReviewResponse> response = reviewService.getReviews(requestUserId, request);
+
+        assertThat(response.content()).hasSize(2);
+        assertThat(response.content()).allMatch(r -> r.userId().equals(targetUserId));
+    }
+
+
 }
