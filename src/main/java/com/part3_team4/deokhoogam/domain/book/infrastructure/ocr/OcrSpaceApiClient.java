@@ -2,6 +2,7 @@ package com.part3_team4.deokhoogam.domain.book.infrastructure.ocr;
 
 import com.part3_team4.deokhoogam.domain.book.exception.OcrProcessingException;
 import com.part3_team4.deokhoogam.domain.book.infrastructure.ocr.dto.OcrSpaceDto;
+import com.part3_team4.deokhoogam.global.exception.ErrorCode;
 import com.part3_team4.deokhoogam.global.exception.ExternalApiException;
 import java.time.Duration;
 import java.util.List;
@@ -65,29 +66,23 @@ public class OcrSpaceApiClient {
 
     } catch (RestClientResponseException e) {
       throw ExternalApiException.withCause(
-          "OCR API 호출 실패. 상태 코드: " + e.getStatusCode(), e
+          ErrorCode.EXTERNAL_API_ERROR,
+          "HTTP Status: " + e.getStatusCode(), e
       );
     } catch (RestClientException e) {
       throw ExternalApiException.withCause(
+          ErrorCode.EXTERNAL_API_TIMEOUT,
           "OCR 서버와 통신 중 오류가 발생했습니다.", e
       );
     }
   }
 
   private List<OcrSpaceDto.ParsedResult> getValidatedResults(OcrSpaceDto response) {
-    List<OcrSpaceDto.ParsedResult> results =
-        response != null ? response.parsedResults() : null;
+    List<OcrSpaceDto.ParsedResult> results = response != null ? response.parsedResults() : null;
 
-    if (response == null
-        || response.isErroredOnProcessing()
-        || results == null
+    if (response == null || response.isErroredOnProcessing() || results == null
         || results.isEmpty()) {
-      List<String> errorMessages = response != null ? response.errorMessage() : null;
-
-      String detailMessage = errorMessages == null || errorMessages.isEmpty()
-          ? "응답 데이터가 없습니다." : String.join(", ", errorMessages);
-
-      throw OcrProcessingException.withDetail("OCR 이미지 처리 실패: " + detailMessage);
+      throw OcrProcessingException.from(ErrorCode.OCR_PROCESSING_FAILED);
     }
 
     List<OcrSpaceDto.ParsedResult> validResults = results.stream()
@@ -96,7 +91,7 @@ public class OcrSpaceApiClient {
         .toList();
 
     if (validResults.isEmpty()) {
-      throw OcrProcessingException.withDetail("OCR 이미지 처리 실패: 추출된 텍스트가 없습니다.");
+      throw OcrProcessingException.from(ErrorCode.OCR_TEXT_NOT_FOUND);
     }
     return validResults;
   }

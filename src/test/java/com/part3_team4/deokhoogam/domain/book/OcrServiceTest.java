@@ -1,7 +1,7 @@
 package com.part3_team4.deokhoogam.domain.book;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.BDDMockito.then;
 
@@ -49,9 +49,12 @@ class OcrServiceTest {
     String invalid13DigitText = "바코드 번호: 1234567890123";
     given(ocrSpaceApiClient.extractTextFromImage(file)).willReturn(invalid13DigitText);
 
-    // when & then
-    assertThatThrownBy(() -> ocrService.extractIsbnFromImage(file))
-        .isInstanceOf(OcrProcessingException.class);
+    // when
+    OcrProcessingException ex = assertThrows(OcrProcessingException.class,
+        () -> ocrService.extractIsbnFromImage(file));
+
+    // then
+    assertThat(ex.getErrorCode()).isEqualTo(ErrorCode.OCR_ISBN_NOT_FOUND);
   }
 
   @Test
@@ -92,9 +95,12 @@ class OcrServiceTest {
     String invalid10DigitText = "2007년 이전 책 바코드: 89-1234-567-Y";
     given(ocrSpaceApiClient.extractTextFromImage(file)).willReturn(invalid10DigitText);
 
-    // when & then
-    assertThatThrownBy(() -> ocrService.extractIsbnFromImage(file))
-        .isInstanceOf(OcrProcessingException.class);
+    // when
+    OcrProcessingException ex = assertThrows(OcrProcessingException.class,
+        () -> ocrService.extractIsbnFromImage(file));
+
+    // then
+    assertThat(ex.getErrorCode()).isEqualTo(ErrorCode.OCR_ISBN_NOT_FOUND);
   }
 
   @Test
@@ -105,9 +111,12 @@ class OcrServiceTest {
     String textWithRandomNumbers = "초판 1쇄 2026년 6월 4일\n가격 15,000원\n분류번호 12345";
     given(ocrSpaceApiClient.extractTextFromImage(file)).willReturn(textWithRandomNumbers);
 
-    // when & then
-    assertThatThrownBy(() -> ocrService.extractIsbnFromImage(file))
-        .isInstanceOf(OcrProcessingException.class);
+    // when
+    OcrProcessingException ex = assertThrows(OcrProcessingException.class,
+        () -> ocrService.extractIsbnFromImage(file));
+
+    // then
+    assertThat(ex.getErrorCode()).isEqualTo(ErrorCode.OCR_ISBN_NOT_FOUND);
   }
 
   @Test
@@ -118,15 +127,17 @@ class OcrServiceTest {
     String longNumericText = "시리얼 번호: 1234567890-123";
     given(ocrSpaceApiClient.extractTextFromImage(file)).willReturn(longNumericText);
 
-    // when & then
-    assertThatThrownBy(() -> ocrService.extractIsbnFromImage(file))
-        .isInstanceOf(OcrProcessingException.class)
-        .hasMessageContaining(ErrorCode.OCR_PROCESSING_FAILED.getMessage());
+    // when
+    OcrProcessingException ex = assertThrows(OcrProcessingException.class,
+        () -> ocrService.extractIsbnFromImage(file));
+
+    // then
+    assertThat(ex.getErrorCode()).isEqualTo(ErrorCode.OCR_ISBN_NOT_FOUND);
   }
 
   @Test
   @DisplayName("줄바꿈이 포함된 숫자 조합은 10자리 ISBN으로 오인식하지 않는다")
-  void extractIsbn_NewlineSeparatedNumbers_NotFound() {
+  void extractIsbn_NewlineSeparatedNumbers_Success() {
     // given
     MockMultipartFile file = createMockImageFile();
     String noisyText = "ISBN 0-13-041717-3\n90000\n9780130417176";
@@ -142,11 +153,12 @@ class OcrServiceTest {
   @Test
   @DisplayName("업로드된 파일이 null이면 외부 API 호출 없이 바로 예외가 발생한다")
   void extractIsbn_NullFile_ThrowsException() {
-    // when & then
-    assertThatThrownBy(() -> ocrService.extractIsbnFromImage(null))
-        .isInstanceOf(OcrProcessingException.class)
-        .hasMessageContaining(ErrorCode.OCR_PROCESSING_FAILED.getMessage());
+    // when
+    OcrProcessingException ex = assertThrows(OcrProcessingException.class,
+        () -> ocrService.extractIsbnFromImage(null));
 
+    // then
+    assertThat(ex.getErrorCode()).isEqualTo(ErrorCode.OCR_EMPTY_FILE);
     then(ocrSpaceApiClient).shouldHaveNoInteractions();
   }
 
@@ -161,14 +173,14 @@ class OcrServiceTest {
         new byte[0]
     );
 
-    // when & then
-    assertThatThrownBy(() -> ocrService.extractIsbnFromImage(emptyFile))
-        .isInstanceOf(OcrProcessingException.class)
-        .hasMessageContaining(ErrorCode.OCR_PROCESSING_FAILED.getMessage());
+    // when
+    OcrProcessingException ex = assertThrows(OcrProcessingException.class,
+        () -> ocrService.extractIsbnFromImage(emptyFile));
 
+    // then
+    assertThat(ex.getErrorCode()).isEqualTo(ErrorCode.OCR_EMPTY_FILE);
     then(ocrSpaceApiClient).shouldHaveNoInteractions();
   }
-
 
   private MockMultipartFile createMockImageFile() {
     return new MockMultipartFile(

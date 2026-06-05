@@ -2,6 +2,7 @@ package com.part3_team4.deokhoogam.domain.book.service;
 
 import com.part3_team4.deokhoogam.domain.book.exception.OcrProcessingException;
 import com.part3_team4.deokhoogam.domain.book.infrastructure.ocr.OcrSpaceApiClient;
+import com.part3_team4.deokhoogam.global.exception.ErrorCode;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import lombok.RequiredArgsConstructor;
@@ -27,7 +28,7 @@ public class OcrService {
 
   private void validateFile(MultipartFile file) {
     if (file == null || file.isEmpty()) {
-      throw OcrProcessingException.withDetail("이미지 파일이 비어 있습니다.");
+      throw OcrProcessingException.from(ErrorCode.OCR_EMPTY_FILE);
     }
   }
 
@@ -39,6 +40,6 @@ public class OcrService {
       return extracted.toUpperCase();
     }
 
-    throw OcrProcessingException.withDetail("이미지에서 ISBN 패턴을 찾을 수 없습니다.");
+    throw OcrProcessingException.from(ErrorCode.OCR_ISBN_NOT_FOUND);
   }
 }

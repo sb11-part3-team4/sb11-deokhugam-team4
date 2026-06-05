@@ -5,12 +5,16 @@ import com.part3_team4.deokhoogam.global.exception.ErrorKey;
 
 public class OcrProcessingException extends BookException {
 
-  private OcrProcessingException() {
-    super(ErrorCode.OCR_PROCESSING_FAILED);
+  private OcrProcessingException(ErrorCode errorCode) {
+    super(errorCode);
   }
 
-  public static OcrProcessingException withDetail(String detailMessage) {
-    OcrProcessingException exception = new OcrProcessingException();
+  public static OcrProcessingException from(ErrorCode errorCode) {
+    return new OcrProcessingException(errorCode);
+  }
+
+  public static OcrProcessingException withDetail(ErrorCode errorCode, String detailMessage) {
+    OcrProcessingException exception = new OcrProcessingException(errorCode);
     exception.addDetail(ErrorKey.DETAIL_MESSAGE, detailMessage);
     return exception;
   }

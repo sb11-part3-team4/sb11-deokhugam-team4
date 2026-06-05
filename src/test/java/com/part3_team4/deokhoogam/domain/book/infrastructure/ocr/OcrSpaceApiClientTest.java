@@ -1,7 +1,7 @@
 package com.part3_team4.deokhoogam.domain.book.infrastructure.ocr;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.springframework.test.web.client.match.MockRestRequestMatchers.requestTo;
 import static org.springframework.test.web.client.response.MockRestResponseCreators.withException;
 import static org.springframework.test.web.client.response.MockRestResponseCreators.withServerError;
@@ -53,9 +53,12 @@ class OcrSpaceApiClientTest {
     mockServer.expect(requestTo(OCR_API_URL))
         .andRespond(withSuccess(mockErrorResponse, MediaType.APPLICATION_JSON));
 
-    // when & then
-    assertThatThrownBy(() -> ocrSpaceApiClient.extractTextFromImage(mockFile))
-        .isInstanceOf(OcrProcessingException.class);
+    // when
+    OcrProcessingException ex = assertThrows(OcrProcessingException.class,
+        () -> ocrSpaceApiClient.extractTextFromImage(mockFile));
+
+    // then
+    assertThat(ex.getErrorCode()).isEqualTo(ErrorCode.OCR_PROCESSING_FAILED);
   }
 
   @Test
@@ -63,13 +66,14 @@ class OcrSpaceApiClientTest {
   void extractText_ServerError() {
     // given
     MockMultipartFile mockFile = createMockFile();
+    mockServer.expect(requestTo(OCR_API_URL)).andRespond(withServerError());
 
-    mockServer.expect(requestTo(OCR_API_URL))
-        .andRespond(withServerError());
+    // when
+    ExternalApiException ex = assertThrows(ExternalApiException.class,
+        () -> ocrSpaceApiClient.extractTextFromImage(mockFile));
 
-    // when & then
-    assertThatThrownBy(() -> ocrSpaceApiClient.extractTextFromImage(mockFile))
-        .isInstanceOf(ExternalApiException.class);
+    // then
+    assertThat(ex.getErrorCode()).isEqualTo(ErrorCode.EXTERNAL_API_ERROR);
   }
 
   @Test
@@ -112,9 +116,12 @@ class OcrSpaceApiClientTest {
     mockServer.expect(requestTo(OCR_API_URL))
         .andRespond(withSuccess(mockEmptyResponse, MediaType.APPLICATION_JSON));
 
-    // when & then
-    assertThatThrownBy(() -> ocrSpaceApiClient.extractTextFromImage(mockFile))
-        .isInstanceOf(OcrProcessingException.class);
+    // when
+    OcrProcessingException ex = assertThrows(OcrProcessingException.class,
+        () -> ocrSpaceApiClient.extractTextFromImage(mockFile));
+
+    // then
+    assertThat(ex.getErrorCode()).isEqualTo(ErrorCode.OCR_PROCESSING_FAILED);
   }
 
   @Test
@@ -131,9 +138,12 @@ class OcrSpaceApiClientTest {
     mockServer.expect(requestTo(OCR_API_URL))
         .andRespond(withSuccess(mockNullResponse, MediaType.APPLICATION_JSON));
 
-    // when & then
-    assertThatThrownBy(() -> ocrSpaceApiClient.extractTextFromImage(mockFile))
-        .isInstanceOf(OcrProcessingException.class);
+    // when
+    OcrProcessingException ex = assertThrows(OcrProcessingException.class,
+        () -> ocrSpaceApiClient.extractTextFromImage(mockFile));
+
+    // then
+    assertThat(ex.getErrorCode()).isEqualTo(ErrorCode.OCR_PROCESSING_FAILED);
   }
 
   @Test
@@ -154,9 +164,12 @@ class OcrSpaceApiClientTest {
     mockServer.expect(requestTo(OCR_API_URL))
         .andRespond(withSuccess(mockBlankTextResponse, MediaType.APPLICATION_JSON));
 
-    // when & then
-    assertThatThrownBy(() -> ocrSpaceApiClient.extractTextFromImage(mockFile))
-        .isInstanceOf(OcrProcessingException.class);
+    // when
+    OcrProcessingException ex = assertThrows(OcrProcessingException.class,
+        () -> ocrSpaceApiClient.extractTextFromImage(mockFile));
+
+    // then
+    assertThat(ex.getErrorCode()).isEqualTo(ErrorCode.OCR_TEXT_NOT_FOUND);
   }
 
   @Test
@@ -168,12 +181,13 @@ class OcrSpaceApiClientTest {
     mockServer.expect(requestTo(OCR_API_URL))
         .andRespond(withException(new SocketTimeoutException("Read timed out")));
 
-    // when & then
-    assertThatThrownBy(() -> ocrSpaceApiClient.extractTextFromImage(mockFile))
-        .isInstanceOf(ExternalApiException.class)
-        .hasMessageContaining(ErrorCode.EXTERNAL_API_ERROR.getMessage());
-  }
+    // when
+    ExternalApiException ex = assertThrows(ExternalApiException.class,
+        () -> ocrSpaceApiClient.extractTextFromImage(mockFile));
 
+    // then
+    assertThat(ex.getErrorCode()).isEqualTo(ErrorCode.EXTERNAL_API_TIMEOUT);
+  }
 
   private MockMultipartFile createMockFile() {
     return new MockMultipartFile(

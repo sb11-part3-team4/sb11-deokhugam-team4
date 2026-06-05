@@ -269,7 +269,7 @@ class BookControllerTest {
     MockMultipartFile image = createOcrImageFile();
 
     given(ocrService.extractIsbnFromImage(any()))
-        .willThrow(OcrProcessingException.withDetail("이미지에서 ISBN 패턴을 찾을 수 없습니다."));
+        .willThrow(OcrProcessingException.from(ErrorCode.OCR_PROCESSING_FAILED));
 
     // when & then
     mockMvc.perform(extractIsbnRequest(image))
