@@ -125,6 +125,21 @@ class OcrServiceTest {
   }
 
   @Test
+  @DisplayName("줄바꿈이 포함된 숫자 조합은 10자리 ISBN으로 오인식하지 않는다")
+  void extractIsbn_NewlineSeparatedNumbers_NotFound() {
+    // given
+    MockMultipartFile file = createMockImageFile();
+    String noisyText = "ISBN 0-13-041717-3\n90000\n9780130417176";
+    given(ocrSpaceApiClient.extractTextFromImage(file)).willReturn(noisyText);
+
+    // when
+    String extractedIsbn = ocrService.extractIsbnFromImage(file);
+
+    // then
+    assertThat(extractedIsbn).isEqualTo("0130417173");
+  }
+
+  @Test
   @DisplayName("업로드된 파일이 null이면 외부 API 호출 없이 바로 예외가 발생한다")
   void extractIsbn_NullFile_ThrowsException() {
     // when & then

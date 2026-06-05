@@ -15,13 +15,13 @@ public class OcrService {
   private final OcrSpaceApiClient ocrSpaceApiClient;
 
   private static final Pattern ISBN_PATTERN = Pattern.compile(
-      "(?<!\\d)(97[89](?:[\\s-]*\\d){10}|(?:\\d[\\s-]*){9}[0-9Xx])(?![\\s-]*\\d)");
+      "(?<!\\d)(97[89](?:[ -]*\\d){10}|(?:\\d[ -]*){9}[0-9Xx])(?![ -]*\\d)");
 
   public String extractIsbnFromImage(MultipartFile file) {
     validateFile(file);
 
     String rawText = ocrSpaceApiClient.extractTextFromImage(file);
-    
+
     return parseIsbnFromText(rawText);
   }
 
