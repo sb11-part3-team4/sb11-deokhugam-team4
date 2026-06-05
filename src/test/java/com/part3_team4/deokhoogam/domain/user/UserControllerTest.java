@@ -198,18 +198,6 @@ public class UserControllerTest {
   }
 
   @Test
-  @DisplayName("회원 물리 삭제 실패 - 존재하지 않는 유저 404 반환")
-  void hardDeleteUser_fail_userNotFound() throws Exception {
-    UUID userId = UUID.randomUUID();
-
-    willThrow(UserNotFoundException.withId(userId))
-        .given(userService).hardDeleteUser(userId);
-
-    mockMvc.perform(delete("/api/users/{userId}/hard", userId))
-        .andExpect(status().isNotFound());
-  }
-
-  @Test
   @DisplayName("로그인 성공 - 200반환")
   void login_success() throws Exception {
     UserLoginRequestDto request = new UserLoginRequestDto(

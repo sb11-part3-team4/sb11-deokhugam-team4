@@ -113,20 +113,22 @@ public class UserServiceImpl implements UserService{
 
     deleteUserRepository.save(deletedUser);
 
-    user.softDelete();
-
     eventPublisher.publishEvent(new UserDeletedEvent(userId));
+
+    userRepository.delete(user);
   }
 
   @Override
   @Transactional
   public void hardDeleteUser(UUID userId) {
-    User user = userRepository.findById(userId)
-        .orElseThrow(() -> UserNotFoundException.withId(userId));
+    userRepository.findById(userId).ifPresent(user -> {
+      eventPublisher.publishEvent(new UserDeletedEvent(userId));
+      userRepository.delete(user);
+    });
 
-    userRepository.delete(user);
-
-    eventPublisher.publishEvent(new UserDeletedEvent(userId));
+    deleteUserRepository.findById(userId).ifPresent(deletedUser -> {
+      deleteUserRepository.delete(deletedUser);
+    });
   }
 
   @Override

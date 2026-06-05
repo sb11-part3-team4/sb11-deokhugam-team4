@@ -256,23 +256,18 @@ public class UserServiceTest {
   }
 
   @Test
-  @DisplayName("회원 탈퇴 성공 - 논리 삭제 및 이벤트 발생")
+  @DisplayName("회원 탈퇴 성공 - 백업 테이블 저장 및 본 테이블 물리 삭제")
   void deleteUser_success() {
     UUID userId = UUID.randomUUID();
-    User user = new User(
-        "test@deokhugam.com", "testUser", "password123!");
+    User user = new User("test@deokhugam.com", "testUser", "password123!");
 
     given(userRepository.findById(userId)).willReturn(Optional.of(user));
 
     userService.deleteUser(userId);
 
-    assertThat(user.getDeletedAt()).isNotNull();
-
     then(deleteUserRepository).should().save(any(DeletedUser.class));
-
-    then(userRepository).should(never()).delete(any(User.class));
-
     then(eventPublisher).should().publishEvent(any(UserDeletedEvent.class));
+    then(userRepository).should().delete(user);
   }
 
   @Test
