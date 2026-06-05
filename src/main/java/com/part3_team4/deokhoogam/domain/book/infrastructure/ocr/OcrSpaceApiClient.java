@@ -3,10 +3,12 @@ package com.part3_team4.deokhoogam.domain.book.infrastructure.ocr;
 import com.part3_team4.deokhoogam.domain.book.exception.OcrProcessingException;
 import com.part3_team4.deokhoogam.domain.book.infrastructure.ocr.dto.OcrSpaceDto;
 import com.part3_team4.deokhoogam.global.exception.ExternalApiException;
+import java.time.Duration;
 import java.util.List;
 import java.util.Objects;
 import java.util.stream.Collectors;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.boot.web.client.RestTemplateBuilder;
 import org.springframework.http.MediaType;
 import org.springframework.stereotype.Component;
 import org.springframework.util.LinkedMultiValueMap;
@@ -14,6 +16,7 @@ import org.springframework.util.MultiValueMap;
 import org.springframework.web.client.RestClient;
 import org.springframework.web.client.RestClientException;
 import org.springframework.web.client.RestClientResponseException;
+import org.springframework.web.client.RestTemplate;
 import org.springframework.web.multipart.MultipartFile;
 
 @Component
@@ -23,10 +26,17 @@ public class OcrSpaceApiClient {
   private final String apiKey;
 
   public OcrSpaceApiClient(
-      RestClient.Builder builder,
-      @Value("${ocr.space.api-key}") String apiKey) {
+      RestTemplateBuilder restTemplateBuilder,
+      @Value("${ocr.space.api-key}") String apiKey,
+      @Value("${ocr.space.connect-timeout:5000}") int connectTimeout,
+      @Value("${ocr.space.read-timeout:15000}") int readTimeout) {
 
-    this.restClient = builder
+    RestTemplate restTemplate = restTemplateBuilder
+        .connectTimeout(Duration.ofMillis(connectTimeout))
+        .readTimeout(Duration.ofMillis(readTimeout))
+        .build();
+
+    this.restClient = RestClient.builder(restTemplate)
         .baseUrl("https://api.ocr.space")
         .build();
 

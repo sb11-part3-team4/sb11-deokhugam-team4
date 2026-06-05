@@ -19,7 +19,9 @@ import org.springframework.test.web.client.MockRestServiceServer;
 @RestClientTest(
     value = OcrSpaceApiClient.class,
     properties = {
-        "ocr.space.api-key=test-ocr-key"
+        "ocr.space.api-key=test-ocr-key",
+        "ocr.space.connect-timeout=5000",
+        "ocr.space.read-timeout=15000"
     }
 )
 class OcrSpaceApiClientTest {

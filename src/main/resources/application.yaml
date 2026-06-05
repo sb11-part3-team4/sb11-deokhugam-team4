@@ -37,3 +37,5 @@ jwt:
 ocr:
   space:
     api-key: ${OCR_SPACE_API_KEY}
+    connect-timeout: 5000
+    read-timeout: 15000
