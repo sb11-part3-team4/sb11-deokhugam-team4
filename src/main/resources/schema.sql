@@ -183,7 +183,7 @@ CREATE TABLE notification
 -- 정렬
 CREATE INDEX idx_notification_user_pagination ON notification (user_id, created_at DESC, id DESC);
 -- 배치
-CREATE INDEX idx_notification_batch_clean ON notification (confirmed, created_at);
+CREATE INDEX idx_notification_batch_clean ON notification (confirmed, updated_at);
 
 -- DeletedNotification
 CREATE TABLE deleted_notification
