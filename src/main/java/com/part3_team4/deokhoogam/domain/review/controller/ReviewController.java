@@ -5,11 +5,17 @@ import com.part3_team4.deokhoogam.domain.review.service.ReviewService;
 import com.part3_team4.deokhoogam.global.common.PageResponse;
 import jakarta.validation.Valid;
 import java.util.UUID;
+
+import jakarta.validation.constraints.Max;
+import jakarta.validation.constraints.Min;
+import jakarta.validation.constraints.Pattern;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
+@Validated
 @RestController
 @RequestMapping("/api/reviews")
 @RequiredArgsConstructor
@@ -60,11 +66,11 @@ public class ReviewController {
             @RequestParam(required = false) UUID filterUserId,
             @RequestParam(required = false) UUID bookId,
             @RequestParam(required = false) String keyword,
-            @RequestParam(defaultValue = "createdAt") String orderBy,
-            @RequestParam(defaultValue = "DESC") String direction,
+            @Pattern(regexp = "createdAt|rating") @RequestParam(defaultValue = "createdAt") String orderBy,
+            @Pattern(regexp = "ASC|DESC") @RequestParam(defaultValue = "DESC") String direction,
             @RequestParam(required = false) String cursor,
             @RequestParam(required = false) String after,
-            @RequestParam(defaultValue = "50") int limit
+            @Min(1) @Max(100) @RequestParam(defaultValue = "50") int limit
     ) {
         ReviewListRequest request = new ReviewListRequest(
                 filterUserId, bookId, keyword, orderBy, direction, cursor, after, limit
