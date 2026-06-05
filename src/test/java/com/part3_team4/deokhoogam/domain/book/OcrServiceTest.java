@@ -3,6 +3,7 @@ package com.part3_team4.deokhoogam.domain.book;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.BDDMockito.given;
+import static org.mockito.BDDMockito.then;
 
 import com.part3_team4.deokhoogam.domain.book.exception.OcrProcessingException;
 import com.part3_team4.deokhoogam.domain.book.infrastructure.ocr.OcrSpaceApiClient;
@@ -123,7 +124,37 @@ class OcrServiceTest {
         .hasMessageContaining(ErrorCode.OCR_PROCESSING_FAILED.getMessage());
   }
 
-  
+  @Test
+  @DisplayName("업로드된 파일이 null이면 외부 API 호출 없이 바로 예외가 발생한다")
+  void extractIsbn_NullFile_ThrowsException() {
+    // when & then
+    assertThatThrownBy(() -> ocrService.extractIsbnFromImage(null))
+        .isInstanceOf(OcrProcessingException.class)
+        .hasMessageContaining(ErrorCode.OCR_PROCESSING_FAILED.getMessage());
+
+    then(ocrSpaceApiClient).shouldHaveNoInteractions();
+  }
+
+  @Test
+  @DisplayName("업로드된 파일의 크기가 0이면 외부 API 호출 없이 바로 예외가 발생한다")
+  void extractIsbn_EmptyFile_ThrowsException() {
+    // given
+    MockMultipartFile emptyFile = new MockMultipartFile(
+        "file",
+        "empty.jpg",
+        "image/jpeg",
+        new byte[0]
+    );
+
+    // when & then
+    assertThatThrownBy(() -> ocrService.extractIsbnFromImage(emptyFile))
+        .isInstanceOf(OcrProcessingException.class)
+        .hasMessageContaining(ErrorCode.OCR_PROCESSING_FAILED.getMessage());
+
+    then(ocrSpaceApiClient).shouldHaveNoInteractions();
+  }
+
+
   private MockMultipartFile createMockImageFile() {
     return new MockMultipartFile(
         "file",

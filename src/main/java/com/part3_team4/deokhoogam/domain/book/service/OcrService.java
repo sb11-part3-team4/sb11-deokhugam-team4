@@ -18,9 +18,17 @@ public class OcrService {
       "(?<!\\d)(97[89](?:[\\s-]*\\d){10}|(?:\\d[\\s-]*){9}[0-9Xx])(?![\\s-]*\\d)");
 
   public String extractIsbnFromImage(MultipartFile file) {
-    String rawText = ocrSpaceApiClient.extractTextFromImage(file);
+    validateFile(file);
 
+    String rawText = ocrSpaceApiClient.extractTextFromImage(file);
+    
     return parseIsbnFromText(rawText);
+  }
+
+  private void validateFile(MultipartFile file) {
+    if (file == null || file.isEmpty()) {
+      throw OcrProcessingException.withDetail("이미지 파일이 비어 있습니다.");
+    }
   }
 
   private String parseIsbnFromText(String rawText) {
