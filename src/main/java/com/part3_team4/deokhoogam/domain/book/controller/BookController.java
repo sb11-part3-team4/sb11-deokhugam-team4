@@ -4,6 +4,7 @@ import com.part3_team4.deokhoogam.domain.book.controller.api.BookAPI;
 import com.part3_team4.deokhoogam.domain.book.dto.BookCreateRequest;
 import com.part3_team4.deokhoogam.domain.book.dto.BookDto;
 import com.part3_team4.deokhoogam.domain.book.dto.BookUpdateRequest;
+import com.part3_team4.deokhoogam.domain.book.dto.NaverBookDto;
 import com.part3_team4.deokhoogam.domain.book.service.BookService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -86,6 +87,12 @@ public class BookController implements BookAPI {
 
     return ResponseEntity.ok().body(response);
 
+  }
 
+  @Override
+  @GetMapping("/info")
+  public ResponseEntity<NaverBookDto> getByISBN(String isbn) {
+    NaverBookDto response = bookService.getByIsbn(isbn);
+    return ResponseEntity.ok().body(response);
   }
 }
