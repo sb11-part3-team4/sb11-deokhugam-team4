@@ -10,7 +10,6 @@ import org.hibernate.annotations.SQLRestriction;
 @Entity
 @Table(name = "\"user\"")
 @Getter
-@SQLRestriction("deleted_at IS NULL")
 public class User extends BaseEntity {
 
   @Column(unique = true, nullable = false)
