@@ -1,11 +1,14 @@
 package com.part3_team4.deokhoogam.global.storage;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.assertj.core.api.Assertions.catchThrowable;
+import static org.assertj.core.api.AssertionsForClassTypes.assertThatCode;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.BDDMockito.then;
+import static org.mockito.BDDMockito.willThrow;
 import static org.mockito.Mockito.mock;
 
 import com.part3_team4.deokhoogam.global.exception.ErrorKey;
@@ -17,6 +20,7 @@ import java.io.InputStream;
 import java.net.URL;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
@@ -223,4 +227,68 @@ class S3FileUploaderTest {
 
     then(s3Template).shouldHaveNoInteractions();
   }
+
+  @Nested
+  @DisplayName("S3 삭제 로직에서")
+  class S3_delete_Test {
+
+    @Test
+    @DisplayName("정상적인 전체 URL이 주어지면 Object Key를 올바르게 추출하여 S3에서 삭제한다")
+    void delete_success() {
+      // given
+      String fullUrl = "https://test-bucket.s3.ap-northeast-2.amazonaws.com/book/1234_test.png";
+      String expectedKey = "book/1234_test.png";
+
+      //when
+      s3FileUploader.delete(fullUrl);
+
+      //then
+      then(s3Template).should().deleteObject(BUCKET_NAME, expectedKey);
+    }
+
+    @Test
+    @DisplayName("URL이 null이거나 빈 문자열이면 아무 동작도 하지 않는다")
+    void delete_ignores_when_url_is_blank() {
+      // given & when
+      s3FileUploader.delete(null);
+      s3FileUploader.delete("");
+      s3FileUploader.delete("   ");
+
+      // then (💡 BDD 스타일 검증)
+      then(s3Template).shouldHaveNoInteractions();
+    }
+
+    @Test
+    @DisplayName("java.net.URI가 파싱할 수 없는 이상한 문자열이 들어오면 InvalidFileException이 발생한다")
+    void delete_throws_exception_when_url_is_invalid() {
+      // given
+      String invalidUrl = "htp:// wrong-url.com/book/1234_test.png";
+
+      // when
+      assertThatThrownBy(() -> s3FileUploader.delete(invalidUrl))
+          .isInstanceOf(InvalidFileException.class);
+
+      // then
+      then(s3Template).shouldHaveNoInteractions();
+    }
+
+
+    @Test
+    @DisplayName("S3 내부에서 삭제 중 예외가 발생하더라도 로직이 터지지 않고(Soft fail) 정상 종료된다")
+    void delete_soft_fail_when_s3_throws_exception() {
+      // given
+      String fullUrl = "https://test-bucket.s3.ap-northeast-2.amazonaws.com/book/error.png";
+      String expectedKey = "book/error.png";
+
+      willThrow(new RuntimeException("내부 예외"))
+          .given(s3Template).deleteObject(BUCKET_NAME, expectedKey);
+
+      // when & then
+      assertThatCode(() -> s3FileUploader.delete(fullUrl))
+          .doesNotThrowAnyException();
+    }
+
+
+  }
+
 }
