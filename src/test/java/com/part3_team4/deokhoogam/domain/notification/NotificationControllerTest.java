@@ -2,9 +2,11 @@ package com.part3_team4.deokhoogam.domain.notification;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.ArgumentMatchers.isNull;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.BDDMockito.then;
 import static org.springframework.http.MediaType.APPLICATION_JSON;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -13,16 +15,18 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.part3_team4.deokhoogam.domain.notification.controller.NotificationController;
 import com.part3_team4.deokhoogam.domain.notification.dto.NotificationDto;
-import com.part3_team4.deokhoogam.domain.notification.service.NotificationService;
 import com.part3_team4.deokhoogam.domain.notification.dto.NotificationUpdateRequest;
-import com.part3_team4.deokhoogam.global.jwt.JwtFilter;
+import com.part3_team4.deokhoogam.domain.notification.service.NotificationService;
+import com.part3_team4.deokhoogam.global.common.PageResponse;
 import java.time.Instant;
+import java.util.List;
 import java.util.UUID;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
+import org.springframework.data.domain.Sort;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 
@@ -72,9 +76,6 @@ class NotificationControllerTest {
    */
   @MockitoBean
   private NotificationService notificationService;
-
-  @MockitoBean
-  private JwtFilter jwtFilter;
 
   @Test
   @DisplayName("PATCH /api/notifications/{notificationId} 요청으로 알림 읽음 상태를 수정한다")
@@ -172,4 +173,104 @@ class NotificationControllerTest {
         .readAll(requesterId);
   }
 
+  @Test
+  @DisplayName("GET /api/notifications 요청에서 direction 소문자 desc를 DESC로 처리한다")
+  void findAllWithLowercaseDirection() throws Exception {
+    // given
+    // 요청자 ID입니다.
+    // 알림 목록 조회는 본인의 알림만 조회할 수 있어야 하므로,
+    // 요청자 ID와 조회 대상 userId를 같은 값으로 둡니다.
+    UUID requesterId = UUID.randomUUID();
+
+    // 조회 대상 사용자 ID입니다.
+    // 이 테스트에서는 requesterId와 같으므로 권한 검증을 통과하는 상황입니다.
+    UUID userId = requesterId;
+
+    // Service가 반환할 빈 페이지 응답입니다.
+    // 이 테스트의 목적은 목록 데이터 자체가 아니라
+    // direction=desc가 Sort.Direction.DESC로 변환되는지 검증하는 것입니다.
+    PageResponse<NotificationDto> response = new PageResponse<>(
+        List.of(),
+        null,
+        null,
+        0,
+        0L,
+        false
+    );
+
+    // direction=desc 요청이 들어와도 Controller에서 Sort.Direction.DESC로 변환한 뒤
+    // Service를 호출해야 합니다.
+    given(notificationService.findAll(
+        eq(requesterId),
+        eq(userId),
+        eq(Sort.Direction.DESC),
+        isNull(),
+        isNull(),
+        eq(20)
+    )).willReturn(response);
+
+    // when & then
+    mockMvc.perform(get("/api/notifications")
+            // 알림 목록 조회 API도 요청자 헤더를 필요로 합니다.
+            .header("Deokhugam-Request-User-ID", requesterId)
+            // Swagger 명세상 userId는 query parameter입니다.
+            .param("userId", userId.toString())
+            // CodeRabbit 리뷰 대응 핵심입니다.
+            // 소문자 desc를 보내도 정상적으로 DESC로 해석되어야 합니다.
+            .param("direction", "desc")
+            .param("limit", "20"))
+        // 소문자 direction 때문에 400이 발생하면 안 됩니다.
+        .andExpect(status().isOk())
+        // 빈 페이지 응답이라도 PageResponse JSON 구조는 내려와야 합니다.
+        .andExpect(jsonPath("$.content").isArray())
+        .andExpect(jsonPath("$.size").value(0))
+        .andExpect(jsonPath("$.totalElements").value(0))
+        .andExpect(jsonPath("$.hasNext").value(false));
+
+    // Controller가 direction 문자열을 Sort.Direction.DESC로 변환해서
+    // Service에 전달했는지 검증합니다.
+    then(notificationService)
+        .should()
+        .findAll(
+            eq(requesterId),
+            eq(userId),
+            eq(Sort.Direction.DESC),
+            isNull(),
+            isNull(),
+            eq(20)
+        );
+  }
+
+  @Test
+  @DisplayName("GET /api/notifications 요청에서 limit이 1보다 작으면 400 Bad Request를 반환한다")
+  void findAllWithInvalidLimit() throws Exception {
+    UUID userId = UUID.randomUUID();
+
+    mockMvc.perform(get("/api/notifications")
+            .header("Deokhugam-Request-User-ID", userId)
+            .param("userId", userId.toString())
+            .param("limit", "0")) // limit은 컨트롤러에서 1 이상 100 이하로 직접 검증하므로 0은 허용되지 않습니다.
+        .andExpect(status().isBadRequest());
+
+    // 컨트롤러 파라미터 검증에서 요청이 막혀야 하므로,
+    // 서비스 목록 조회 로직은 호출되지 않아야 합니다.
+    then(notificationService).shouldHaveNoInteractions();
+  }
+
+  @Test
+  @DisplayName("GET /api/notifications 요청에서 direction 값이 ASC 또는 DESC가 아니면 400 Bad Request를 반환한다")
+  void findAllWithInvalidDirection() throws Exception {
+    UUID userId = UUID.randomUUID();
+
+    mockMvc.perform(get("/api/notifications")
+            .header("Deokhugam-Request-User-ID", userId)
+            .param("userId", userId.toString())
+            .param("direction", "wrong")
+            .param("limit", "20"))
+        .andExpect(status().isBadRequest());
+
+    // direction 값이 잘못되면 컨트롤러에서 요청을 막아야 하므로
+    // 서비스 목록 조회 로직은 호출되지 않아야 합니다.
+    then(notificationService).shouldHaveNoInteractions();
+  }
 }

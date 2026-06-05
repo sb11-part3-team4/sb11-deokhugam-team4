@@ -63,4 +63,7 @@ public class Review extends BaseEntity {
             throw InvalidReviewException.withField(ErrorKey.REVIEW_CONTENT, "content는 필수입니다.");
         }
     }
+
+    public void incrementLikeCount() {this.likeCount++;}
+    public void decrementLikeCount() {this.likeCount--;}
 }

@@ -6,6 +6,12 @@ public class ExternalApiException extends BusinessException {
     super(errorCode);
   }
 
+  public static ExternalApiException withIsbn(String isbn) {
+    ExternalApiException exception = new ExternalApiException(ErrorCode.EXTERNAL_API_ERROR);
+    exception.addDetail(ErrorKey.BOOK_ISBN, isbn);
+    return exception;
+  }
+
   public static ExternalApiException from(ErrorCode errorCode) {
     return new ExternalApiException(errorCode);
   }

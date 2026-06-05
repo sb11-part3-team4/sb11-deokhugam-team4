@@ -3,10 +3,12 @@ package com.part3_team4.deokhoogam.domain.user.service;
 import com.part3_team4.deokhoogam.domain.user.dto.PasswordUpdateRequestDto;
 import com.part3_team4.deokhoogam.domain.user.dto.UserCreateRequestDto;
 import com.part3_team4.deokhoogam.domain.user.dto.UserDto;
+import com.part3_team4.deokhoogam.domain.user.dto.UserLoginResultDto;
 import com.part3_team4.deokhoogam.domain.user.dto.UserUpdateRequestDto;
 import com.part3_team4.deokhoogam.domain.user.dto.response.UserResponse;
 import com.part3_team4.deokhoogam.domain.user.entity.DeletedUser;
 import com.part3_team4.deokhoogam.domain.user.entity.User;
+import com.part3_team4.deokhoogam.domain.user.entity.UserDeletedEvent;
 import com.part3_team4.deokhoogam.domain.user.exception.InvalidCredentialsException;
 import com.part3_team4.deokhoogam.domain.user.exception.PasswordMismatchException;
 import com.part3_team4.deokhoogam.domain.user.exception.UserAlreadyExistsException;
@@ -14,8 +16,8 @@ import com.part3_team4.deokhoogam.domain.user.exception.UserNotFoundException;
 import com.part3_team4.deokhoogam.domain.user.mapper.UserMapper;
 import com.part3_team4.deokhoogam.domain.user.repository.DeletedUserRepository;
 import com.part3_team4.deokhoogam.domain.user.repository.UserRepository;
-import com.part3_team4.deokhoogam.global.jwt.JwtProvider;
 import java.util.UUID;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -27,20 +29,20 @@ public class UserServiceImpl implements UserService{
   private final DeletedUserRepository deleteUserRepository;
   private final UserMapper userMapper;
   private final PasswordEncoder passwordEncoder;
-  private final JwtProvider jwtProvider;
+  private final ApplicationEventPublisher eventPublisher;
 
-  public UserServiceImpl(UserRepository userRepository, DeletedUserRepository deleteUserRepository, UserMapper userMapper, PasswordEncoder passwordEncoder, JwtProvider jwtProvider) {
+  public UserServiceImpl(UserRepository userRepository, DeletedUserRepository deleteUserRepository, UserMapper userMapper, PasswordEncoder passwordEncoder, ApplicationEventPublisher eventPublisher) {
     this.userRepository = userRepository;
     this.deleteUserRepository = deleteUserRepository;
     this.userMapper = userMapper;
     this.passwordEncoder = passwordEncoder;
-    this.jwtProvider = jwtProvider;
+    this.eventPublisher = eventPublisher;
   }
 
   @Override
   @Transactional
   public UserDto createUser(UserCreateRequestDto request) {
-    if (userRepository.existsByName(request.name())) {
+    if (userRepository.existsByName(request.nickname())) {
       throw UserAlreadyExistsException.withName();
     }
     if (userRepository.existsByEmail(request.email())) {
@@ -51,7 +53,7 @@ public class UserServiceImpl implements UserService{
     }
 
     String encodedPassword = passwordEncoder.encode(request.password());
-    User user = new User(request.email(), request.name(), encodedPassword);
+    User user = new User(request.email(), request.nickname(), encodedPassword);
 
     userRepository.save(user);
 
@@ -72,18 +74,18 @@ public class UserServiceImpl implements UserService{
     User user = userRepository.findById(userId)
         .orElseThrow(() -> UserNotFoundException.withId(userId));
 
-    if (request.newName() != null && !user.getName().equals(request.newName())) {
-      if (userRepository.existsByName(request.newName())) {
+    if (request.nickname() != null && !user.getName().equals(request.nickname())) {
+      if (userRepository.existsByName(request.nickname())) {
         throw UserAlreadyExistsException.withName();
       }
-      user.updateName(request.newName());
+      user.updateName(request.nickname());
     }
 
-    if (request.newEmail() != null && !user.getEmail().equals(request.newEmail())) {
-      if (userRepository.existsByEmail(request.newEmail()) || deleteUserRepository.existsByEmail(request.newEmail())) {
+    if (request.email() != null && !user.getEmail().equals(request.email())) {
+      if (userRepository.existsByEmail(request.email()) || deleteUserRepository.existsByEmail(request.email())) {
         throw UserAlreadyExistsException.withEmail();
       }
-      user.updateEmail(request.newEmail());
+      user.updateEmail(request.email());
     }
   }
 
@@ -111,12 +113,28 @@ public class UserServiceImpl implements UserService{
 
     deleteUserRepository.save(deletedUser);
 
+    eventPublisher.publishEvent(new UserDeletedEvent(userId));
+
     userRepository.delete(user);
   }
 
   @Override
+  @Transactional
+  public void hardDeleteUser(UUID userId) {
+    User user = userRepository.findById(userId)
+        .orElseThrow(() -> UserNotFoundException.withId(userId));
+
+    eventPublisher.publishEvent(new UserDeletedEvent(userId));
+    userRepository.delete(user);
+
+    deleteUserRepository.findById(userId).ifPresent(deletedUser -> {
+      deleteUserRepository.delete(deletedUser);
+    });
+  }
+
+  @Override
   @Transactional(readOnly = true)
-  public String login(String email, String password) {
+  public UserLoginResultDto login(String email, String password) {
     User user = userRepository.findByEmail(email)
         .orElseThrow(InvalidCredentialsException::new);
 
@@ -124,6 +142,8 @@ public class UserServiceImpl implements UserService{
       throw new InvalidCredentialsException();
     }
 
-    return jwtProvider.createAccessToken(user.getEmail());
+    return new UserLoginResultDto(
+        "", user.getId(), user.getEmail(), user.getName(), user.getCreatedAt()
+    );
   }
 }
