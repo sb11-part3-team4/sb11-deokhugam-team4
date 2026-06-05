@@ -9,9 +9,9 @@ import com.part3_team4.deokhoogam.domain.user.dto.UserUpdateRequestDto;
 import com.part3_team4.deokhoogam.domain.user.dto.response.UserResponse;
 import com.part3_team4.deokhoogam.domain.user.service.UserService;
 import jakarta.validation.Valid;
+import java.util.Collections;
 import java.util.Map;
 import java.util.UUID;
-import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.DeleteMapping;
@@ -91,18 +91,25 @@ public class UserController {
 
     UserLoginResultDto result = userService.login(request.email(), request.password());
 
-    HttpHeaders headers = new HttpHeaders();
-    headers.set("Authorization", "Bearer " + result.token());
-
     Map<String, Object> responseBody = Map.of(
-        "token", result.token(),
-        "accessToken", result.token(),
+        "token", "",
+        "accessToken", "",
         "id", result.id(),
         "email", result.email(),
         "nickname", result.nickname(),
         "createdAt", result.createdAt()
     );
 
-    return ResponseEntity.ok().headers(headers).body(responseBody);
+    return ResponseEntity.ok(responseBody);
+  }
+
+  @GetMapping("/power")
+  public ResponseEntity<Map<String, Object>> getPowerUsers() {
+    return ResponseEntity.ok(Map.of(
+        "content", Collections.emptyList(),
+        "hasNext", false,
+        "totalElements", 0,
+        "size", 0
+    ));
   }
 }

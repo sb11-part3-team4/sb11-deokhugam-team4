@@ -16,7 +16,6 @@ import com.part3_team4.deokhoogam.domain.user.exception.UserNotFoundException;
 import com.part3_team4.deokhoogam.domain.user.mapper.UserMapper;
 import com.part3_team4.deokhoogam.domain.user.repository.DeletedUserRepository;
 import com.part3_team4.deokhoogam.domain.user.repository.UserRepository;
-import com.part3_team4.deokhoogam.global.jwt.JwtProvider;
 import java.util.UUID;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -30,15 +29,13 @@ public class UserServiceImpl implements UserService{
   private final DeletedUserRepository deleteUserRepository;
   private final UserMapper userMapper;
   private final PasswordEncoder passwordEncoder;
-  private final JwtProvider jwtProvider;
   private final ApplicationEventPublisher eventPublisher;
 
-  public UserServiceImpl(UserRepository userRepository, DeletedUserRepository deleteUserRepository, UserMapper userMapper, PasswordEncoder passwordEncoder, JwtProvider jwtProvider, ApplicationEventPublisher eventPublisher) {
+  public UserServiceImpl(UserRepository userRepository, DeletedUserRepository deleteUserRepository, UserMapper userMapper, PasswordEncoder passwordEncoder, ApplicationEventPublisher eventPublisher) {
     this.userRepository = userRepository;
     this.deleteUserRepository = deleteUserRepository;
     this.userMapper = userMapper;
     this.passwordEncoder = passwordEncoder;
-    this.jwtProvider = jwtProvider;
     this.eventPublisher = eventPublisher;
   }
 
@@ -142,10 +139,8 @@ public class UserServiceImpl implements UserService{
       throw new InvalidCredentialsException();
     }
 
-    String token = jwtProvider.createAccessToken(user.getId());
-
     return new UserLoginResultDto(
-        token, user.getId(), user.getEmail(), user.getName(), user.getCreatedAt()
+        "", user.getId(), user.getEmail(), user.getName(), user.getCreatedAt()
     );
   }
 }
