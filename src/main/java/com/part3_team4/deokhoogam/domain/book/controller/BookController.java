@@ -13,6 +13,8 @@ import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
+import java.util.Collections;
+import java.util.Map;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -87,5 +89,15 @@ public class BookController implements BookAPI {
     return ResponseEntity.ok().body(response);
 
 
+  }
+
+  @GetMapping("/popular")
+  public ResponseEntity<Map<String, Object>> getPopularBooks() {
+    return ResponseEntity.ok(Map.of(
+        "content", Collections.emptyList(),
+        "hasNext", false,
+        "totalElements", 0,
+        "size", 0
+    ));
   }
 }

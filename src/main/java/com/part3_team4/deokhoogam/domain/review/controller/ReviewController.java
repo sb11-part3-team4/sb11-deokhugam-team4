@@ -6,11 +6,20 @@ import com.part3_team4.deokhoogam.domain.review.dto.ReviewResponse;
 import com.part3_team4.deokhoogam.domain.review.dto.ReviewUpdateRequest;
 import com.part3_team4.deokhoogam.domain.review.service.ReviewService;
 import jakarta.validation.Valid;
+import java.util.Collections;
+import java.util.Map;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PatchMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestHeader;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
 
 @RestController
 @RequestMapping("/api/reviews")
@@ -56,4 +65,13 @@ public class ReviewController {
         return ResponseEntity.ok(response);
     }
 
+    @GetMapping("/popular")
+    public ResponseEntity<Map<String, Object>> getPopularReviews() {
+        return ResponseEntity.ok(Map.of(
+            "content", Collections.emptyList(),
+            "hasNext", false,
+            "totalElements", 0,
+            "size", 0
+        ));
+    }
 }
