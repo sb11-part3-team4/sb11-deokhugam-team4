@@ -521,5 +521,30 @@ public class ReviewServiceTest {
         assertThat(response.nextCursor()).isNull();
     }
 
+    @Test
+    @DisplayName("다음 페이지가 있으면 hasNext=true를 반환한다")
+    void getReviews_hasNext() {
+        UUID requestUserId = UUID.randomUUID();
+
+        Review review1 = Review.create(UUID.randomUUID(), UUID.randomUUID(), 4, "좋은 책이에요");
+        Review review2 = Review.create(UUID.randomUUID(), UUID.randomUUID(), 3, "괜찮아요");
+        Review review3 = Review.create(UUID.randomUUID(), UUID.randomUUID(), 2, "별로에요");
+
+        ReviewListRequest request = new ReviewListRequest(
+                null, null, null, "createdAt", "DESC", null, null, 2
+        );
+
+        given(reviewRepository.findReviews(any(), any(), any(), any(Pageable.class)))
+                .willReturn(List.of(review1, review2, review3));
+        given(reviewLikeRepository.findLikedReviewIds(any(), any()))
+                .willReturn(List.of());
+
+        PageResponse<ReviewResponse> response = reviewService.getReviews(requestUserId, request);
+
+        assertThat(response.hasNext()).isTrue();
+        assertThat(response.content()).hasSize(2);
+
+    }
+
 
 }

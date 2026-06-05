@@ -163,7 +163,7 @@ public class ReviewServiceImpl implements ReviewService {
             ReviewResponse last = content.get(content.size() - 1);
             nextCursor = "rating".equals(request.orderBy())
                     ? String.valueOf(last.rating())
-                    : last.createdAt().toString();
+                    : last.createdAt() != null ? last.createdAt().toString() : null;
             nextAfter = last.id().toString();
         }
 
