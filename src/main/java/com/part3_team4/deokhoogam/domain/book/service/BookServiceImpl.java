@@ -3,13 +3,17 @@ package com.part3_team4.deokhoogam.domain.book.service;
 import com.part3_team4.deokhoogam.domain.book.dto.BookCreateRequest;
 import com.part3_team4.deokhoogam.domain.book.dto.BookDto;
 import com.part3_team4.deokhoogam.domain.book.dto.BookUpdateRequest;
+import com.part3_team4.deokhoogam.domain.book.dto.NaverBookDto;
 import com.part3_team4.deokhoogam.domain.book.entity.Book;
 import com.part3_team4.deokhoogam.domain.book.exception.BookNotFoundException;
+import com.part3_team4.deokhoogam.domain.book.exception.InvalidIsbnException;
 import com.part3_team4.deokhoogam.domain.book.exception.IsbnAlreadyExistsException;
+import com.part3_team4.deokhoogam.domain.book.instructure.naver.NaverApiService;
 import com.part3_team4.deokhoogam.domain.book.repository.BookRepository;
 import com.part3_team4.deokhoogam.global.storage.FileUploader;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.hibernate.exception.ConstraintViolationException;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
@@ -17,6 +21,7 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
 @Service
+@Slf4j
 @RequiredArgsConstructor
 public class BookServiceImpl implements BookService {
 
@@ -25,6 +30,8 @@ public class BookServiceImpl implements BookService {
 
   private final BookRepository bookRepository;
   private final FileUploader fileUploader;
+
+  private final NaverApiService naverApiService;
 
   @Override
   @Transactional
@@ -90,6 +97,25 @@ public class BookServiceImpl implements BookService {
   }
 
 
+  @Override
+  public NaverBookDto getByIsbn(String isbn) {
+
+    //isbn 형식 검사
+    if (isbn == null || !isbn.matches("^[0-9]{13}$")) {
+      throw InvalidIsbnException.withIsbn(isbn);
+    }
+
+    NaverBookDto response = naverApiService.getBookInfoByIsbn(isbn);
+
+    if (response == null) {
+      throw BookNotFoundException.withIsbn(isbn);
+    }
+
+    return response;
+
+  }
+
+
   private void validateDuplicateIsbn(String isbn) {
     if (bookRepository.existsByIsbn(isbn)) {
       throw IsbnAlreadyExistsException.withIsbn(isbn);
@@ -114,4 +140,5 @@ public class BookServiceImpl implements BookService {
     }
     return false;
   }
+
 }
