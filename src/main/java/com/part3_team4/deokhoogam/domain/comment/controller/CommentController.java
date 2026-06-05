@@ -5,7 +5,6 @@ import com.part3_team4.deokhoogam.domain.comment.service.CommentService;
 import jakarta.validation.Valid;
 import java.time.Instant;
 import java.time.format.DateTimeParseException;
-import java.util.List;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -35,18 +34,21 @@ public class CommentController {
             // TODO: [GlobalExceptionHandler] MissingRequestHeaderException 핸들러 추가 후 required=false → required=true로 교체
             @RequestHeader(value = USER_HEADER, required = false) UUID userId,
             @RequestBody @Valid CommentDto.CreateCommentRequest request) {
-        if (userId == null) {
+        UUID effectiveUserId = (userId != null) ? userId : request.userId();
+        if (effectiveUserId == null) {
             return new ResponseEntity<>(HttpStatus.BAD_REQUEST);
         }
         return ResponseEntity.status(HttpStatus.CREATED)
-                .body(commentService.createComment(request.reviewId(), userId, request.content()));
+                .body(commentService.createComment(request.reviewId(), effectiveUserId, request.content()));
     }
 
     @GetMapping
-    public ResponseEntity<List<CommentDto.CommentResponse>> getComments(
+    public ResponseEntity<CommentDto.CommentsResponse> getComments(
             @RequestParam UUID reviewId,
+            @RequestParam(defaultValue = "DESC") String direction,
             @RequestParam(required = false) String cursor,
-            @RequestParam(defaultValue = "10") int limit) {
+            @RequestParam(required = false) Instant after,
+            @RequestParam(defaultValue = "50") int limit) {
         Instant cursorInstant = null;
         if (cursor != null) {
             try {
@@ -56,7 +58,7 @@ public class CommentController {
                 return ResponseEntity.badRequest().build();
             }
         }
-        return ResponseEntity.ok(commentService.getComments(reviewId, cursorInstant, limit));
+        return ResponseEntity.ok(commentService.getComments(reviewId, direction, cursorInstant, after, limit));
     }
 
     @GetMapping("/{commentId}")
