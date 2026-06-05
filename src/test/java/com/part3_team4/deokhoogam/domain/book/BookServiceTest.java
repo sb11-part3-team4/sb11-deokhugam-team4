@@ -18,7 +18,7 @@ import com.part3_team4.deokhoogam.domain.book.entity.Book;
 import com.part3_team4.deokhoogam.domain.book.exception.BookNotFoundException;
 import com.part3_team4.deokhoogam.domain.book.exception.InvalidIsbnException;
 import com.part3_team4.deokhoogam.domain.book.exception.IsbnAlreadyExistsException;
-import com.part3_team4.deokhoogam.domain.book.instrcture.naver.NaverApiService;
+import com.part3_team4.deokhoogam.domain.book.instructure.naver.NaverApiService;
 import com.part3_team4.deokhoogam.domain.book.repository.BookRepository;
 import com.part3_team4.deokhoogam.domain.book.service.BookServiceImpl;
 import com.part3_team4.deokhoogam.global.fixture.BookFixtures;

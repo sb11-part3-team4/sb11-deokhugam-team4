@@ -1,4 +1,4 @@
-package com.part3_team4.deokhoogam.domain.book.instrcture.naver;
+package com.part3_team4.deokhoogam.domain.book.instructure.naver;
 
 import com.part3_team4.deokhoogam.domain.book.dto.NaverBookDto;
 import com.part3_team4.deokhoogam.global.exception.ExternalApiException;
