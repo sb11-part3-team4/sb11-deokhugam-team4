@@ -17,4 +17,3 @@ logging:
   level:
     root: WARN
     com.part3_team4.deokhoogam: INFO
-

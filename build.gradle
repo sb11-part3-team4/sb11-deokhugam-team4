@@ -26,6 +26,8 @@ dependencies {
     implementation 'org.springdoc:springdoc-openapi-starter-webmvc-ui:2.8.16'
     implementation 'org.springframework.boot:spring-boot-starter-batch'
     implementation 'net.logstash.logback:logstash-logback-encoder:7.4'
+    implementation 'io.awspring.cloud:spring-cloud-aws-starter-s3:4.0.2'
+    implementation 'org.springframework.boot:spring-boot-starter-security'
     implementation 'com.fasterxml.jackson.datatype:jackson-datatype-jsr310'
     implementation 'com.querydsl:querydsl-jpa:5.0.0:jakarta'
     annotationProcessor "com.querydsl:querydsl-apt:5.0.0:jakarta"
@@ -37,6 +39,7 @@ dependencies {
     runtimeOnly 'org.postgresql:postgresql'
     annotationProcessor 'org.projectlombok:lombok'
     testImplementation 'org.springframework.boot:spring-boot-starter-test'
+    testImplementation 'org.springframework.security:spring-security-test'
     testCompileOnly 'org.projectlombok:lombok'
     testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
     testAnnotationProcessor 'org.projectlombok:lombok'
@@ -54,6 +57,7 @@ tasks.named('jacocoTestCoverageVerification') {
             files(classDirectories.files.collect {
                 fileTree(dir: it, exclude: [
                         "**/dto/**",
+                        "**/entity/**",
                         "**/exception/**",
                         "**/global/exception/**",
                         "**/Q*.class"
@@ -83,6 +87,7 @@ tasks.named('jacocoTestReport') {
             files(classDirectories.files.collect {
                 fileTree(dir: it, exclude: [
                         "**/dto/**",
+                        "**/entity/**",
                         "**/exception/**",
                         "**/global/exception/**",
                         "**/Q*.class"

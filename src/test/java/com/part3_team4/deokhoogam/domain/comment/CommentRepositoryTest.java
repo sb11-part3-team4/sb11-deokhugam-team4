@@ -4,12 +4,15 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import com.part3_team4.deokhoogam.domain.comment.entity.Comment;
 import com.part3_team4.deokhoogam.domain.comment.repository.CommentRepository;
+import com.part3_team4.deokhoogam.domain.review.entity.Review;
+import com.part3_team4.deokhoogam.domain.user.entity.User;
 import com.part3_team4.deokhoogam.global.config.JpaAuditingConfig;
-import com.part3_team4.deokhoogam.global.support.RepositoryTestSupport;
+import com.part3_team4.deokhoogam.global.config.QuerydslConfig;
 import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -20,9 +23,9 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.test.context.ActiveProfiles;
 
 @DataJpaTest
-@Import(JpaAuditingConfig.class)
+@Import({JpaAuditingConfig.class, QuerydslConfig.class})
 @ActiveProfiles("test")
-class CommentRepositoryTest extends RepositoryTestSupport {
+class CommentRepositoryTest {
 
     @Autowired
     private CommentRepository commentRepository;
@@ -30,8 +33,17 @@ class CommentRepositoryTest extends RepositoryTestSupport {
     @Autowired
     private TestEntityManager em;
 
-    private static final UUID REVIEW_ID = UUID.randomUUID();
-    private static final UUID USER_ID = UUID.randomUUID();
+    private User testUser;
+    private Review testReview;
+
+    @BeforeEach
+    void setUp() {
+        testUser = new User("test@email.com", "테스트유저", "password");
+        em.persist(testUser);
+        testReview = Review.create(testUser.getId(), UUID.randomUUID(), 5, "테스트 리뷰입니다.");
+        em.persist(testReview);
+        em.flush();
+    }
 
     /**
      * @CreatedDate 는 @PrePersist 에서 항상 현재 시각으로 덮어쓴다.
@@ -40,7 +52,7 @@ class CommentRepositoryTest extends RepositoryTestSupport {
      * DB 실제 값을 반환한다. 커서 비교도 이 반환값을 사용해야 정확하다.
      */
     private Comment saveWithCreatedAt(String content, Instant createdAt) {
-        Comment comment = Comment.create(REVIEW_ID, USER_ID, content);
+        Comment comment = Comment.create(testReview, testUser, content);
         commentRepository.save(comment);
         em.flush();
         em.getEntityManager()
@@ -55,7 +67,7 @@ class CommentRepositoryTest extends RepositoryTestSupport {
     @Test
     @DisplayName("댓글을 저장하고 ID로 조회한다")
     void saveAndFindById() {
-        Comment comment = Comment.create(REVIEW_ID, USER_ID, "테스트 댓글입니다.");
+        Comment comment = Comment.create(testReview, testUser, "테스트 댓글입니다.");
         commentRepository.save(comment);
         em.flush();
         em.clear();
@@ -64,8 +76,8 @@ class CommentRepositoryTest extends RepositoryTestSupport {
 
         assertThat(result).isPresent();
         assertThat(result.get().getContent()).isEqualTo("테스트 댓글입니다.");
-        assertThat(result.get().getReviewId()).isEqualTo(REVIEW_ID);
-        assertThat(result.get().getUserId()).isEqualTo(USER_ID);
+        assertThat(result.get().getReviewId()).isEqualTo(testReview.getId());
+        assertThat(result.get().getUserId()).isEqualTo(testUser.getId());
     }
 
     @Test
@@ -77,7 +89,7 @@ class CommentRepositoryTest extends RepositoryTestSupport {
         saveWithCreatedAt("세 번째 댓글", base);
 
         List<Comment> result = commentRepository.findByReviewIdOrderByCreatedAtDesc(
-                REVIEW_ID, PageRequest.of(0, 10));
+                testReview.getId(), PageRequest.of(0, 10));
 
         assertThat(result).hasSize(3);
         assertThat(result.get(0).getContent()).isEqualTo("세 번째 댓글");
@@ -96,7 +108,7 @@ class CommentRepositoryTest extends RepositoryTestSupport {
         Instant cursor = third.getCreatedAt();
 
         List<Comment> result = commentRepository.findByReviewIdAndCreatedAtBeforeOrderByCreatedAtDesc(
-                REVIEW_ID, cursor, PageRequest.of(0, 10));
+                testReview.getId(), cursor, PageRequest.of(0, 10));
 
         assertThat(result).hasSize(2);
         assertThat(result.get(0).getContent()).isEqualTo("두 번째 댓글");
@@ -111,14 +123,17 @@ class CommentRepositoryTest extends RepositoryTestSupport {
     @Test
     @DisplayName("다른 reviewId의 댓글은 조회되지 않는다")
     void findByReviewId_excludesOtherReviews() {
-        UUID otherReviewId = UUID.randomUUID();
-        commentRepository.save(Comment.create(REVIEW_ID, USER_ID, "리뷰A 댓글"));
-        commentRepository.save(Comment.create(otherReviewId, USER_ID, "리뷰B 댓글"));
+        Review otherReview = Review.create(testUser.getId(), UUID.randomUUID(), 3, "다른 리뷰입니다.");
+        em.persist(otherReview);
+        em.flush();
+
+        commentRepository.save(Comment.create(testReview, testUser, "리뷰A 댓글"));
+        commentRepository.save(Comment.create(otherReview, testUser, "리뷰B 댓글"));
         em.flush();
         em.clear();
 
         List<Comment> result = commentRepository.findByReviewIdOrderByCreatedAtDesc(
-                REVIEW_ID, PageRequest.of(0, 10));
+                testReview.getId(), PageRequest.of(0, 10));
 
         assertThat(result).hasSize(1);
         assertThat(result.get(0).getContent()).isEqualTo("리뷰A 댓글");
@@ -134,7 +149,7 @@ class CommentRepositoryTest extends RepositoryTestSupport {
 
         // DESC 정렬이므로 반환되는 2개는 가장 최신(5번째, 4번째) 댓글이다
         List<Comment> result = commentRepository.findByReviewIdOrderByCreatedAtDesc(
-                REVIEW_ID, PageRequest.of(0, 2));
+                testReview.getId(), PageRequest.of(0, 2));
 
         assertThat(result).hasSize(2);
     }
@@ -150,7 +165,7 @@ class CommentRepositoryTest extends RepositoryTestSupport {
         Instant cursor = first.getCreatedAt();
 
         List<Comment> result = commentRepository.findByReviewIdAndCreatedAtBeforeOrderByCreatedAtDesc(
-                REVIEW_ID, cursor, PageRequest.of(0, 10));
+                testReview.getId(), cursor, PageRequest.of(0, 10));
 
         assertThat(result).isEmpty();
     }
@@ -158,46 +173,55 @@ class CommentRepositoryTest extends RepositoryTestSupport {
     @Test
     @DisplayName("해당 reviewId의 댓글이 모두 삭제된다")
     void deleteByReviewId_removesAllMatchingComments() {
-        UUID otherReviewId = UUID.randomUUID();
-        commentRepository.save(Comment.create(REVIEW_ID, USER_ID, "리뷰A 댓글 1"));
-        commentRepository.save(Comment.create(REVIEW_ID, USER_ID, "리뷰A 댓글 2"));
-        commentRepository.save(Comment.create(otherReviewId, USER_ID, "리뷰B 댓글"));
+        Review otherReview = Review.create(testUser.getId(), UUID.randomUUID(), 3, "다른 리뷰입니다.");
+        em.persist(otherReview);
+        em.flush();
+
+        commentRepository.save(Comment.create(testReview, testUser, "리뷰A 댓글 1"));
+        commentRepository.save(Comment.create(testReview, testUser, "리뷰A 댓글 2"));
+        commentRepository.save(Comment.create(otherReview, testUser, "리뷰B 댓글"));
         em.flush();
         em.clear();
 
-        commentRepository.deleteByReviewId(REVIEW_ID);
+        commentRepository.deleteByReviewId(testReview.getId());
         em.flush();
         em.clear();
 
-        assertThat(commentRepository.countByReviewId(REVIEW_ID)).isZero();
-        assertThat(commentRepository.countByReviewId(otherReviewId)).isEqualTo(1);
+        assertThat(commentRepository.countByReviewId(testReview.getId())).isZero();
+        assertThat(commentRepository.countByReviewId(otherReview.getId())).isEqualTo(1);
     }
 
     @Test
     @DisplayName("해당 reviewId의 댓글 수를 정확히 반환한다")
     void countByReviewId_returnsAccurateCount() {
-        UUID otherReviewId = UUID.randomUUID();
-        commentRepository.save(Comment.create(REVIEW_ID, USER_ID, "리뷰A 댓글 1"));
-        commentRepository.save(Comment.create(REVIEW_ID, USER_ID, "리뷰A 댓글 2"));
-        commentRepository.save(Comment.create(otherReviewId, USER_ID, "리뷰B 댓글"));
+        Review otherReview = Review.create(testUser.getId(), UUID.randomUUID(), 3, "다른 리뷰입니다.");
+        em.persist(otherReview);
+        em.flush();
+
+        commentRepository.save(Comment.create(testReview, testUser, "리뷰A 댓글 1"));
+        commentRepository.save(Comment.create(testReview, testUser, "리뷰A 댓글 2"));
+        commentRepository.save(Comment.create(otherReview, testUser, "리뷰B 댓글"));
         em.flush();
         em.clear();
 
-        assertThat(commentRepository.countByReviewId(REVIEW_ID)).isEqualTo(2);
-        assertThat(commentRepository.countByReviewId(otherReviewId)).isEqualTo(1);
+        assertThat(commentRepository.countByReviewId(testReview.getId())).isEqualTo(2);
+        assertThat(commentRepository.countByReviewId(otherReview.getId())).isEqualTo(1);
     }
 
     @Test
     @DisplayName("해당 userId의 살아있는 댓글 수를 정확히 반환한다")
     void countByUserId_returnsAccurateCount() {
-        UUID otherUserId = UUID.randomUUID();
-        commentRepository.save(Comment.create(REVIEW_ID, USER_ID, "유저A 댓글 1"));
-        commentRepository.save(Comment.create(REVIEW_ID, USER_ID, "유저A 댓글 2"));
-        commentRepository.save(Comment.create(REVIEW_ID, otherUserId, "유저B 댓글"));
+        User otherUser = new User("other@email.com", "다른유저", "password");
+        em.persist(otherUser);
+        em.flush();
+
+        commentRepository.save(Comment.create(testReview, testUser, "유저A 댓글 1"));
+        commentRepository.save(Comment.create(testReview, testUser, "유저A 댓글 2"));
+        commentRepository.save(Comment.create(testReview, otherUser, "유저B 댓글"));
         em.flush();
         em.clear();
 
-        assertThat(commentRepository.countByUserId(USER_ID)).isEqualTo(2);
-        assertThat(commentRepository.countByUserId(otherUserId)).isEqualTo(1);
+        assertThat(commentRepository.countByUserId(testUser.getId())).isEqualTo(2);
+        assertThat(commentRepository.countByUserId(otherUser.getId())).isEqualTo(1);
     }
 }

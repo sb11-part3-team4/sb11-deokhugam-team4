@@ -1,6 +1,8 @@
 package com.part3_team4.deokhoogam.domain.review.entity;
 
+import com.part3_team4.deokhoogam.domain.review.exception.InvalidReviewException;
 import com.part3_team4.deokhoogam.global.common.BaseEntity;
+import com.part3_team4.deokhoogam.global.exception.ErrorKey;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.Table;
@@ -8,6 +10,7 @@ import java.util.UUID;
 import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
+
 
 @Entity
 @Table(name = "review")
@@ -34,6 +37,8 @@ public class Review extends BaseEntity {
     private int commentCount;
 
     public static Review create(UUID userId, UUID bookId, int rating, String content) {
+        validate(rating, content);
+
         Review review = new Review();
         review.userId = userId;
         review.bookId = bookId;
@@ -43,4 +48,22 @@ public class Review extends BaseEntity {
         review.commentCount = 0;
         return review;
     }
+
+    public void update(int rating, String content) {
+        validate(rating, content);
+        this.rating = rating;
+        this.content = content;
+    }
+
+    private static void validate(int rating, String content) {
+        if (rating < 1 || rating > 5) {
+            throw InvalidReviewException.withFieldAndValue(ErrorKey.REVIEW_RATING, rating, "rating은 1~5 사이여야 합니다.");
+        }
+        if (content == null || content.isBlank()) {
+            throw InvalidReviewException.withField(ErrorKey.REVIEW_CONTENT, "content는 필수입니다.");
+        }
+    }
+
+    public void incrementLikeCount() {this.likeCount++;}
+    public void decrementLikeCount() {this.likeCount--;}
 }
