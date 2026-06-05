@@ -25,7 +25,6 @@ import com.part3_team4.deokhoogam.domain.book.exception.IsbnAlreadyExistsExcepti
 import com.part3_team4.deokhoogam.domain.book.service.BookService;
 import com.part3_team4.deokhoogam.global.exception.ErrorCode;
 import com.part3_team4.deokhoogam.global.fixture.BookFixtures;
-import com.part3_team4.deokhoogam.global.fixture.BookFixtures;
 import com.part3_team4.deokhoogam.global.fixture.NaverBookFixture;
 import com.part3_team4.deokhoogam.global.jwt.JwtFilter;
 import java.math.BigDecimal;

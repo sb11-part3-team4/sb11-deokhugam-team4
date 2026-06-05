@@ -508,12 +508,12 @@ class BookServiceTest {
 
       UUID mockId = UUID.randomUUID();
 
-      given(deletedBookRepository.findById(any())).willReturn(Optional.of(BookFixtures.deletedBook(mockId)));
+      given(deletedBookRepository.findById(mockId)).willReturn(Optional.of(BookFixtures.deletedBook(mockId)));
 
-      bookService.deleteHard(UUID.randomUUID());
+      bookService.deleteHard(mockId);
 
-      then(deletedBookRepository).should().findById(any());
-      then(deletedBookRepository).should().deleteById(any());
+      then(deletedBookRepository).should().findById(mockId);
+      then(deletedBookRepository).should().deleteById(mockId);
       then(fileUploader).should().delete(any());
       then(fileUploader).shouldHaveNoMoreInteractions();
 
