@@ -14,7 +14,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.orm.jpa.DataJpaTest;
 import org.springframework.context.annotation.Import;
 import org.springframework.test.context.ActiveProfiles;
-import org.springframework.test.util.ReflectionTestUtils;
+import org.springframework.boot.test.autoconfigure.orm.jpa.TestEntityManager;
 
 /**
  * 알림 자동 삭제 테스트입니다.
@@ -34,6 +34,9 @@ class NotificationAutoDeleteTest {
   @Autowired
   private NotificationRepository notificationRepository;
 
+  @Autowired
+  private TestEntityManager entityManager;
+
   @Test
   @DisplayName("확인 후 1주일이 지난 알림만 삭제한다")
   void deleteConfirmedNotificationsUpdatedBefore() {
@@ -44,33 +47,48 @@ class NotificationAutoDeleteTest {
     Instant threshold = now.minus(7, ChronoUnit.DAYS);
 
     // 알림을 확인했고, updatedAt이 기준 시각보다 이전입니다.
-    // 요구사항상 삭제 대상입니다.
-    Notification oldConfirmedNotification = createNotification(true);
-    setAuditTime(
-        oldConfirmedNotification,
-        now.minus(8, ChronoUnit.DAYS)
+    // 이 알림만 삭제 대상이어야 합니다.
+    Notification oldConfirmedNotification = notificationRepository.saveAndFlush(
+        createNotification(true)
     );
 
     // 알림을 확인했지만, updatedAt이 아직 기준 시각 이후입니다.
     // 1주일이 지나지 않았으므로 삭제되면 안 됩니다.
-    Notification recentConfirmedNotification = createNotification(true);
-    setAuditTime(
-        recentConfirmedNotification,
-        now.minus(3, ChronoUnit.DAYS)
+    Notification recentConfirmedNotification = notificationRepository.saveAndFlush(
+        createNotification(true)
     );
 
     // 알림을 확인하지 않은 알림입니다.
     // 오래되었더라도 confirmed=false 이므로 삭제되면 안 됩니다.
-    Notification oldUnconfirmedNotification = createNotification(false);
-    setAuditTime(
-        oldUnconfirmedNotification,
+    Notification oldUnconfirmedNotification = notificationRepository.saveAndFlush(
+        createNotification(false)
+    );
+
+    // save 시점에는 JPA Auditing이 createdAt, updatedAt을 현재 시각으로 자동 설정합니다.
+    // 따라서 "8일 전 알림", "3일 전 알림" 같은 테스트 상황을 만들려면
+    // 저장 이후 DB 값을 직접 갱신해야 합니다.
+    //
+    // bulk update는 엔티티 생명주기 콜백과 Auditing을 거치지 않으므로,
+    // 테스트에서 원하는 updatedAt 값을 정확히 만들 수 있습니다.
+    updateAuditTime(
+        oldConfirmedNotification.getId(),
+        now.minus(8, ChronoUnit.DAYS)
+    );
+
+    updateAuditTime(
+        recentConfirmedNotification.getId(),
+        now.minus(3, ChronoUnit.DAYS)
+    );
+
+    updateAuditTime(
+        oldUnconfirmedNotification.getId(),
         now.minus(10, ChronoUnit.DAYS)
     );
 
-    notificationRepository.save(oldConfirmedNotification);
-    notificationRepository.save(recentConfirmedNotification);
-    notificationRepository.save(oldUnconfirmedNotification);
-    notificationRepository.flush();
+    // bulk update 이후 영속성 컨텍스트에는 이전 엔티티 상태가 남아 있을 수 있습니다.
+    // 이후 existsById, delete 쿼리가 DB 기준으로 동작하도록 flush/clear 합니다.
+    entityManager.flush();
+    entityManager.clear();
 
     // when
     // 기준 시각보다 updatedAt이 오래된 확인 알림을 삭제합니다.
@@ -114,17 +132,28 @@ class NotificationAutoDeleteTest {
   }
 
   /**
-   * BaseEntity의 createdAt, updatedAt 값을 테스트에서 직접 세팅합니다.
+   * 테스트 데이터의 createdAt, updatedAt을 DB에서 직접 수정합니다.
    *
-   * 실제 운영 코드에서는 JPA Auditing이 createdAt, updatedAt을 자동으로 채웁니다.
-   * 하지만 자동 삭제 테스트에서는 "며칠 전 읽음 처리된 알림"을 만들어야 하므로,
-   * ReflectionTestUtils를 사용해 테스트 데이터의 시간을 명시적으로 조정합니다.
+   * Notification은 BaseEntity의 JPA Auditing을 사용하므로,
+   * save 시점에 createdAt과 updatedAt이 현재 시각으로 자동 설정됩니다.
    *
-   * updatedAt은 알림을 읽음 처리한 시각으로 보고,
-   * 자동 삭제 기준 판단에 사용합니다.
+   * 자동 삭제 테스트에서는 "8일 전에 확인한 알림"처럼
+   * 과거 updatedAt을 가진 데이터를 만들어야 하므로,
+   * 저장 이후 bulk update로 DB 값을 직접 변경합니다.
+   *
+   * bulk update는 JPA Auditing을 다시 태우지 않기 때문에
+   * 테스트에서 원하는 시간을 정확히 유지할 수 있습니다.
    */
-  private void setAuditTime(Notification notification, Instant time) {
-    ReflectionTestUtils.setField(notification, "createdAt", time);
-    ReflectionTestUtils.setField(notification, "updatedAt", time);
+  private void updateAuditTime(UUID notificationId, Instant time) {
+    entityManager.getEntityManager()
+        .createQuery("""
+          update Notification n
+          set n.createdAt = :time,
+              n.updatedAt = :time
+          where n.id = :notificationId
+          """)
+        .setParameter("time", time)
+        .setParameter("notificationId", notificationId)
+        .executeUpdate();
   }
 }
