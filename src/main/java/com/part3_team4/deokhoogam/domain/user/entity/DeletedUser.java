@@ -21,6 +21,8 @@ public class DeletedUser {
 
   private String email;
 
+  private String password;
+
   @Column(name = "nickname")
   private String name;
 
@@ -33,10 +35,11 @@ public class DeletedUser {
   @Column(name = "deleted_at", nullable = false)
   private Instant deletedAt;
 
-  public DeletedUser(UUID id, String email, String name, Instant createdAt, Instant updatedAt) {
+  public DeletedUser(UUID id, String email, String name, String password, Instant createdAt, Instant updatedAt) {
     this.id = id;
     this.email = email;
     this.name = name;
+    this.password = password;
     this.createdAt = createdAt;
     this.updatedAt = updatedAt;
     this.deletedAt = Instant.now();
@@ -47,6 +50,7 @@ public class DeletedUser {
         user.getId(),
         user.getEmail(),
         user.getName(),
+        user.getPassword(),
         user.getCreatedAt(),
         user.getUpdatedAt()
     );
