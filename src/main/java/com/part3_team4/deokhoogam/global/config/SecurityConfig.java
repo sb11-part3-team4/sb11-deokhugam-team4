@@ -1,27 +1,20 @@
 package com.part3_team4.deokhoogam.global.config;
 
-import com.part3_team4.deokhoogam.global.jwt.JwtFilter;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.http.HttpMethod;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.WebSecurityCustomizer;
-import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
-import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
+import org.springframework.security.web.firewall.DefaultHttpFirewall;
 import org.springframework.security.web.firewall.HttpFirewall;
-import org.springframework.security.web.firewall.StrictHttpFirewall;
+import org.springframework.web.cors.CorsConfiguration;
+import org.springframework.web.cors.CorsConfigurationSource;
+import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 
 @Configuration
 public class SecurityConfig {
-
-  private final JwtFilter jwtFilter;
-
-  public SecurityConfig(JwtFilter jwtFilter) {
-    this.jwtFilter = jwtFilter;
-  }
 
   @Bean
   public PasswordEncoder passwordEncoder() {
@@ -31,43 +24,44 @@ public class SecurityConfig {
   @Bean
   public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
     http
+        .cors(cors -> cors.configurationSource(corsConfigurationSource())) // CORS 유지
         .csrf(csrf -> csrf.disable())
-        .sessionManagement(session
-            -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
         .authorizeHttpRequests(auth -> auth
-            // 회원가입, 로그인은 토큰 없이 접근 가능
-            .requestMatchers(HttpMethod.POST, "/api/users").permitAll()
-            .requestMatchers("/api/users/login").permitAll()
-            // 메인 페이지 HTML 접근 허용
-            .requestMatchers("/", "/index.html").permitAll()
-            .anyRequest().authenticated()
+            .anyRequest().permitAll()
         )
         .formLogin(form -> form.disable())
         .httpBasic(basic -> basic.disable());
-
-    http.addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class);
 
     return http.build();
   }
 
   @Bean
-  public HttpFirewall httpFirewall() {
-    StrictHttpFirewall firewall = new StrictHttpFirewall();
-    firewall.setAllowUrlEncodedDoubleSlash(true);
-    firewall.setAllowSemicolon(true);
-    firewall.setAllowBackSlash(true);
-    return  firewall;
+  public CorsConfigurationSource corsConfigurationSource() {
+    CorsConfiguration configuration = new CorsConfiguration();
+
+    configuration.addAllowedOriginPattern("*");
+    configuration.addAllowedMethod("*");
+    configuration.addAllowedHeader("*");
+    configuration.setAllowCredentials(true);
+
+    UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
+    source.registerCorsConfiguration("/**", configuration);
+    return source;
   }
 
   @Bean
-  public WebSecurityCustomizer webSecurityCustomizer(HttpFirewall httpFirewall) {
+  public HttpFirewall defaultHttpFirewall() {
+    return new DefaultHttpFirewall();
+  }
+
+  @Bean
+  public WebSecurityCustomizer webSecurityCustomizer() {
     return (web) -> web
-        .httpFirewall(httpFirewall)
+        .httpFirewall(defaultHttpFirewall()) // 관대한 방화벽 적용
         .ignoring()
         .requestMatchers(
             "/favicon.ico", "/error",
-            "/css/**", "/js/**", "/images/**", "/assets/**",
-            "/swagger-ui/**", "/v3/api-docs/**", "/swagger-resources/**"
+            "/css/**", "/js/**", "/images/**", "/assets/**" // 이미지 경로 시큐리티 무시
         );
   }
 }
