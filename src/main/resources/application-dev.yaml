@@ -23,6 +23,12 @@ spring:
     console:
       enabled: true
 
+  batch:
+    jdbc:
+      initialize-schema: always
+    job:
+      enabled: false
+
 logging:
   level:
     com.sprint.mission.discodeit: DEBUG

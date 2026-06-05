@@ -1,6 +1,7 @@
 package com.part3_team4.deokhoogam.batch.delete.comment;
 
 import com.part3_team4.deokhoogam.domain.comment.repository.DeletedCommentRepository;
+import io.awspring.cloud.s3.S3Template;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -11,6 +12,7 @@ import org.springframework.batch.test.JobRepositoryTestUtils;
 import org.springframework.batch.test.context.SpringBatchTest;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.context.ActiveProfiles;
 
@@ -23,6 +25,10 @@ import static org.assertj.core.api.Assertions.assertThat;
 @SpringBootTest
 @ActiveProfiles("test")
 class DeleteOrphanCommentJobConfigTest {
+
+    @MockBean
+    @SuppressWarnings("unused")
+    private S3Template s3Template;
 
     @Autowired
     private JobLauncherTestUtils jobLauncherTestUtils;
@@ -40,6 +46,7 @@ class DeleteOrphanCommentJobConfigTest {
     void setUp() {
         jobRepositoryTestUtils.removeJobExecutions();
         jdbcTemplate.execute("DELETE FROM deleted_comment");
+        jdbcTemplate.execute("DELETE FROM comment");
         jdbcTemplate.execute("DELETE FROM deleted_review");
         jdbcTemplate.execute("DELETE FROM deleted_user");
         jdbcTemplate.execute("DELETE FROM review");
