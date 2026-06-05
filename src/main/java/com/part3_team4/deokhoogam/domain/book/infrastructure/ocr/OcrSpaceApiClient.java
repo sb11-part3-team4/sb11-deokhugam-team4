@@ -35,7 +35,7 @@ public class OcrSpaceApiClient {
   public String extractTextFromImage(MultipartFile file) {
     MultiValueMap<String, Object> body = new LinkedMultiValueMap<>();
     body.add("file", file.getResource());
-    body.add("language", "kor");
+    body.add("language", "eng");
 
     try {
       OcrSpaceDto response = restClient.post()
