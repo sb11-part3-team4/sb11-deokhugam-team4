@@ -37,7 +37,7 @@ public class DeleteExpiredNotificationJobConfig {
    *
    * 즉, 매일 03:00:00에 실행됩니다.
    */
-  @Scheduled(cron = "0 0 3 * * *")
+  @Scheduled(cron = "0 0 3 * * *", zone = "Asia/Seoul")
   public void deleteExpiredNotifications() {
     notificationAutoDeleteService.deleteOldConfirmedNotifications();
   }
