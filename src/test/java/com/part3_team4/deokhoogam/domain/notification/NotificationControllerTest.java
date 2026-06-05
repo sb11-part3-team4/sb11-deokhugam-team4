@@ -2,34 +2,33 @@ package com.part3_team4.deokhoogam.domain.notification;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.ArgumentMatchers.isNull;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.BDDMockito.then;
-import static org.mockito.ArgumentMatchers.isNull;
 import static org.springframework.http.MediaType.APPLICATION_JSON;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.part3_team4.deokhoogam.domain.notification.controller.NotificationController;
 import com.part3_team4.deokhoogam.domain.notification.dto.NotificationDto;
-import com.part3_team4.deokhoogam.domain.notification.service.NotificationService;
 import com.part3_team4.deokhoogam.domain.notification.dto.NotificationUpdateRequest;
-import com.part3_team4.deokhoogam.global.jwt.JwtFilter;
+import com.part3_team4.deokhoogam.domain.notification.service.NotificationService;
 import com.part3_team4.deokhoogam.global.common.PageResponse;
 import java.time.Instant;
-import java.util.UUID;
 import java.util.List;
+import java.util.UUID;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
+import org.springframework.data.domain.Sort;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
-import org.springframework.data.domain.Sort;
 
 /**
  * NotificationController의 HTTP API 계약을 검증하는 테스트입니다.
@@ -77,9 +76,6 @@ class NotificationControllerTest {
    */
   @MockitoBean
   private NotificationService notificationService;
-
-  @MockitoBean
-  private JwtFilter jwtFilter;
 
   @Test
   @DisplayName("PATCH /api/notifications/{notificationId} 요청으로 알림 읽음 상태를 수정한다")

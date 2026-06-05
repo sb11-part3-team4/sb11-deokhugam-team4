@@ -17,7 +17,3 @@ logging:
   level:
     root: WARN
     com.part3_team4.deokhoogam: INFO
-
-jwt:
-  secret: ${JWT_SECRET}
-  expiration_time: 3600000

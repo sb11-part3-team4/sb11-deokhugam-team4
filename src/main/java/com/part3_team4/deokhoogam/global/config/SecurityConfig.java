@@ -1,27 +1,22 @@
 package com.part3_team4.deokhoogam.global.config;
 
-import com.part3_team4.deokhoogam.global.jwt.JwtFilter;
+import java.util.List;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpMethod;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.WebSecurityCustomizer;
-import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
-import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
+import org.springframework.security.web.firewall.DefaultHttpFirewall;
 import org.springframework.security.web.firewall.HttpFirewall;
-import org.springframework.security.web.firewall.StrictHttpFirewall;
+import org.springframework.web.cors.CorsConfiguration;
+import org.springframework.web.cors.CorsConfigurationSource;
+import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 
 @Configuration
 public class SecurityConfig {
-
-  private final JwtFilter jwtFilter;
-
-  public SecurityConfig(JwtFilter jwtFilter) {
-    this.jwtFilter = jwtFilter;
-  }
 
   @Bean
   public PasswordEncoder passwordEncoder() {
@@ -31,36 +26,49 @@ public class SecurityConfig {
   @Bean
   public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
     http
+        .cors(cors -> cors.configurationSource(corsConfigurationSource()))
         .csrf(csrf -> csrf.disable())
-        .sessionManagement(session
-            -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
         .authorizeHttpRequests(auth -> auth
-            .requestMatchers(HttpMethod.POST, "/api/users").permitAll()
-            .requestMatchers(
-                "/", "/index.html", "/favicon.ico", "/error",
-                "/css/**", "/js/**", "/images/**", "/assets/**",
-                "/swagger-ui/**", "/v3/api-docs/**", "/swagger-resources/**",
-                "/api/users/login"
-            ).permitAll()
-            .anyRequest().authenticated()
+            .requestMatchers(HttpMethod.DELETE, "/api/users/*/hard").denyAll()
+            .anyRequest().permitAll()
         )
         .formLogin(form -> form.disable())
         .httpBasic(basic -> basic.disable());
-
-    http.addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class);
 
     return http.build();
   }
 
   @Bean
-  public HttpFirewall httpFirewall() {
-    StrictHttpFirewall firewall = new StrictHttpFirewall();
-    firewall.setAllowUrlEncodedDoubleSlash(true);
-    return  firewall;
+  public CorsConfigurationSource corsConfigurationSource() {
+    CorsConfiguration configuration = new CorsConfiguration();
+
+    configuration.setAllowedOriginPatterns(List.of(
+        "http://localhost:3000",
+        "https://*.deokhoogam.com" // 배포된 프론트엔드 도메인
+    ));
+    configuration.addAllowedMethod("*");
+    configuration.addAllowedHeader("*");
+    configuration.setAllowCredentials(true);
+
+    UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
+    source.registerCorsConfiguration("/**", configuration);
+    return source;
+  }
+
+  // 프론트엔드 '//' 경로 에러 방어를 위해 DefaultHttpFirewall 유지
+  @Bean
+  public HttpFirewall defaultHttpFirewall() {
+    return new DefaultHttpFirewall();
   }
 
   @Bean
-  public WebSecurityCustomizer webSecurityCustomizer(HttpFirewall httpFirewall) {
-    return (web) -> web.httpFirewall(httpFirewall);
+  public WebSecurityCustomizer webSecurityCustomizer() {
+    return (web) -> web
+        .httpFirewall(defaultHttpFirewall())
+        .ignoring()
+        .requestMatchers(
+            "/favicon.ico", "/error",
+            "/css/**", "/js/**", "/images/**", "/assets/**"
+        );
   }
 }

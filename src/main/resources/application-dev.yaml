@@ -36,6 +36,3 @@ springdoc:
   swagger-ui:
     enabled: true
 
-jwt:
-  secret: ${JWT_SECRET:dGVhbTQtZGVva2h1Z2FtLWxvY2FsLWRldi1zZWNyZXQta2V5LTEyMzQ1Njc4OTA=}
-  expiration_time: 3600000

@@ -1,7 +1,6 @@
 package com.part3_team4.deokhoogam.domain.user.service;
 
 import com.part3_team4.deokhoogam.domain.user.repository.DeletedUserRepository;
-import com.part3_team4.deokhoogam.domain.user.repository.UserRepository;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.List;
@@ -15,12 +14,10 @@ import org.springframework.stereotype.Service;
 public class UserCleanupService {
 
   private final DeletedUserRepository deletedUserRepository;
-  private final UserRepository userRepository;
   private static final Logger log = LoggerFactory.getLogger(UserCleanupService.class);
 
-  public UserCleanupService(DeletedUserRepository deletedUserRepository, UserRepository userRepository) {
+  public UserCleanupService(DeletedUserRepository deletedUserRepository) {
     this.deletedUserRepository = deletedUserRepository;
-    this.userRepository = userRepository;
   }
 
   @Scheduled(cron = "0 0 3 * * *")
@@ -31,8 +28,6 @@ public class UserCleanupService {
 
     for (UUID id : oldUserIds) {
       try {
-        userRepository.hardDeleteById(id);
-
         deletedUserRepository.deleteById(id);
       } catch (Exception e) {
         log.error("유저 영구 삭제 실패 (ID: {}): {}", id, e.getMessage());
