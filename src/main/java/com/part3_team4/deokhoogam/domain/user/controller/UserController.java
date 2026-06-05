@@ -4,12 +4,14 @@ import com.part3_team4.deokhoogam.domain.user.dto.PasswordUpdateRequestDto;
 import com.part3_team4.deokhoogam.domain.user.dto.UserCreateRequestDto;
 import com.part3_team4.deokhoogam.domain.user.dto.UserDto;
 import com.part3_team4.deokhoogam.domain.user.dto.UserLoginRequestDto;
+import com.part3_team4.deokhoogam.domain.user.dto.UserLoginResultDto;
 import com.part3_team4.deokhoogam.domain.user.dto.UserUpdateRequestDto;
 import com.part3_team4.deokhoogam.domain.user.dto.response.UserResponse;
 import com.part3_team4.deokhoogam.domain.user.service.UserService;
 import jakarta.validation.Valid;
 import java.util.Map;
 import java.util.UUID;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.DeleteMapping;
@@ -30,7 +32,7 @@ public class UserController {
     this.userService = userService;
   }
 
-  @PostMapping(value = "/signup")
+  @PostMapping
   public ResponseEntity<UserDto> signup(
       @Valid @RequestBody UserCreateRequestDto request) {
 
@@ -76,11 +78,23 @@ public class UserController {
   }
 
   @PostMapping("/login")
-  public ResponseEntity<Map<String, String>> login(
+  public ResponseEntity<Map<String, Object>> login(
       @Valid @RequestBody UserLoginRequestDto request) {
 
-    String token = userService.login(request.email(), request.password());
+    UserLoginResultDto result = userService.login(request.email(), request.password());
 
-    return ResponseEntity.ok(Map.of("accessToken", token));
+    HttpHeaders headers = new HttpHeaders();
+    headers.set("Authorization", "Bearer " + result.token());
+
+    Map<String, Object> responseBody = Map.of(
+        "token", result.token(),
+        "accessToken", result.token(),
+        "id", result.id(),
+        "email", result.email(),
+        "nickname", result.nickname(),
+        "createdAt", result.createdAt()
+    );
+
+    return ResponseEntity.ok().headers(headers).body(responseBody);
   }
 }
