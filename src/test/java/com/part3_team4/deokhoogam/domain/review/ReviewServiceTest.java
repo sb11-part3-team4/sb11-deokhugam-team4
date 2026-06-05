@@ -480,4 +480,22 @@ public class ReviewServiceTest {
         assertThat(response.content()).allMatch(r -> r.likedByMe());
     }
 
+    @Test
+    @DisplayName("검색 결과가 0건 이면 빈 배열과 hasNext=false를 반환한다")
+    void getReviews_emptyResult() {
+        UUID requestUserId = UUID.randomUUID();
+
+        ReviewListRequest request = new ReviewListRequest(
+                null, null, null, "createdAt","DESC", null, null, 50
+        );
+
+        given(reviewRepository.findReviews(any(ReviewListRequest.class)))
+                .willReturn(List.of());
+
+        PageResponse<ReviewResponse> response = reviewService.getReviews(requestUserId, request);
+
+        assertThat(response.content()).isEmpty();
+        assertThat(response.hasNext()).isFalse();
+    }
+
 }
