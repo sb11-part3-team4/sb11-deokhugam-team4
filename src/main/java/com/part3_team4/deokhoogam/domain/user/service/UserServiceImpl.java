@@ -121,10 +121,11 @@ public class UserServiceImpl implements UserService{
   @Override
   @Transactional
   public void hardDeleteUser(UUID userId) {
-    userRepository.findById(userId).ifPresent(user -> {
-      eventPublisher.publishEvent(new UserDeletedEvent(userId));
-      userRepository.delete(user);
-    });
+    User user = userRepository.findById(userId)
+        .orElseThrow(() -> UserNotFoundException.withId(userId));
+
+    eventPublisher.publishEvent(new UserDeletedEvent(userId));
+    userRepository.delete(user);
 
     deleteUserRepository.findById(userId).ifPresent(deletedUser -> {
       deleteUserRepository.delete(deletedUser);

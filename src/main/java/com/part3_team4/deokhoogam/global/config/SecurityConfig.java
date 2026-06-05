@@ -1,7 +1,9 @@
 package com.part3_team4.deokhoogam.global.config;
 
+import java.util.List;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.http.HttpMethod;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.WebSecurityCustomizer;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
@@ -24,9 +26,10 @@ public class SecurityConfig {
   @Bean
   public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
     http
-        .cors(cors -> cors.configurationSource(corsConfigurationSource())) // CORS 유지
+        .cors(cors -> cors.configurationSource(corsConfigurationSource()))
         .csrf(csrf -> csrf.disable())
         .authorizeHttpRequests(auth -> auth
+            .requestMatchers(HttpMethod.DELETE, "/api/users/*/hard").denyAll()
             .anyRequest().permitAll()
         )
         .formLogin(form -> form.disable())
@@ -39,7 +42,10 @@ public class SecurityConfig {
   public CorsConfigurationSource corsConfigurationSource() {
     CorsConfiguration configuration = new CorsConfiguration();
 
-    configuration.addAllowedOriginPattern("*");
+    configuration.setAllowedOriginPatterns(List.of(
+        "http://localhost:3000",
+        "https://*.deokhoogam.com" // 배포된 프론트엔드 도메인
+    ));
     configuration.addAllowedMethod("*");
     configuration.addAllowedHeader("*");
     configuration.setAllowCredentials(true);
@@ -49,6 +55,7 @@ public class SecurityConfig {
     return source;
   }
 
+  // 프론트엔드 '//' 경로 에러 방어를 위해 DefaultHttpFirewall 유지
   @Bean
   public HttpFirewall defaultHttpFirewall() {
     return new DefaultHttpFirewall();
@@ -57,11 +64,11 @@ public class SecurityConfig {
   @Bean
   public WebSecurityCustomizer webSecurityCustomizer() {
     return (web) -> web
-        .httpFirewall(defaultHttpFirewall()) // 관대한 방화벽 적용
+        .httpFirewall(defaultHttpFirewall())
         .ignoring()
         .requestMatchers(
             "/favicon.ico", "/error",
-            "/css/**", "/js/**", "/images/**", "/assets/**" // 이미지 경로 시큐리티 무시
+            "/css/**", "/js/**", "/images/**", "/assets/**"
         );
   }
 }

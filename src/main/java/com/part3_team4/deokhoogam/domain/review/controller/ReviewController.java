@@ -65,6 +65,7 @@ public class ReviewController {
         return ResponseEntity.ok(response);
     }
 
+    // TODO: 임시 Mock 응답 - 실제 인기 리뷰 페이지네이션 로직 구현 필요
     @GetMapping("/popular")
     public ResponseEntity<Map<String, Object>> getPopularReviews() {
         return ResponseEntity.ok(Map.of(

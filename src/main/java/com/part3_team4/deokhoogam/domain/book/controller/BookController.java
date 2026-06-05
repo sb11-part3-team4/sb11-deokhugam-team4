@@ -98,6 +98,7 @@ public class BookController implements BookAPI {
     return ResponseEntity.ok().body(response);
   }
 
+  // TODO: 임시 Mock 응답 - 실제 인기 도서 페이지네이션 로직 구현 필요
   @GetMapping("/popular")
   public ResponseEntity<Map<String, Object>> getPopularBooks() {
     return ResponseEntity.ok(Map.of(
