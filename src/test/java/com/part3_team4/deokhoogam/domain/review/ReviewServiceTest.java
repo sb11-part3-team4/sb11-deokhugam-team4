@@ -387,5 +387,26 @@ public class ReviewServiceTest {
         assertThat(response.content()).allMatch(r -> r.bookId().equals(targetBookId));
     }
 
+    @Test
+    @DisplayName("keyword으로 리뷰를 검색하면 해당 keyword가 포함된 리뷰만 반환한다")
+    void getReviews_keyWord() {
+        UUID requestUserId = UUID.randomUUID();
+
+        Review review1 = Review.create(UUID.randomUUID(), UUID.randomUUID(), 4, "좋은 책이에요");
+        Review review2 = Review.create(UUID.randomUUID(), UUID.randomUUID(), 3, "괜찮아요");
+
+        ReviewListRequest request = new ReviewListRequest(
+                null, null, "좋은", "createdAt","DESC", null, null, 50
+        );
+
+        given(reviewRepository.findReviews(any(ReviewListRequest.class)))
+                .willReturn(List.of(review1, review2));
+        given(reviewLikeRepository.existsByReviewIdAndUserId(any(), eq(requestUserId)))
+                .willReturn(false);
+
+        PageResponse<ReviewResponse> response = reviewService.getReviews(requestUserId, request);
+
+        assertThat(response.content()).hasSize(2);
+    }
 
 }
