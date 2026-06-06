@@ -22,5 +22,10 @@ public interface BookService {
 
   PageResponse<BookDto> getBooks(BookGetListRequest request);
 
+  void delete(UUID bookId);
+
+  void deleteHard(UUID bookId);
+
+
 
 }

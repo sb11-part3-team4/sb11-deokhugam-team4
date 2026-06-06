@@ -53,7 +53,17 @@ public class S3FileUploader implements FileUploader {
   @Override
   public void delete(String fileUrl) {
     log.info("S3 파일 삭제 로직 실행: {}", fileUrl);
-    // 실제 삭제 로직은 추후 구현 예정입니다.
+
+    if (fileUrl == null || fileUrl.isBlank()) {
+      log.warn("삭제할 파일 URL이 존재하지 않습니다.");
+      return;
+    }
+
+    //URL에서 Key 추출
+    String key = extractKey(fileUrl);
+
+    // SoftDelete
+    cleanup(key);
   }
 
   private void validateFile(MultipartFile file) {
@@ -106,6 +116,22 @@ public class S3FileUploader implements FileUploader {
       log.info("S3 파일 정리 완료: {}", key);
     } catch (Exception e) {
       log.error("S3 파일 정리 실패: {}", key, e);
+    }
+  }
+
+  private String extractKey(String fileUrl) {
+    try {
+      java.net.URI uri = new java.net.URI(fileUrl);
+      String path = uri.getPath();
+
+      //앞의 /삭제
+      if (path != null && path.startsWith("/")) {
+        return path.substring(1);
+      }
+      return path;
+    } catch (java.net.URISyntaxException e) {
+      log.error("잘못된 파일 URL 형식입니다: {}", fileUrl);
+      throw InvalidFileException.withFieldAndValue(ErrorKey.FILE, fileUrl, "유효하지 않은 파일 URL입니다.");
     }
   }
 }

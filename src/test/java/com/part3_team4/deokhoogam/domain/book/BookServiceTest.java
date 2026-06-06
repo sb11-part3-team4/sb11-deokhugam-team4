@@ -18,11 +18,13 @@ import com.part3_team4.deokhoogam.domain.book.dto.BookGetListRequest;
 import com.part3_team4.deokhoogam.domain.book.dto.BookUpdateRequest;
 import com.part3_team4.deokhoogam.domain.book.dto.NaverBookDto;
 import com.part3_team4.deokhoogam.domain.book.entity.Book;
+import com.part3_team4.deokhoogam.domain.book.entity.DeletedBook;
 import com.part3_team4.deokhoogam.domain.book.exception.BookNotFoundException;
 import com.part3_team4.deokhoogam.domain.book.exception.InvalidIsbnException;
 import com.part3_team4.deokhoogam.domain.book.exception.IsbnAlreadyExistsException;
 import com.part3_team4.deokhoogam.domain.book.instructure.naver.NaverApiService;
 import com.part3_team4.deokhoogam.domain.book.repository.BookRepository;
+import com.part3_team4.deokhoogam.domain.book.repository.DeletedBookRepository;
 import com.part3_team4.deokhoogam.domain.book.service.BookServiceImpl;
 import com.part3_team4.deokhoogam.global.common.PageResponse;
 import com.part3_team4.deokhoogam.global.exception.Base64Exception;
@@ -68,6 +70,9 @@ class BookServiceTest {
 
   @Mock
   private BookRepository bookRepository;
+
+  @Mock
+  private DeletedBookRepository deletedBookRepository;
 
   @Mock
   private FileUploader fileUploader;
@@ -410,13 +415,6 @@ class BookServiceTest {
 
   }
 
-  private DataIntegrityViolationException createDataIntegrityViolation(String constraintName) {
-    ConstraintViolationException cause = new ConstraintViolationException(
-        "제약조건명 검증",
-        new SQLException(),
-        constraintName);
-    return new DataIntegrityViolationException("데이터 무결성 예외 발생", cause);
-  }
 
   @Nested
   @DisplayName("isbn으로 네이버 API를 통해 도서 정보를 가져올때")
@@ -440,7 +438,7 @@ class BookServiceTest {
     }
 
     @Test
-    @DisplayName("ISBN 형식에 입력시 400 과 예외를 발생시킨다")
+    @DisplayName("ISBN 형식에 맞지 않는 입력시 400 과 예외를 발생시킨다")
     void return_400_when_invalid_isbn() {
 
       String invalidIsbn = "978895727254";
@@ -638,6 +636,99 @@ class BookServiceTest {
 
   }
 
+
+
+
+  @Nested
+  @DisplayName("도서 논리 삭제 서비스에서")
+  class TestDeleteBook {
+
+
+    UUID mockId = UUID.randomUUID();
+
+    @Test
+    @DisplayName("도서 테이블에서 해당 정보를 삭제하고 삭제 테이블로 옮긴다.")
+    void deleteBook_success_and_move_to_deleted_table() {
+
+      //given
+      given(bookRepository.findById(any())).willReturn(Optional.of(BookFixtures.validBookToId(mockId)));
+
+      DeletedBook deletedBook = BookFixtures.deletedBook(mockId);
+
+      given(deletedBookRepository.save(any())).willReturn(deletedBook);
+
+      //when
+      bookService.delete(mockId);
+
+      //then
+      then(bookRepository).should().deleteById(mockId);
+      then(deletedBookRepository).should().save(any(DeletedBook.class));
+
+    }
+
+    @Test
+    @DisplayName("존재하지 않는 도서 ID로 삭제 시 예외가 발생한다")
+    void deleteBook_fail_when_book_not_found() {
+      // given
+      given(bookRepository.findById(any())).willReturn(Optional.empty());
+
+      // when & then
+      assertThatThrownBy(() -> bookService.delete(mockId))
+          .isInstanceOf(BookNotFoundException.class);
+    }
+
+
+
+  }
+
+
+  @Nested
+  @DisplayName("도서 물리 삭제 서비스에서")
+  class TestDeleteHardBook {
+
+    @Test
+    @DisplayName("유효한 도서 아이디가 들어올 경우 삭제한다")
+    void successful_delete_book_hard() {
+
+      UUID mockId = UUID.randomUUID();
+
+      given(deletedBookRepository.findById(mockId)).willReturn(Optional.of(BookFixtures.deletedBook(mockId)));
+
+      bookService.deleteHard(mockId);
+
+      then(deletedBookRepository).should().findById(mockId);
+      then(deletedBookRepository).should().deleteById(mockId);
+      then(fileUploader).should().delete(any());
+      then(fileUploader).shouldHaveNoMoreInteractions();
+
+    }
+
+    @Test
+    @DisplayName("유효한 도서 아이디가 아닐경우 예외를 발생시킨다")
+    void fail_delete_book_hard_when_book_not_found() {
+
+
+      given(deletedBookRepository.findById(any())).willReturn(Optional.empty());
+
+      assertThatThrownBy(() -> bookService.deleteHard(UUID.randomUUID()))
+          .isInstanceOf(BookNotFoundException.class);
+
+      then(deletedBookRepository).should().findById(any());
+      then(deletedBookRepository).shouldHaveNoMoreInteractions();
+      then(fileUploader).shouldHaveNoMoreInteractions();
+    }
+
+
+  }
+
+
+  private DataIntegrityViolationException createDataIntegrityViolation(String constraintName) {
+    ConstraintViolationException cause = new ConstraintViolationException(
+        "제약조건명 검증",
+        new SQLException(),
+        constraintName);
+    return new DataIntegrityViolationException("데이터 무결성 예외 발생", cause);
+  }
 
 
 }

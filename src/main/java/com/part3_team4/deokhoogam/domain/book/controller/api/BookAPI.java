@@ -33,6 +33,25 @@ public interface BookAPI {
       @PathVariable UUID bookId
   );
 
+  @Operation(summary = "도서 상세 논리 삭제")
+  @ApiResponses(value = {
+      @ApiResponse(responseCode = "200", description = "도서 삭제 성공"),
+      @ApiResponse(responseCode = "404", description = "도서 정보 없음")
+  })
+  ResponseEntity<Void> deleteBook(
+      @PathVariable UUID bookId
+  );
+
+  @Operation(summary = "도서 상세 물리 삭제")
+  @ApiResponses(value = {
+      @ApiResponse(responseCode = "200", description = "도서 삭제 성공"),
+      @ApiResponse(responseCode = "404", description = "도서 정보 없음")
+  })
+  ResponseEntity<Void> deleteBookHard(
+      @PathVariable UUID bookId
+  );
+
+
 
   @Operation(summary = "ISBN으로 도서 정보 조회")
   @ApiResponses(value = {
