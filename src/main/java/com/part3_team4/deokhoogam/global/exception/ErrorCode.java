@@ -48,7 +48,8 @@ public enum ErrorCode {
   EXTERNAL_API_TIMEOUT(HttpStatus.GATEWAY_TIMEOUT, "COMMON-004", "외부 서버와의 연결이 지연되고 있습니다."),
   BASE64_ENCODING_ERROR(HttpStatus.INTERNAL_SERVER_ERROR, "COMMON-005", "커서 인코딩 중 오류가 발생했습니다."),
   BASE64_DECODING_ERROR(HttpStatus.BAD_REQUEST, "COMMON-006", "잘못된 커서로 인해 디코딩에 실패했습니다."),
-
+  INVALID_SORT_TYPE_ERROR(HttpStatus.BAD_REQUEST, "COMMON-007", "잘못된 정렬 조건 입력입니다"),
+  INVALID_DIRECTION_VALUE(HttpStatus.BAD_REQUEST,"COMMON-008", "잘못된 정렬 방향입니다."),
 
   // 7. 스토리지 예외
   INVALID_FILE_INPUT(HttpStatus.BAD_REQUEST, "STORAGE-001", "올바르지 않은 파일 정보입니다."),

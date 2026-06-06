@@ -2,6 +2,7 @@ package com.part3_team4.deokhoogam.domain.book.entity;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonValue;
+import com.part3_team4.deokhoogam.domain.book.exception.InvalidSortTypeException;
 import java.util.Arrays;
 
 
@@ -31,6 +32,6 @@ public enum SortType {
     return Arrays.stream(SortType.values())
         .filter(t -> t.value.equals(value))
         .findFirst()
-        .orElseThrow(() -> new IllegalArgumentException("유효하지 않은 정렬 기준입니다."));
+        .orElseThrow(() -> InvalidSortTypeException.withValue(value));
   }
 }
