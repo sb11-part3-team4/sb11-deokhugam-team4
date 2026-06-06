@@ -127,6 +127,88 @@ public class NotificationServiceImpl implements NotificationService {
     notifications.forEach(notification -> notification.updateConfirmed(true));
   }
 
+  /**
+   * 좋아요 발생 알림을 생성합니다.
+   *
+   * receiverId와 actorId가 같으면 자기 자신의 리뷰에 좋아요를 누른 상황이므로
+   * 불필요한 자기 알림을 생성하지 않습니다.
+   */
+  @Override
+  public void createLikeNotification(
+      UUID receiverId,
+      UUID reviewId,
+      String reviewContent,
+      String sender,
+      UUID actorId
+  ) {
+    // 리뷰 작성자와 좋아요를 누른 사람이 같으면 알림을 저장하지 않습니다.
+    if (receiverId.equals(actorId)) {
+      return;
+    }
+
+    // 좋아요 알림에 맞는 메시지와 함께 Notification 엔티티를 저장합니다.
+    saveNotification(
+        receiverId,
+        reviewId,
+        reviewContent,
+        sender + "님이 내 리뷰에 좋아요를 눌렀습니다."
+    );
+  }
+
+  /**
+   * 댓글 발생 알림을 생성합니다.
+   *
+   * receiverId와 actorId가 같으면 자기 자신의 리뷰에 댓글을 작성한 상황이므로
+   * 불필요한 자기 알림을 생성하지 않습니다.
+   */
+  @Override
+  public void createCommentNotification(
+      UUID receiverId,
+      UUID reviewId,
+      String reviewContent,
+      String sender,
+      UUID actorId
+  ) {
+    // 리뷰 작성자와 댓글 작성자가 같으면 알림을 저장하지 않습니다.
+    if (receiverId.equals(actorId)) {
+      return;
+    }
+
+    // 댓글 알림에 맞는 메시지와 함께 Notification 엔티티를 저장합니다.
+    saveNotification(
+        receiverId,
+        reviewId,
+        reviewContent,
+        sender + "님이 내 리뷰에 댓글을 남겼습니다."
+    );
+  }
+
+  /**
+   * 알림 유형별 메서드에서 공통으로 사용하는 저장 메서드입니다.
+   *
+   * 좋아요와 댓글 알림은 메시지만 다르고 Notification 생성 과정은 같으므로,
+   * 중복되는 엔티티 생성 및 Repository 저장 코드를 이 메서드로 분리합니다.
+   */
+  private void saveNotification(
+      UUID receiverId,
+      UUID reviewId,
+      String reviewContent,
+      String message
+  ) {
+    Notification notification = Notification.builder()
+        .userId(receiverId)
+        .reviewId(reviewId)
+        .reviewContent(reviewContent)
+        .message(message)
+        // 새로 생성된 알림은 아직 사용자가 확인하지 않았으므로 false입니다.
+        .confirmed(false)
+        .build();
+
+    notificationRepository.save(notification);
+  }
+
+
+
   @Override
   @Transactional(readOnly = true)
   public PageResponse<NotificationDto> findAll(
