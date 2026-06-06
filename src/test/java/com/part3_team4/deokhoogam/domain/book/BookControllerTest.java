@@ -559,6 +559,30 @@ class BookControllerTest {
   }
 
   @Nested
+  @DisplayName("인기 도서 목록 조회에서")
+  class TestGetPopularBooks {
+
+
+
+
+
+
+
+
+
+
+
+
+
+  }
+
+
+
+
+
+
+
+  @Nested
   @DisplayName("도서 논리 삭제 API에서")
   class TestDeleteBook {
 

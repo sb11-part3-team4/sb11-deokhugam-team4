@@ -46,7 +46,6 @@ public class BookServiceImpl implements BookService {
   private final NaverApiService naverApiService;
 
 
-
   @Override
   @Transactional
   public BookDto create(BookCreateRequest request, MultipartFile thumbnailFile) {
@@ -179,7 +178,8 @@ public class BookServiceImpl implements BookService {
   public void delete(UUID bookId) {
 
     //정보 가져온 후
-    Book book = bookRepository.findById(bookId).orElseThrow(()->BookNotFoundException.withId(bookId));
+    Book book = bookRepository.findById(bookId)
+        .orElseThrow(() -> BookNotFoundException.withId(bookId));
 
     //삭제
     bookRepository.deleteById(bookId);
@@ -198,7 +198,8 @@ public class BookServiceImpl implements BookService {
   public void deleteHard(UUID bookId) {
 
     //S3 삭제 및 URL 가져오기
-    DeletedBook deletedBook = deletedBookRepository.findById(bookId).orElseThrow(()->BookNotFoundException.withId(bookId));
+    DeletedBook deletedBook = deletedBookRepository.findById(bookId)
+        .orElseThrow(() -> BookNotFoundException.withId(bookId));
 
     deletedBookRepository.deleteById(bookId);
 
