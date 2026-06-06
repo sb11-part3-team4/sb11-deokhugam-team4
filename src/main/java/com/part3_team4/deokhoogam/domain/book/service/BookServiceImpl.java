@@ -5,11 +5,13 @@ import com.part3_team4.deokhoogam.domain.book.dto.BookDto;
 import com.part3_team4.deokhoogam.domain.book.dto.BookUpdateRequest;
 import com.part3_team4.deokhoogam.domain.book.dto.NaverBookDto;
 import com.part3_team4.deokhoogam.domain.book.entity.Book;
+import com.part3_team4.deokhoogam.domain.book.entity.DeletedBook;
 import com.part3_team4.deokhoogam.domain.book.exception.BookNotFoundException;
 import com.part3_team4.deokhoogam.domain.book.exception.InvalidIsbnException;
 import com.part3_team4.deokhoogam.domain.book.exception.IsbnAlreadyExistsException;
 import com.part3_team4.deokhoogam.domain.book.instructure.naver.NaverApiService;
 import com.part3_team4.deokhoogam.domain.book.repository.BookRepository;
+import com.part3_team4.deokhoogam.domain.book.repository.DeletedBookRepository;
 import com.part3_team4.deokhoogam.global.storage.FileUploader;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
@@ -29,9 +31,13 @@ public class BookServiceImpl implements BookService {
   private static final String ISBN_UNIQUE_CONSTRAINT = "uk_book_isbn";
 
   private final BookRepository bookRepository;
+  private final DeletedBookRepository deletedBookRepository;
+
   private final FileUploader fileUploader;
 
   private final NaverApiService naverApiService;
+
+
 
   @Override
   @Transactional
@@ -115,6 +121,39 @@ public class BookServiceImpl implements BookService {
 
   }
 
+  @Override
+  @Transactional
+  public void delete(UUID bookId) {
+
+    //정보 가져온 후
+    Book book = bookRepository.findById(bookId).orElseThrow(()->BookNotFoundException.withId(bookId));
+
+    //삭제
+    bookRepository.deleteById(bookId);
+
+    //삭제 버전으로
+    DeletedBook deletedBook = DeletedBook.from(book);
+
+    //저장
+
+    deletedBookRepository.save(deletedBook);
+
+  }
+
+  @Override
+  @Transactional
+  public void deleteHard(UUID bookId) {
+
+    //S3 삭제 및 URL 가져오기
+    DeletedBook deletedBook = deletedBookRepository.findById(bookId).orElseThrow(()->BookNotFoundException.withId(bookId));
+
+    deletedBookRepository.deleteById(bookId);
+
+    fileUploader.delete(deletedBook.getThumbnailUrl());
+
+    //고아 파일 처리는 하위 도메인의 배치 연산으로 정리
+  }
+
 
   private void validateDuplicateIsbn(String isbn) {
     if (bookRepository.existsByIsbn(isbn)) {
@@ -142,3 +181,6 @@ public class BookServiceImpl implements BookService {
   }
 
 }
+
+
+

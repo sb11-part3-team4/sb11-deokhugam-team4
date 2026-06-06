@@ -17,5 +17,10 @@ public interface BookService {
 
   NaverBookDto getByIsbn(String isbn);
 
+  void delete(UUID bookId);
+
+  void deleteHard(UUID bookId);
+
+
 
 }

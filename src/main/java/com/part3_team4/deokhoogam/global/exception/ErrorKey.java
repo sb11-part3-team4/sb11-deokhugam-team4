@@ -31,6 +31,7 @@ public enum ErrorKey {
   BOOK_DESCRIPTION("description"),
   BOOK_PUBLISHED_DATE("publishedDate"),
   BOOK_THUMBNAIL_URL("thumbnailUrl"),
+  BOOK_DELETED_AT("deletedAt"),
 
   // 사용자
   USER_ID("userId"),
