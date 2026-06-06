@@ -3,22 +3,22 @@ package com.part3_team4.deokhoogam.domain.book.service;
 import com.part3_team4.deokhoogam.domain.book.dto.BookCreateRequest;
 import com.part3_team4.deokhoogam.domain.book.dto.BookCursor;
 import com.part3_team4.deokhoogam.domain.book.dto.BookDto;
+import com.part3_team4.deokhoogam.domain.book.dto.BookGetListRequest;
 import com.part3_team4.deokhoogam.domain.book.dto.BookUpdateRequest;
 import com.part3_team4.deokhoogam.domain.book.dto.NaverBookDto;
-import com.part3_team4.deokhoogam.domain.book.dto.BookGetListRequest;
 import com.part3_team4.deokhoogam.domain.book.entity.Book;
 import com.part3_team4.deokhoogam.domain.book.exception.BookNotFoundException;
 import com.part3_team4.deokhoogam.domain.book.exception.InvalidIsbnException;
 import com.part3_team4.deokhoogam.domain.book.exception.IsbnAlreadyExistsException;
 import com.part3_team4.deokhoogam.domain.book.instructure.naver.NaverApiService;
 import com.part3_team4.deokhoogam.domain.book.repository.BookRepository;
-import com.part3_team4.deokhoogam.global.storage.FileUploader;
-import java.util.UUID;
 import com.part3_team4.deokhoogam.global.common.PageResponse;
 import com.part3_team4.deokhoogam.global.exception.ErrorCode;
 import com.part3_team4.deokhoogam.global.exception.InvalidRequestException;
+import com.part3_team4.deokhoogam.global.storage.FileUploader;
 import com.part3_team4.deokhoogam.global.util.CursorUtils;
 import java.util.List;
+import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.hibernate.exception.ConstraintViolationException;
@@ -137,12 +137,12 @@ public class BookServiceImpl implements BookService {
     //Dto 변환
     List<BookDto> dtoList = books.stream().map(BookDto::from).toList();
 
-
-
     return new PageResponse<>(
         dtoList,
         generateNextCursor(books),
-        books.hasNext() ? books.getContent().get(books.getContent().size()-1).getCreatedAt().toString():null,
+        books.hasNext() && !books.getContent().isEmpty()
+            ? books.getContent().get(books.getContent().size() - 1).getCreatedAt().toString()
+            : null,
         books.getSize(),
         null,
         books.hasNext()
@@ -167,7 +167,6 @@ public class BookServiceImpl implements BookService {
 
     return CursorUtils.encodeCursor(newCursorObj);
   }
-
 
 
   private void validateDuplicateIsbn(String isbn) {
