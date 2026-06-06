@@ -17,6 +17,8 @@ public enum ErrorKey {
   STORAGE_KEY("storageKey"),
   DOMAIN_PATH("domainPath"),
 
+  DETAIL_MESSAGE("detailMessage"),
+
   /// ==== 도메인  ====
   // 도서
   BOOK_ID("bookId"),
