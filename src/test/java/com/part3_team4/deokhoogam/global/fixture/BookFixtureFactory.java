@@ -1,4 +1,4 @@
-package com.part3_team4.deokhoogam.domain.book.Factory;
+package com.part3_team4.deokhoogam.global.fixture;
 
 import com.part3_team4.deokhoogam.domain.book.dto.BookDto;
 import com.part3_team4.deokhoogam.domain.book.entity.Book;

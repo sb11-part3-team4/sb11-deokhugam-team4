@@ -11,7 +11,6 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.part3_team4.deokhoogam.domain.book.Factory.BookFixtureFactory;
 import com.part3_team4.deokhoogam.domain.book.controller.BookController;
 import com.part3_team4.deokhoogam.domain.book.dto.BookCreateRequest;
 import com.part3_team4.deokhoogam.domain.book.dto.BookDto;
@@ -23,11 +22,11 @@ import com.part3_team4.deokhoogam.domain.book.exception.IsbnAlreadyExistsExcepti
 import com.part3_team4.deokhoogam.domain.book.service.BookService;
 import com.part3_team4.deokhoogam.global.common.PageResponse;
 import com.part3_team4.deokhoogam.global.exception.ErrorCode;
+import com.part3_team4.deokhoogam.global.fixture.BookFixtureFactory;
+import com.part3_team4.deokhoogam.global.fixture.BookFixtures;
 import com.part3_team4.deokhoogam.global.fixture.NaverBookFixture;
 import java.math.BigDecimal;
 import java.time.Instant;
-import com.part3_team4.deokhoogam.global.fixture.BookFixtures;
-
 import java.time.LocalDate;
 import java.util.List;
 import java.util.UUID;

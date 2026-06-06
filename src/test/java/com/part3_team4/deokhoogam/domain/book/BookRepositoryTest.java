@@ -2,7 +2,6 @@ package com.part3_team4.deokhoogam.domain.book;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import com.part3_team4.deokhoogam.domain.book.Factory.BookFixtureFactory;
 import com.part3_team4.deokhoogam.domain.book.dto.BookCursor;
 import com.part3_team4.deokhoogam.domain.book.dto.BookGetListRequest;
 import com.part3_team4.deokhoogam.domain.book.entity.Book;
@@ -10,6 +9,7 @@ import com.part3_team4.deokhoogam.domain.book.entity.Direction;
 import com.part3_team4.deokhoogam.domain.book.entity.SortType;
 import com.part3_team4.deokhoogam.domain.book.repository.BookRepository;
 import com.part3_team4.deokhoogam.global.config.JpaAuditingConfig;
+import com.part3_team4.deokhoogam.global.fixture.BookFixtureFactory;
 import com.part3_team4.deokhoogam.global.fixture.BookFixtures;
 import com.part3_team4.deokhoogam.global.support.RepositoryTestSupport;
 import com.part3_team4.deokhoogam.global.util.CursorUtils;

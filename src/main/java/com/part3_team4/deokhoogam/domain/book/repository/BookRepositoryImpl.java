@@ -87,11 +87,11 @@ public class BookRepositoryImpl implements BookRepositoryCustom {
         yield isAsc ?
             book.rating.gt(ratingVal)
                 //시간
-                .or(book.rating.eq(ratingVal).and(book.createdAt.gt(cursor.getCreatedAt())))
+                .or(book.rating.eq(ratingVal).and(book.createdAt.lt(cursor.getCreatedAt())))
                 .or(  //아이디
                     book.rating.eq(ratingVal)
                         .and(book.createdAt.eq(cursor.getCreatedAt()))
-                        .and(book.id.gt(cursor.getId())))
+                        .and(book.id.lt(cursor.getId())))
 
             : book.rating.lt(ratingVal)
                 //시간
@@ -108,11 +108,11 @@ public class BookRepositoryImpl implements BookRepositoryCustom {
         yield isAsc ?
             book.reviewCount.gt(reviewVal)
                 //시간
-                .or(book.reviewCount.eq(reviewVal).and(book.createdAt.gt(cursor.getCreatedAt())))
+                .or(book.reviewCount.eq(reviewVal).and(book.createdAt.lt(cursor.getCreatedAt())))
                 .or(  //아이디
                     book.reviewCount.eq(reviewVal)
                         .and(book.createdAt.eq(cursor.getCreatedAt()))
-                        .and(book.id.gt(cursor.getId())))
+                        .and(book.id.lt(cursor.getId())))
 
             :
                 book.reviewCount.lt(reviewVal)
@@ -131,11 +131,11 @@ public class BookRepositoryImpl implements BookRepositoryCustom {
         yield isAsc ?
             book.publishedDate.gt(dateVal)
                 //시간
-                .or(book.publishedDate.eq(dateVal).and(book.createdAt.gt(cursor.getCreatedAt())))
+                .or(book.publishedDate.eq(dateVal).and(book.createdAt.lt(cursor.getCreatedAt())))
                 .or(  //아이디
                     book.publishedDate.eq(dateVal)
                         .and(book.createdAt.eq(cursor.getCreatedAt()))
-                        .and(book.id.gt(cursor.getId())))
+                        .and(book.id.lt(cursor.getId())))
 
             :
                 book.publishedDate.lt(dateVal)
