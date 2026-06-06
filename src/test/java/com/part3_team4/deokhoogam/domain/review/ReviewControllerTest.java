@@ -7,6 +7,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.part3_team4.deokhoogam.domain.book.exception.BookNotFoundException;
@@ -173,6 +174,26 @@ public class ReviewControllerTest {
                 .header("Deokhugam-Request-User-ID", userId.toString()))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.likedByMe").value(true));
+    }
+
+    @Test
+    @DisplayName("리뷰 삭제 성고시 204를 반환한다")
+    void deleteReview_success_return204() throws Exception {
+        UUID userId = UUID.randomUUID();
+        UUID reviewId = UUID.randomUUID();
+
+        mockMvc.perform(delete("/api/reviews/" + reviewId)
+                        .header("Deokhugam-Request-User-ID", userId.toString()))
+                .andExpect(status().isNoContent());
+    }
+
+    @Test
+    @DisplayName("헤더 없이 삭제 요청하면 400을 반환한다")
+    void deleteReview_missingHeader_returns400() throws Exception {
+        UUID reviewId = UUID.randomUUID();
+
+        mockMvc.perform(delete("/api/reviews/" + reviewId))
+                .andExpect(status().isBadRequest());
     }
 
 
