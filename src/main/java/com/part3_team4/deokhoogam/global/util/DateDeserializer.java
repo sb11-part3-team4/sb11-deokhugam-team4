@@ -12,7 +12,11 @@ public class DateDeserializer extends JsonDeserializer<LocalDate> {
   private static final DateTimeFormatter FORMATTER = DateTimeFormatter.ofPattern("yyyyMMdd");
 
   @Override
-  public LocalDate deserialize(JsonParser p, DeserializationContext ctxt) throws IOException {
-    return LocalDate.parse(p.getText(), FORMATTER);
+  public LocalDate deserialize(JsonParser p, DeserializationContext context) throws IOException {
+    String date = p.getText();
+    if (date == null || date.isBlank()) {
+      return null;
+    }
+    return LocalDate.parse(date, DateTimeFormatter.ofPattern("yyyyMMdd"));
   }
 }
