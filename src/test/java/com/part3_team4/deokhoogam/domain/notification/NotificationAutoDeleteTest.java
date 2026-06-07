@@ -5,6 +5,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import com.part3_team4.deokhoogam.domain.notification.entity.Notification;
 import com.part3_team4.deokhoogam.domain.notification.repository.NotificationRepository;
 import com.part3_team4.deokhoogam.global.config.JpaAuditingConfig;
+import com.part3_team4.deokhoogam.global.config.QuerydslConfig;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.UUID;
@@ -28,7 +29,7 @@ import org.springframework.boot.test.autoconfigure.orm.jpa.TestEntityManager;
  */
 @DataJpaTest
 @ActiveProfiles("test")
-@Import(JpaAuditingConfig.class)
+@Import({JpaAuditingConfig.class, QuerydslConfig.class})
 class NotificationAutoDeleteTest {
 
   @Autowired

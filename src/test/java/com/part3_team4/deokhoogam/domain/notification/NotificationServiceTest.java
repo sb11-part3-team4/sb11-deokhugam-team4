@@ -496,4 +496,32 @@ class NotificationServiceTest {
         .save(any(Notification.class));
   }
 
+  @Test
+  @DisplayName("인기 리뷰 기간이 null이면 알림을 생성하지 않고 예외가 발생한다")
+  void createPopularReviewNotificationWithNullPeriod() {
+    // given
+    UUID receiverId = UUID.randomUUID();
+    UUID reviewId = UUID.randomUUID();
+    String reviewContent = "인기 리뷰 기간 null 검증 테스트입니다.";
+
+    // when & then
+    // period는 인기 리뷰 알림 메시지를 만들기 위한 필수 값입니다.
+    // null이 들어오면 switch 문에서 우연히 NPE가 나도록 두지 않고,
+    // Service 진입점에서 명시적으로 NullPointerException을 발생시킵니다.
+    assertThatThrownBy(() ->
+        notificationService.createPopularReviewNotification(
+            receiverId,
+            reviewId,
+            reviewContent,
+            null,
+            1
+        )
+    ).isInstanceOf(NullPointerException.class);
+
+    // 필수 값이 잘못 들어온 요청이므로 알림은 저장되지 않아야 합니다.
+    then(notificationRepository)
+        .should(never())
+        .save(any(Notification.class));
+  }
+
 }

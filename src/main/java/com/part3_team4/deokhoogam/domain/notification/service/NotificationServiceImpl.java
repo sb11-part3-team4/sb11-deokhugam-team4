@@ -10,6 +10,7 @@ import com.part3_team4.deokhoogam.global.common.PageResponse;
 import java.time.Instant;
 import java.util.List;
 import java.util.UUID;
+import java.util.Objects;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -215,6 +216,11 @@ public class NotificationServiceImpl implements NotificationService {
       String period,
       int rank
   ) {
+    // period는 인기 리뷰 기간을 나타내는 필수 값입니다.
+    // null이면 switch 문에서 NullPointerException이 발생할 수 있으므로
+    // 메시지 생성 전에 명시적으로 검증합니다.
+    Objects.requireNonNull(period, "period must not be null");
+
     // 요구사항은 "각 기간별 10위 내" 선정 시 알림 생성입니다.
     // 따라서 1~10위가 아닌 순위는 알림 생성 대상이 아닙니다.
     if (!isTopTenRank(rank)) {
