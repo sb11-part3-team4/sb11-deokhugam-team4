@@ -199,6 +199,65 @@ public class NotificationServiceImpl implements NotificationService {
   }
 
   /**
+   * 인기 리뷰 선정 알림을 생성합니다.
+   *
+   * 요구사항:
+   * - 내가 작성한 리뷰의 인기 순위가 각 기간별 10위 내에 선정되면 알림이 생성됩니다.
+   *
+   * 인기 리뷰 선정은 사용자의 직접 행동이 아니라 배치 결과이므로,
+   * 좋아요/댓글 알림과 달리 actorId를 받지 않습니다.
+   */
+  @Override
+  public void createPopularReviewNotification(
+      UUID receiverId,
+      UUID reviewId,
+      String reviewContent,
+      String period,
+      int rank
+  ) {
+    // 요구사항은 "각 기간별 10위 내" 선정 시 알림 생성입니다.
+    // 따라서 1~10위가 아닌 순위는 알림 생성 대상이 아닙니다.
+    if (rank < 1 || rank > 10) {
+      return;
+    }
+
+    String periodLabel = toPeriodLabel(period);
+
+    saveNotification(
+        receiverId,
+        reviewId,
+        reviewContent,
+        "내 리뷰가 " + periodLabel + " 인기 리뷰 " + rank + "위에 선정되었습니다."
+    );
+  }
+
+  /**
+   * 인기 리뷰 기간 코드를 사용자에게 보여줄 한글 표현으로 변환합니다.
+   *
+   * 현재 PopularReview 엔티티는 period를 enum이 아니라 String으로 관리합니다.
+   * 따라서 알림 도메인도 같은 String 값을 받아 메시지 표시용 문구로 변환합니다.
+   *
+   * 지원 값:
+   * - DAILY -> 일간
+   * - WEEKLY -> 주간
+   * - MONTHLY -> 월간
+   * - ALL_TIME -> 역대
+   *
+   * 알 수 없는 값은 그대로 사용합니다.
+   * 이렇게 하면 대시보드/배치 쪽에서 새로운 period 값을 추가하더라도
+   * 알림 생성 자체가 깨지지 않습니다.
+   */
+  private String toPeriodLabel(String period) {
+    return switch (period) {
+      case "DAILY" -> "일간";
+      case "WEEKLY" -> "주간";
+      case "MONTHLY" -> "월간";
+      case "ALL_TIME" -> "역대";
+      default -> period;
+    };
+  }
+
+  /**
    * 알림 유형별 메서드에서 공통으로 사용하는 저장 메서드입니다.
    *
    * 좋아요와 댓글 알림은 메시지만 다르고 Notification 생성 과정은 같으므로,
