@@ -29,7 +29,7 @@ public class CursorUtils {
       String json = objectMapper.writeValueAsString(cursor);
       return Base64.getEncoder().encodeToString(json.getBytes(StandardCharsets.UTF_8));
     } catch (JsonProcessingException e) {
-      throw Base64Exception.EncodingError();
+      throw Base64Exception.encodingError();
     }
   }
 
@@ -41,7 +41,7 @@ public class CursorUtils {
       String json = new String(decodedBytes, StandardCharsets.UTF_8);
       return objectMapper.readValue(json, BookCursor.class);
     } catch (Exception e) {
-      throw Base64Exception.DecodingError();
+      throw Base64Exception.decodingError();
     }
   }
 }

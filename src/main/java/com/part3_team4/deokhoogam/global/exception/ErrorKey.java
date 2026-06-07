@@ -48,7 +48,7 @@ public enum ErrorKey {
   NOTIFICATION_ID("notificationId"),
 
   // 공용
-  WrongCursor("cursor");
+  WRONG_CURSOR("cursor");
 
   private final String value;
 }

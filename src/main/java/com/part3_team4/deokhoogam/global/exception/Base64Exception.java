@@ -8,10 +8,11 @@ public class Base64Exception extends BusinessException {
     super(errorCode);
   }
 
-  public static Base64Exception EncodingError() {
+  public static Base64Exception encodingError() {
     return new Base64Exception(ErrorCode.BASE64_ENCODING_ERROR);
   }
-  public static Base64Exception DecodingError() {
+
+  public static Base64Exception decodingError() {
     return new Base64Exception(ErrorCode.BASE64_DECODING_ERROR);
   }
 
