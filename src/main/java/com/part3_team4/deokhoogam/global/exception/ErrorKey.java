@@ -17,6 +17,8 @@ public enum ErrorKey {
   STORAGE_KEY("storageKey"),
   DOMAIN_PATH("domainPath"),
 
+  DETAIL_MESSAGE("detailMessage"),
+
   /// ==== 도메인  ====
   // 도서
   BOOK_ID("bookId"),
@@ -29,6 +31,7 @@ public enum ErrorKey {
   BOOK_DESCRIPTION("description"),
   BOOK_PUBLISHED_DATE("publishedDate"),
   BOOK_THUMBNAIL_URL("thumbnailUrl"),
+  BOOK_DELETED_AT("deletedAt"),
 
   // 사용자
   USER_ID("userId"),
@@ -42,7 +45,10 @@ public enum ErrorKey {
   COMMENT_ID("commentId"),
 
   // 알림
-  NOTIFICATION_ID("notificationId");
+  NOTIFICATION_ID("notificationId"),
+
+  // 공용
+  WRONG_CURSOR("cursor");
 
   private final String value;
 }

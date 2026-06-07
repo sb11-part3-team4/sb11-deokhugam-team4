@@ -79,6 +79,46 @@ public interface NotificationService {
   void readAll(UUID requesterId);
 
   /**
+   * 리뷰에 좋아요가 발생했을 때 알림을 생성합니다.
+   *
+   * 다른 도메인의 좋아요 처리 로직이 호출할 알림 도메인의 진입점입니다.
+   * 리뷰 작성자와 좋아요를 누른 사용자가 같으면 알림을 생성하지 않습니다.
+   *
+   * @param receiverId 알림을 받을 리뷰 작성자 ID
+   * @param reviewId 좋아요가 발생한 리뷰 ID
+   * @param reviewContent 알림에 표시할 리뷰 내용
+   * @param sender 좋아요를 누른 사용자 닉네임
+   * @param actorId 좋아요를 누른 사용자 ID
+   */
+  void createLikeNotification(
+      UUID receiverId,
+      UUID reviewId,
+      String reviewContent,
+      String sender,
+      UUID actorId
+  );
+
+  /**
+   * 리뷰에 댓글이 작성되었을 때 알림을 생성합니다.
+   *
+   * 다른 도메인의 댓글 등록 로직이 호출할 알림 도메인의 진입점입니다.
+   * 리뷰 작성자와 댓글 작성자가 같으면 알림을 생성하지 않습니다.
+   *
+   * @param receiverId 알림을 받을 리뷰 작성자 ID
+   * @param reviewId 댓글이 작성된 리뷰 ID
+   * @param reviewContent 알림에 표시할 리뷰 내용
+   * @param sender 댓글 작성자 닉네임
+   * @param actorId 댓글 작성자 ID
+   */
+  void createCommentNotification(
+      UUID receiverId,
+      UUID reviewId,
+      String reviewContent,
+      String sender,
+      UUID actorId
+  );
+
+  /**
    * 사용자의 알림 목록을 커서 페이지네이션으로 조회합니다.
    *
    * @param userId 알림을 조회할 사용자 ID

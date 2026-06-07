@@ -5,6 +5,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import com.part3_team4.deokhoogam.domain.notification.entity.Notification;
 import com.part3_team4.deokhoogam.domain.notification.repository.NotificationRepository;
 import com.part3_team4.deokhoogam.global.config.JpaAuditingConfig;
+import com.part3_team4.deokhoogam.global.config.QuerydslConfig;
 import java.time.Instant;
 import java.util.List;
 import java.util.UUID;
@@ -12,10 +13,9 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.orm.jpa.DataJpaTest;
+import org.springframework.boot.test.autoconfigure.orm.jpa.TestEntityManager;
 import org.springframework.context.annotation.Import;
 import org.springframework.data.domain.PageRequest;
-import org.springframework.boot.test.autoconfigure.orm.jpa.TestEntityManager;
-
 import org.springframework.test.context.ActiveProfiles;
 
 /**
@@ -37,7 +37,7 @@ import org.springframework.test.context.ActiveProfiles;
  */
 @DataJpaTest
 @ActiveProfiles("test")
-@Import(JpaAuditingConfig.class)
+@Import({JpaAuditingConfig.class, QuerydslConfig.class})
 class NotificationRepositoryTest {
 
   /**

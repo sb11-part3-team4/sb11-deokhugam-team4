@@ -2,10 +2,7 @@ package com.part3_team4.deokhoogam.domain.review.service;
 
 import com.part3_team4.deokhoogam.domain.book.exception.BookNotFoundException;
 import com.part3_team4.deokhoogam.domain.book.repository.BookRepository;
-import com.part3_team4.deokhoogam.domain.review.dto.ReviewCreateRequest;
-import com.part3_team4.deokhoogam.domain.review.dto.ReviewLikeResponse;
-import com.part3_team4.deokhoogam.domain.review.dto.ReviewResponse;
-import com.part3_team4.deokhoogam.domain.review.dto.ReviewUpdateRequest;
+import com.part3_team4.deokhoogam.domain.review.dto.*;
 import com.part3_team4.deokhoogam.domain.review.entity.DeletedReview;
 import com.part3_team4.deokhoogam.domain.review.entity.Review;
 import com.part3_team4.deokhoogam.domain.review.entity.ReviewLike;
@@ -15,9 +12,18 @@ import com.part3_team4.deokhoogam.domain.review.exception.ReviewNotOwnerExceptio
 import com.part3_team4.deokhoogam.domain.review.repository.DeletedReviewRepository;
 import com.part3_team4.deokhoogam.domain.review.repository.ReviewLikeRepository;
 import com.part3_team4.deokhoogam.domain.review.repository.ReviewRepository;
+
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
 import java.util.UUID;
+
+import com.part3_team4.deokhoogam.global.common.PageResponse;
 import lombok.RequiredArgsConstructor;
 import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -122,5 +128,46 @@ public class ReviewServiceImpl implements ReviewService {
         return new ReviewLikeResponse(reviewId, !alreadyLiked, review.getLikeCount());
     }
 
+    @Override
+    @Transactional(readOnly = true)
+    public PageResponse<ReviewResponse> getReviews(UUID userId, ReviewListRequest request)
+    {
+
+        Sort sort = Sort.by(Sort.Direction.fromString(request.direction()),
+        request.orderBy());
+        Pageable pageable = PageRequest.of(0, request.limit() + 1, sort);
+        List<Review> reviews = reviewRepository.findReviews(request.userId(), request.bookId(), request.keyword(), pageable);
+
+        boolean hasNext = reviews.size() > request.limit();
+        if (hasNext) {
+            reviews = reviews.subList(0, request.limit());
+        }
+
+        List<UUID> reviewIds = reviews.stream().map(Review::getId).toList();
+        Set<UUID> likedReviewIds = new HashSet<>(
+                reviewLikeRepository.findLikedReviewIds(userId, reviewIds));
+
+        List<ReviewResponse> content = reviews.stream()
+                .map(review -> new ReviewResponse(
+                        review.getId(), review.getUserId(), review.getBookId(),
+                        review.getRating(), review.getContent(),
+                        review.getLikeCount(), review.getCommentCount(),
+                        likedReviewIds.contains(review.getId()),
+                        review.getCreatedAt(), review.getUpdatedAt()
+                ))
+                .toList();
+
+        String nextCursor = null;
+        String nextAfter = null;
+        if (hasNext && !content.isEmpty()) {
+            ReviewResponse last = content.get(content.size() - 1);
+            nextCursor = "rating".equals(request.orderBy())
+                    ? String.valueOf(last.rating())
+                    : last.createdAt() != null ? last.createdAt().toString() : null;
+            nextAfter = last.id().toString();
+        }
+
+        return new PageResponse<>(content, nextCursor, nextAfter, content.size(), null, hasNext);
+    }
 
 }

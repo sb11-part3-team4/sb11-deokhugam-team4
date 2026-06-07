@@ -41,16 +41,30 @@ public class NotificationServiceImpl implements NotificationService {
    * 새 알림은 아직 확인하지 않은 상태이므로 confirmed=false로 저장합니다.
    */
   @Override
-  public void createNotification(UUID userId, UUID reviewId, String reviewContent, String sender) {
-    Notification notification = Notification.builder()
-        .userId(userId)
-        .reviewId(reviewId)
-        .reviewContent(reviewContent)
-        .message(sender + "님이 내 리뷰에 반응했습니다.")
-        .confirmed(false)
-        .build();
+  public void createNotification(
+      UUID userId,
+      UUID reviewId,
+      String reviewContent,
+      String sender
+  ) {
+    // 기존 호출부와의 호환성을 유지하기 위한 공통 알림 생성 메서드입니다.
+    saveNotification(
+        userId,
+        reviewId,
+        reviewContent,
+        sender + "님이 내 리뷰에 반응했습니다."
+    );
+  }
 
-    notificationRepository.save(notification);
+  /**
+   * 리뷰 작성자와 반응을 남긴 사용자가 같은지 확인합니다.
+   *
+   * @param receiverId 알림을 받을 리뷰 작성자 ID
+   * @param actorId 좋아요 또는 댓글을 남긴 사용자 ID
+   * @return 자기 행동이면 true, 다른 사용자의 행동이면 false
+   */
+  private boolean isSelfAction(UUID receiverId, UUID actorId) {
+    return receiverId.equals(actorId);
   }
 
   /**
@@ -74,7 +88,8 @@ public class NotificationServiceImpl implements NotificationService {
       String sender,
       UUID actorId
   ) {
-    if (receiverId.equals(actorId)) {
+    // 자신의 리뷰에 직접 반응한 경우에는 자기 알림을 만들지 않습니다.
+    if (isSelfAction(receiverId, actorId)) {
       return;
     }
 
@@ -125,6 +140,86 @@ public class NotificationServiceImpl implements NotificationService {
         notificationRepository.findAllByUserIdAndConfirmedFalse(requesterId);
 
     notifications.forEach(notification -> notification.updateConfirmed(true));
+  }
+
+  /**
+   * 좋아요 발생 알림을 생성합니다.
+   *
+   * receiverId와 actorId가 같으면 자기 자신의 리뷰에 좋아요를 누른 상황이므로
+   * 불필요한 자기 알림을 생성하지 않습니다.
+   */
+  @Override
+  public void createLikeNotification(
+      UUID receiverId,
+      UUID reviewId,
+      String reviewContent,
+      String sender,
+      UUID actorId
+  ) {
+    // 자신의 리뷰에 좋아요를 누른 경우에는 알림을 만들지 않습니다.
+    if (isSelfAction(receiverId, actorId)) {
+      return;
+    }
+
+    // 좋아요 알림에 맞는 메시지와 함께 Notification 엔티티를 저장합니다.
+    saveNotification(
+        receiverId,
+        reviewId,
+        reviewContent,
+        sender + "님이 내 리뷰에 좋아요를 눌렀습니다."
+    );
+  }
+
+  /**
+   * 댓글 발생 알림을 생성합니다.
+   *
+   * receiverId와 actorId가 같으면 자기 자신의 리뷰에 댓글을 작성한 상황이므로
+   * 불필요한 자기 알림을 생성하지 않습니다.
+   */
+  @Override
+  public void createCommentNotification(
+      UUID receiverId,
+      UUID reviewId,
+      String reviewContent,
+      String sender,
+      UUID actorId
+  ) {
+    // 자신의 리뷰에 댓글을 작성한 경우에는 알림을 만들지 않습니다.
+    if (isSelfAction(receiverId, actorId)) {
+      return;
+    }
+
+    // 댓글 알림에 맞는 메시지와 함께 Notification 엔티티를 저장합니다.
+    saveNotification(
+        receiverId,
+        reviewId,
+        reviewContent,
+        sender + "님이 내 리뷰에 댓글을 남겼습니다."
+    );
+  }
+
+  /**
+   * 알림 유형별 메서드에서 공통으로 사용하는 저장 메서드입니다.
+   *
+   * 좋아요와 댓글 알림은 메시지만 다르고 Notification 생성 과정은 같으므로,
+   * 중복되는 엔티티 생성 및 Repository 저장 코드를 이 메서드로 분리합니다.
+   */
+  private void saveNotification(
+      UUID receiverId,
+      UUID reviewId,
+      String reviewContent,
+      String message
+  ) {
+    Notification notification = Notification.builder()
+        .userId(receiverId)
+        .reviewId(reviewId)
+        .reviewContent(reviewContent)
+        .message(message)
+        // 새로 생성된 알림은 아직 사용자가 확인하지 않았으므로 false입니다.
+        .confirmed(false)
+        .build();
+
+    notificationRepository.save(notification);
   }
 
   @Override
@@ -188,4 +283,6 @@ public class NotificationServiceImpl implements NotificationService {
         hasNext
     );
   }
+
+
 }

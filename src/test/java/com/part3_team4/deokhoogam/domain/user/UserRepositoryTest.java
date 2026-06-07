@@ -5,6 +5,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import com.part3_team4.deokhoogam.domain.user.entity.User;
 import com.part3_team4.deokhoogam.domain.user.repository.UserRepository;
+import com.part3_team4.deokhoogam.global.config.QuerydslConfig;
 import java.util.Optional;
 import java.util.UUID;
 import org.junit.jupiter.api.DisplayName;
@@ -12,12 +13,14 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.orm.jpa.DataJpaTest;
 import org.springframework.boot.test.context.TestConfiguration;
+import org.springframework.context.annotation.Import;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.data.jpa.repository.config.EnableJpaAuditing;
 import org.springframework.test.context.ActiveProfiles;
 
 @DataJpaTest
 @ActiveProfiles("test")
+@Import(QuerydslConfig.class)
 public class UserRepositoryTest {
 
   @TestConfiguration
