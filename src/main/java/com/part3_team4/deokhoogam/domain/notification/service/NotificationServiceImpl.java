@@ -217,17 +217,15 @@ public class NotificationServiceImpl implements NotificationService {
   ) {
     // 요구사항은 "각 기간별 10위 내" 선정 시 알림 생성입니다.
     // 따라서 1~10위가 아닌 순위는 알림 생성 대상이 아닙니다.
-    if (rank < 1 || rank > 10) {
+    if (!isTopTenRank(rank)) {
       return;
     }
-
-    String periodLabel = toPeriodLabel(period);
 
     saveNotification(
         receiverId,
         reviewId,
         reviewContent,
-        "내 리뷰가 " + periodLabel + " 인기 리뷰 " + rank + "위에 선정되었습니다."
+        buildPopularReviewMessage(period, rank)
     );
   }
 
@@ -255,6 +253,29 @@ public class NotificationServiceImpl implements NotificationService {
       case "ALL_TIME" -> "역대";
       default -> period;
     };
+  }
+
+  /**
+   * 인기 리뷰 알림 생성 대상 순위인지 확인합니다.
+   *
+   * 요구사항에서는 각 기간별 10위 이내에 선정된 리뷰에 대해서만
+   * 알림을 생성한다고 되어 있습니다.
+   *
+   * @param rank 인기 리뷰 순위
+   * @return 1위부터 10위까지면 true, 그 외 순위면 false
+   */
+  private boolean isTopTenRank(int rank) {
+    return rank >= 1 && rank <= 10;
+  }
+
+  /**
+   * 인기 리뷰 선정 알림 메시지를 생성합니다.
+   *
+   * 메시지 형식을 한 곳에서 관리하면,
+   * 나중에 문구를 변경할 때 알림 생성 로직을 건드리지 않아도 됩니다.
+   */
+  private String buildPopularReviewMessage(String period, int rank) {
+    return "내 리뷰가 " + toPeriodLabel(period) + " 인기 리뷰 " + rank + "위에 선정되었습니다.";
   }
 
   /**
