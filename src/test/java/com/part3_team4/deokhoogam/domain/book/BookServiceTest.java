@@ -8,10 +8,13 @@ import static org.mockito.BDDMockito.given;
 import static org.mockito.BDDMockito.then;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
 import static org.springframework.test.util.ReflectionTestUtils.setField;
 
 import com.part3_team4.deokhoogam.domain.book.dto.BookCreateRequest;
+import com.part3_team4.deokhoogam.domain.book.dto.BookCursor;
 import com.part3_team4.deokhoogam.domain.book.dto.BookDto;
+import com.part3_team4.deokhoogam.domain.book.dto.BookGetListRequest;
 import com.part3_team4.deokhoogam.domain.book.dto.BookUpdateRequest;
 import com.part3_team4.deokhoogam.domain.book.dto.NaverBookDto;
 import com.part3_team4.deokhoogam.domain.book.entity.Book;
@@ -23,11 +26,18 @@ import com.part3_team4.deokhoogam.domain.book.instructure.naver.NaverApiService;
 import com.part3_team4.deokhoogam.domain.book.repository.BookRepository;
 import com.part3_team4.deokhoogam.domain.book.repository.DeletedBookRepository;
 import com.part3_team4.deokhoogam.domain.book.service.BookServiceImpl;
+import com.part3_team4.deokhoogam.global.common.PageResponse;
+import com.part3_team4.deokhoogam.global.exception.Base64Exception;
+import com.part3_team4.deokhoogam.global.exception.BusinessException;
+import com.part3_team4.deokhoogam.global.fixture.BookFixtureFactory;
 import com.part3_team4.deokhoogam.global.fixture.BookFixtures;
 import com.part3_team4.deokhoogam.global.fixture.NaverBookFixture;
 import com.part3_team4.deokhoogam.global.storage.FileUploader;
+import com.part3_team4.deokhoogam.global.util.CursorUtils;
 import java.sql.SQLException;
+import java.time.Instant;
 import java.time.LocalDate;
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 import org.hibernate.exception.ConstraintViolationException;
@@ -40,6 +50,10 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Slice;
+import org.springframework.data.domain.SliceImpl;
 import org.springframework.mock.web.MockMultipartFile;
 import org.springframework.test.util.ReflectionTestUtils;
 import org.springframework.web.multipart.MultipartFile;
@@ -452,6 +466,176 @@ class BookServiceTest {
 
 
   }
+  @Nested
+  @DisplayName("도서 목록 조회 메서드에서")
+  class TestGetBooks {
+
+    @Nested
+    @DisplayName("정상적인 데이터가 들어왔을때")
+    class TestGetBooks_ValidData {
+
+      @Test
+      @DisplayName("기본 데이터가 들어오면 목록과 커서 관련 데이터가 담긴 응답을 리턴")
+      void return_list_and_metadata_when_valid_data() {
+
+        BookGetListRequest request = BookGetListRequest.builder()
+            .limit(50)
+            .build();
+
+        List<Book> mockBooks = BookFixtureFactory.createBookList();
+        Slice<Book> mockSlice = new SliceImpl<>(mockBooks);
+
+        given(bookRepository.getBooks(any(),any())).willReturn(mockSlice);
+
+        //when
+        PageResponse<BookDto> result = bookService.getBooks(request);
+
+        //then
+        assertThat(result.content()).hasSize(mockBooks.size());
+        assertThat(result.content().get(0).id()).isEqualTo(mockBooks.get(0).getId());
+
+        assertThat(result.hasNext()).isFalse();
+        assertThat(result.nextCursor()).isNull();
+
+        verify(bookRepository, times(1)).getBooks(any(),any());
+      }
+
+
+      @Test
+      @DisplayName("limit 크기가 하나면 다음 커서와 hasnext = true를 반환한다")
+      void return_list_and_metadata_when_valid_data_with_limit_one() {
+
+        //given
+        BookGetListRequest request = BookGetListRequest.builder()
+            .limit(1)
+            .build();
+
+        List<Book> mockBooks = List.of(BookFixtureFactory.createBook1());
+        //임시로 createdAt 필드 채워주기
+        ReflectionTestUtils.setField(mockBooks.get(0), "createdAt", Instant.now());
+
+        Pageable pageable = PageRequest.of(0, request.limit());
+        Slice<Book> mockSlice = new SliceImpl<>(mockBooks,pageable,true);
+
+        //when
+        given(bookRepository.getBooks(any(),any())).willReturn(mockSlice);
+        PageResponse<BookDto> result = bookService.getBooks(request);
+
+        //then
+
+        assertThat(result.content()).hasSize(1);
+        assertThat(result.content().get(0).id()).isEqualTo(mockBooks.get(0).getId());
+
+        assertThat(result.hasNext()).isTrue();
+
+        assertThat(result.nextCursor()).isNotNull();
+
+      }
+
+      @Test
+      @DisplayName("조회된 데이터가 없으면 빈 리스트와 hasNext=false를 리턴한다")
+      void return_empty_list_when_no_data() {
+        // given
+        BookGetListRequest request = BookGetListRequest.builder()
+            .limit(50)
+            .build();
+
+        Slice<Book> mockSlice = new SliceImpl<>(List.of());
+
+        given(bookRepository.getBooks(any(),any())).willReturn(mockSlice);
+
+        // when
+        PageResponse<BookDto> result = bookService.getBooks(request);
+
+        // then
+        assertThat(result.content()).isEmpty();
+        assertThat(result.hasNext()).isFalse();
+        assertThat(result.nextCursor()).isNull();
+      }
+
+      @Test
+      @DisplayName("유효한 커서와 limit이 들어오면 커서가 적용된 다음 페이지 목록을 리턴한다")
+      void return_next_page_when_valid_cursor_provided() {
+        // given
+        Book mockBook = BookFixtureFactory.createBook4();
+
+
+        BookCursor cursor = new BookCursor(
+            mockBook.getTitle(),
+            mockBook.getId(),
+            mockBook.getCreatedAt()
+        );
+
+        String validCursor = CursorUtils.encodeCursor(cursor);
+
+        BookGetListRequest request = BookGetListRequest.builder()
+            .limit(2)
+            .cursor(validCursor)
+            .build();
+
+        List<Book> mockBooks = List.of(BookFixtureFactory.createBook2(),
+            BookFixtureFactory.createBook3());
+
+        Slice<Book> mockSlice = new SliceImpl<>(mockBooks);
+
+        given(bookRepository.getBooks(any(),any())).willReturn(mockSlice);
+
+        // when
+        PageResponse<BookDto> result = bookService.getBooks(request);
+
+        // then
+        assertThat(result.content()).isNotEmpty();
+
+        verify(bookRepository, times(1)).getBooks(any(),any());
+      }
+    }
+
+    @Nested
+    @DisplayName("잘못 된 데이터가 들어왔을 경우")
+    class TestGetBooks_InvalidData {
+
+      @Test
+      @DisplayName("limit이 음수로 들어왔을때 400에러 코드와 예외를 발생한다")
+      void throw_exception_when_limit_is_negative() {
+
+        // given
+        BookGetListRequest request = BookGetListRequest.builder()
+            .limit(-1) //음수 페이지 사이즈
+            .build();
+
+        // when & then
+        assertThatThrownBy(() -> bookService.getBooks(request))
+            .isInstanceOf(BusinessException.class)
+            .hasMessageContaining("잘못된 입력값입니다.");
+
+        // 커서 디코딩 중 예외 발생 -> 리포지토리 접근 X
+        verify(bookRepository, never()).getBooks(any(),any());
+      }
+
+      @Test
+      @DisplayName("유효하지 않은 커서 문자열이 들어오면 Base64Exception을 던진다")
+      void throw_exception_when_cursor_is_invalid() {
+        // given
+        String invalidCursor = "Wrong cursor format";
+
+        BookGetListRequest request = BookGetListRequest.builder()
+            .limit(50)
+            .cursor(invalidCursor) //이상한 커서 삽입
+            .build();
+
+        // when & then
+        assertThatThrownBy(() -> bookService.getBooks(request))
+            .isInstanceOf(Base64Exception.class)
+            .hasMessageContaining("잘못된 커서로 인해 디코딩에 실패했습니다");
+
+        // 커서 디코딩 중 예외 발생 -> 리포지토리 접근 X
+        verify(bookRepository, never()).getBooks(any(),any());
+      }
+
+    }
+
+  }
+
 
 
 

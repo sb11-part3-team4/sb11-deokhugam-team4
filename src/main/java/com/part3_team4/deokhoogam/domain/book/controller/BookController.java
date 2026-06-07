@@ -3,10 +3,12 @@ package com.part3_team4.deokhoogam.domain.book.controller;
 import com.part3_team4.deokhoogam.domain.book.controller.api.BookAPI;
 import com.part3_team4.deokhoogam.domain.book.dto.BookCreateRequest;
 import com.part3_team4.deokhoogam.domain.book.dto.BookDto;
+import com.part3_team4.deokhoogam.domain.book.dto.BookGetListRequest;
 import com.part3_team4.deokhoogam.domain.book.dto.BookUpdateRequest;
 import com.part3_team4.deokhoogam.domain.book.dto.NaverBookDto;
 import com.part3_team4.deokhoogam.domain.book.service.BookService;
 import com.part3_team4.deokhoogam.domain.book.service.OcrService;
+import com.part3_team4.deokhoogam.global.common.PageResponse;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.media.Content;
@@ -99,6 +101,16 @@ public class BookController implements BookAPI {
   public ResponseEntity<NaverBookDto> getByISBN(String isbn) {
     NaverBookDto response = bookService.getByIsbn(isbn);
     return ResponseEntity.ok().body(response);
+  }
+
+
+  @Override
+  @GetMapping
+  public ResponseEntity<PageResponse<BookDto>> getBooks(BookGetListRequest request) {
+    PageResponse<BookDto> response = bookService.getBooks(request);
+
+    return ResponseEntity.ok().body(response);
+
   }
 
   @Override

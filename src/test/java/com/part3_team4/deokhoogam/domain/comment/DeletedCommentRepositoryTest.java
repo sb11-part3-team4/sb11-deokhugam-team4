@@ -1,5 +1,7 @@
 package com.part3_team4.deokhoogam.domain.comment;
 
+import static org.assertj.core.api.Assertions.assertThat;
+
 import com.part3_team4.deokhoogam.domain.comment.entity.Comment;
 import com.part3_team4.deokhoogam.domain.comment.entity.DeletedComment;
 import com.part3_team4.deokhoogam.domain.comment.repository.CommentRepository;
@@ -7,6 +9,9 @@ import com.part3_team4.deokhoogam.domain.comment.repository.DeletedCommentReposi
 import com.part3_team4.deokhoogam.domain.review.entity.Review;
 import com.part3_team4.deokhoogam.domain.user.entity.User;
 import com.part3_team4.deokhoogam.global.config.JpaAuditingConfig;
+import com.part3_team4.deokhoogam.global.config.QuerydslConfig;
+import java.util.Optional;
+import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -16,13 +21,8 @@ import org.springframework.boot.test.autoconfigure.orm.jpa.TestEntityManager;
 import org.springframework.context.annotation.Import;
 import org.springframework.test.context.ActiveProfiles;
 
-import java.util.Optional;
-import java.util.UUID;
-
-import static org.assertj.core.api.Assertions.assertThat;
-
 @DataJpaTest
-@Import(JpaAuditingConfig.class)
+@Import({JpaAuditingConfig.class, QuerydslConfig.class})
 @ActiveProfiles("test")
 class DeletedCommentRepositoryTest {
 

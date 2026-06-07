@@ -26,12 +26,15 @@ import com.part3_team4.deokhoogam.domain.book.exception.IsbnAlreadyExistsExcepti
 import com.part3_team4.deokhoogam.domain.book.exception.OcrProcessingException;
 import com.part3_team4.deokhoogam.domain.book.service.BookService;
 import com.part3_team4.deokhoogam.domain.book.service.OcrService;
+import com.part3_team4.deokhoogam.global.common.PageResponse;
 import com.part3_team4.deokhoogam.global.exception.ErrorCode;
+import com.part3_team4.deokhoogam.global.fixture.BookFixtureFactory;
 import com.part3_team4.deokhoogam.global.fixture.BookFixtures;
 import com.part3_team4.deokhoogam.global.fixture.NaverBookFixture;
 import java.math.BigDecimal;
 import java.time.Instant;
 import java.time.LocalDate;
+import java.util.List;
 import java.util.UUID;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
@@ -47,6 +50,7 @@ import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.ResultActions;
 import org.springframework.test.web.servlet.request.MockMultipartHttpServletRequestBuilder;
+
 
 @WebMvcTest(BookController.class)
 @ActiveProfiles("test")
@@ -469,6 +473,84 @@ class BookControllerTest {
           .param("isbn", isbn));
 
       result.andExpect(status().isNotFound());
+
+
+    }
+
+
+  }
+
+  @Nested
+  @DisplayName("도서 목록 조회 에서")
+  class TestGetBooks {
+
+    @Nested
+    @DisplayName("유효한 데이터가 들어오는 경우")
+    class TestGetBooks_ValidData {
+
+      @Test
+      @DisplayName("최소한의 데이터가 들어올때 200을 리턴하고 디폴트 옵션으로 도서 목록을 리턴한다")
+      void return_200_when_minimum_valid_data() throws Exception {
+        //given
+        List<BookDto> books = BookFixtureFactory.createBookDtoList();
+
+        PageResponse<BookDto> response = new PageResponse<>(
+
+
+            books,
+            "Cursor",
+            "After",
+            50,
+            4L,
+            false
+        );
+
+        given(bookService.getBooks(any())).willReturn(response);
+
+        //when
+        ResultActions result = mockMvc.perform(get("/api/books")
+            .accept(MediaType.APPLICATION_JSON));
+
+        //then
+
+        result.andExpect(status().isOk());
+        result.andExpect(jsonPath("$.content[0].id").exists());
+        result.andExpect(jsonPath("$.content[0].id").value(books.get(0).id().toString()));
+        result.andExpect(jsonPath("$.content[0].title").exists());
+        result.andExpect(jsonPath("$.content[0].title").value("모비 딕"));
+        result.andExpect(jsonPath("$.content[0].isbn").exists());
+        result.andExpect(jsonPath("$.content[0].isbn").value("9791160263404"));
+        result.andExpect(jsonPath("$.content[1].id").exists());
+        result.andExpect(jsonPath("$.content[2].id").exists());
+        result.andExpect(jsonPath("$.content[3].id").exists());
+
+
+      }
+
+
+    }
+
+    @Nested
+    @DisplayName("유효하지 않은 데이터가 들어온 경우")
+    class TestGetBooks_InvalidData {
+
+      @Test
+      @DisplayName("잘못된 입력 데이터가 들어왔을때 400 에러 코드를 반환한다")
+      void return_400_when_invalid_data() throws Exception {
+
+        //given & when
+        ResultActions result = mockMvc.perform(get("/api/books")
+            .param("limit", "-10") //페이지 수 음수
+            .accept(MediaType.APPLICATION_JSON));
+
+        // then
+        result.andExpect(status().isBadRequest())
+            .andExpect(jsonPath("$.code").value(ErrorCode.INVALID_INPUT_VALUE.getCode()))
+            .andExpect(jsonPath("$.message").exists())
+            .andExpect(jsonPath("$.details.limit").exists());;
+
+
+      }
 
 
     }
