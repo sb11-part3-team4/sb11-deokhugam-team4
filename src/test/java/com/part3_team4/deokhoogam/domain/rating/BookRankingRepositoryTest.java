@@ -3,20 +3,25 @@ package com.part3_team4.deokhoogam.domain.rating;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import com.part3_team4.deokhoogam.domain.ranking.dto.BookScoreProjection;
+import com.part3_team4.deokhoogam.domain.ranking.entity.BookRanking;
+import com.part3_team4.deokhoogam.domain.ranking.entity.PeriodType;
 import com.part3_team4.deokhoogam.domain.ranking.repository.BookRankingRepository;
 import com.part3_team4.deokhoogam.domain.review.entity.Review;
 import com.part3_team4.deokhoogam.global.config.JpaAuditingConfig;
 import com.part3_team4.deokhoogam.global.config.QuerydslConfig;
 import jakarta.persistence.EntityManager;
+import java.math.BigDecimal;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.List;
 import java.util.UUID;
 import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.orm.jpa.DataJpaTest;
 import org.springframework.context.annotation.Import;
+import org.springframework.data.domain.Slice;
 import org.springframework.test.context.ActiveProfiles;
 
 
@@ -109,4 +114,85 @@ class BookRankingRepositoryTest {
     assertThat(result.get(0).getReviewCount()).isEqualTo(1);        // 어제 것만
     assertThat(result.get(0).getAvgRating()).isEqualByComparingTo("5.0");
   }
+
+
+
+  @Nested
+  @DisplayName("커서 페이지네이션 에서")
+
+  class TestCursorPagination {
+
+    private void saveRanking(PeriodType period, int ranking) {
+      BookRanking r = BookRanking.builder()
+          .bookId(UUID.randomUUID())
+          .period(period)
+          .score(new BigDecimal("1.0"))
+          .ranking(ranking)
+          .reviewCount(0)
+          .rating(new BigDecimal("0.00"))
+          .build();
+      em.persist(r);
+      em.flush();
+    }
+
+    @Test
+    @DisplayName("period로 필터된다 (DAILY만 조회)")
+    void filterByPeriod() {
+      saveRanking(PeriodType.DAILY, 1);
+      saveRanking(PeriodType.DAILY, 2);
+      saveRanking(PeriodType.WEEKLY, 1);
+
+      Slice<BookRanking> result = bookRankingRepository.getRankings(PeriodType.DAILY, null, 10);
+
+      assertThat(result.getContent()).hasSize(2);
+      assertThat(result.getContent())
+          .allMatch(r -> r.getPeriod() == PeriodType.DAILY);
+    }
+
+    @Test
+    @DisplayName("ranking 오름차순으로 정렬된다")
+    void orderByRanking() {
+      saveRanking(PeriodType.DAILY, 3);
+      saveRanking(PeriodType.DAILY, 1);
+      saveRanking(PeriodType.DAILY, 2);
+
+      Slice<BookRanking> result = bookRankingRepository.getRankings(PeriodType.DAILY, null, 10);
+
+      assertThat(result.getContent())
+          .extracting(BookRanking::getRanking)
+          .containsExactly(1, 2, 3);
+    }
+
+    @Test
+    @DisplayName("커서 다음 페이지가 이어지고 hasNext가 맞다")
+    void cursorPaging() {
+      for (int i = 1; i <= 5; i++) {
+        saveRanking(PeriodType.DAILY, i);
+      }
+
+      // 첫 페이지: ranking 1,2,3 / hasNext=true
+      Slice<BookRanking> page1 = bookRankingRepository.getRankings(PeriodType.DAILY, null, 3);
+      assertThat(page1.getContent()).extracting(BookRanking::getRanking).containsExactly(1, 2, 3);
+      assertThat(page1.hasNext()).isTrue();
+
+      // 다음 페이지: ranking 3 다음부터 → 4,5 / hasNext=false
+      Slice<BookRanking> page2 = bookRankingRepository.getRankings(PeriodType.DAILY, 3, 3);
+      assertThat(page2.getContent()).extracting(BookRanking::getRanking).containsExactly(4, 5);
+      assertThat(page2.hasNext()).isFalse();
+    }
+
+
+  }
+
+
+
+
+
+
+
+
+
+
+
+
 }

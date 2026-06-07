@@ -5,6 +5,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import com.part3_team4.deokhoogam.domain.book.dto.BookCursor;
+import com.part3_team4.deokhoogam.domain.ranking.dto.RankingCursor;
 import com.part3_team4.deokhoogam.global.exception.Base64Exception;
 import java.nio.charset.StandardCharsets;
 import java.util.Base64;
@@ -44,4 +45,30 @@ public class CursorUtils {
       throw Base64Exception.DecodingError();
     }
   }
+
+  public static String encodeRankingCursor(RankingCursor cursor) {
+    if (cursor == null) {
+      return null;
+    }
+    try {
+      String json = objectMapper.writeValueAsString(cursor);
+      return Base64.getEncoder().encodeToString(json.getBytes(StandardCharsets.UTF_8));
+    } catch (JsonProcessingException e) {
+      throw Base64Exception.EncodingError();
+    }
+  }
+
+  public static RankingCursor decodeRankingCursor(String base64Cursor) {
+    if (base64Cursor == null || base64Cursor.isBlank()) {
+      return null;
+    }
+    try {
+      byte[] decoded = Base64.getDecoder().decode(base64Cursor);
+      String json = new String(decoded, StandardCharsets.UTF_8);
+      return objectMapper.readValue(json, RankingCursor.class);
+    } catch (Exception e) {
+      throw Base64Exception.DecodingError();
+    }
+  }
+
 }

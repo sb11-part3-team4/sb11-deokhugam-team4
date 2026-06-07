@@ -10,7 +10,7 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
-public interface BookRankingRepository extends JpaRepository<BookRanking, UUID> {
+public interface BookRankingRepository extends JpaRepository<BookRanking, UUID>, BookRankingRepositoryCustom {
 
   @Query(value = """
         SELECT CAST(book_id AS UUID) AS bookId,
