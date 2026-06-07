@@ -282,4 +282,124 @@ class NotificationServiceTest {
     then(notificationRepository).should(never()).save(any(Notification.class));
   }
 
+  @Test
+  @DisplayName("좋아요 알림을 생성하면 좋아요 전용 메시지로 알림이 저장된다")
+  void createLikeNotification() {
+    // given
+    // 알림을 받을 사용자 ID입니다.
+    // 좋아요 알림에서는 리뷰 작성자가 수신자가 됩니다.
+    UUID receiverId = UUID.randomUUID();
+
+    // 좋아요가 눌린 리뷰 ID입니다.
+    UUID reviewId = UUID.randomUUID();
+
+    // 알림에 함께 저장할 리뷰 내용입니다.
+    // 리뷰가 나중에 수정되거나 삭제되더라도 알림에는 당시 내용을 보여줄 수 있습니다.
+    String reviewContent = "이 책은 결말이 특히 인상적이었습니다.";
+
+    // 좋아요를 누른 사용자 닉네임입니다.
+    // 메시지에는 이 값이 포함되어야 합니다.
+    String sender = "버즈";
+
+    // 좋아요를 누른 사용자 ID입니다.
+    // 자기 자신의 리뷰에 좋아요를 누른 경우 알림 생성을 막기 위해 사용합니다.
+    UUID actorId = UUID.randomUUID();
+
+    // when
+    // 좋아요 이벤트가 발생했을 때 리뷰/좋아요 도메인이 호출할 알림 생성 메서드입니다.
+    //
+    // 현재는 이 메서드가 아직 없으므로 Red 단계에서 컴파일 실패가 나는 것이 정상입니다.
+    notificationService.createLikeNotification(
+        receiverId,
+        reviewId,
+        reviewContent,
+        sender,
+        actorId
+    );
+
+    // then
+    // 저장되는 Notification 객체를 캡처해서 필드와 메시지를 검증합니다.
+    ArgumentCaptor<Notification> captor = ArgumentCaptor.forClass(Notification.class);
+
+    then(notificationRepository)
+        .should()
+        .save(captor.capture());
+
+    Notification savedNotification = captor.getValue();
+
+    // 수신자는 리뷰 작성자여야 합니다.
+    assertThat(savedNotification.getUserId()).isEqualTo(receiverId);
+
+    // 알림은 좋아요가 발생한 리뷰와 연결되어야 합니다.
+    assertThat(savedNotification.getReviewId()).isEqualTo(reviewId);
+
+    // 알림에는 리뷰 내용이 함께 저장되어야 합니다.
+    assertThat(savedNotification.getReviewContent()).isEqualTo(reviewContent);
+
+    // 좋아요 알림은 좋아요 전용 메시지를 가져야 합니다.
+    assertThat(savedNotification.getMessage())
+        .isEqualTo("버즈님이 내 리뷰에 좋아요를 눌렀습니다.");
+
+    // 새로 생성된 알림은 아직 확인하지 않은 상태여야 합니다.
+    assertThat(savedNotification.isConfirmed()).isFalse();
+  }
+
+  @Test
+  @DisplayName("댓글 알림을 생성하면 댓글 전용 메시지로 알림이 저장된다")
+  void createCommentNotification() {
+    // given
+    // 알림을 받을 사용자 ID입니다.
+    // 댓글 알림에서는 리뷰 작성자가 수신자가 됩니다.
+    UUID receiverId = UUID.randomUUID();
+
+    // 댓글이 달린 리뷰 ID입니다.
+    UUID reviewId = UUID.randomUUID();
+
+    // 알림에 함께 저장할 리뷰 내용입니다.
+    String reviewContent = "문장마다 여운이 남는 리뷰입니다.";
+
+    // 댓글을 작성한 사용자 닉네임입니다.
+    String sender = "제시";
+
+    // 댓글을 작성한 사용자 ID입니다.
+    UUID actorId = UUID.randomUUID();
+
+    // when
+    // 댓글 이벤트가 발생했을 때 댓글 도메인이 호출할 알림 생성 메서드입니다.
+    //
+    // 현재는 이 메서드가 아직 없으므로 Red 단계에서 컴파일 실패가 나는 것이 정상입니다.
+    notificationService.createCommentNotification(
+        receiverId,
+        reviewId,
+        reviewContent,
+        sender,
+        actorId
+    );
+
+    // then
+    ArgumentCaptor<Notification> captor = ArgumentCaptor.forClass(Notification.class);
+
+    then(notificationRepository)
+        .should()
+        .save(captor.capture());
+
+    Notification savedNotification = captor.getValue();
+
+    // 수신자는 리뷰 작성자여야 합니다.
+    assertThat(savedNotification.getUserId()).isEqualTo(receiverId);
+
+    // 알림은 댓글이 달린 리뷰와 연결되어야 합니다.
+    assertThat(savedNotification.getReviewId()).isEqualTo(reviewId);
+
+    // 알림에는 리뷰 내용이 함께 저장되어야 합니다.
+    assertThat(savedNotification.getReviewContent()).isEqualTo(reviewContent);
+
+    // 댓글 알림은 댓글 전용 메시지를 가져야 합니다.
+    assertThat(savedNotification.getMessage())
+        .isEqualTo("제시님이 내 리뷰에 댓글을 남겼습니다.");
+
+    // 새로 생성된 알림은 아직 확인하지 않은 상태여야 합니다.
+    assertThat(savedNotification.isConfirmed()).isFalse();
+  }
+
 }
