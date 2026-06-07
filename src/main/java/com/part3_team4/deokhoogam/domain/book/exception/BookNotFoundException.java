@@ -15,4 +15,10 @@ public class BookNotFoundException extends BookException {
     exception.addDetail(ErrorKey.BOOK_ID, bookId);
     return exception;
   }
+
+  public static BookNotFoundException withIsbn(String isbn) {
+    BookNotFoundException exception = new BookNotFoundException();
+    exception.addDetail(ErrorKey.BOOK_ISBN, isbn);
+    return exception;
+  }
 }

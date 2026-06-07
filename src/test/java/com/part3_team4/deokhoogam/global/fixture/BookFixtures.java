@@ -3,7 +3,11 @@ package com.part3_team4.deokhoogam.global.fixture;
 import com.part3_team4.deokhoogam.domain.book.dto.BookCreateRequest;
 import com.part3_team4.deokhoogam.domain.book.dto.BookUpdateRequest;
 import com.part3_team4.deokhoogam.domain.book.entity.Book;
+import com.part3_team4.deokhoogam.domain.book.entity.DeletedBook;
+import java.time.Instant;
 import java.time.LocalDate;
+import java.util.UUID;
+import org.springframework.test.util.ReflectionTestUtils;
 
 public final class BookFixtures {
 
@@ -40,5 +44,53 @@ public final class BookFixtures {
         .publishedDate(LocalDate.of(2026, 5, 28))
         .isbn(isbn)
         .build();
+  }
+
+
+  public static Book validBookToId(UUID mockId) {
+
+    Instant createdAt = Instant.now().minusSeconds(100);
+    Instant updatedAt = Instant.now().minusSeconds(50);
+
+    Book book = Book.builder()
+        .title("모비 딕")
+        .author("허먼 멜빌")
+        .description("『모비 딕』 완역본")
+        .publisher("작가정신")
+        .publishedDate(LocalDate.of(2024, 4, 9))
+        .thumbnailUrl("temp/url")
+        .isbn("9791160263404")
+        .build();
+
+    ReflectionTestUtils.setField(book, "id", mockId);
+    ReflectionTestUtils.setField(book, "createdAt", createdAt);
+    ReflectionTestUtils.setField(book, "updatedAt", updatedAt);
+
+    return book;
+
+  }
+
+  public static DeletedBook deletedBook(UUID mockId) {
+
+    Instant createdAt = Instant.now().minusSeconds(100);
+    Instant updatedAt = Instant.now().minusSeconds(50);
+
+    DeletedBook book = DeletedBook.builder()
+        .title("모비 딕")
+        .author("허먼 멜빌")
+        .description("『모비 딕』 완역본")
+        .publisher("작가정신")
+        .publishedDate(LocalDate.of(2024, 4, 9))
+        .thumbnailUrl("temp/url")
+        .isbn("9791160263404")
+        .build();
+
+    ReflectionTestUtils.setField(book, "id", mockId);
+    ReflectionTestUtils.setField(book, "createdAt", createdAt);
+    ReflectionTestUtils.setField(book, "updatedAt", updatedAt);
+    ReflectionTestUtils.setField(book, "deletedAt", Instant.now());
+
+
+    return book;
   }
 }

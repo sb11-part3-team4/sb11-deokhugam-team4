@@ -1,24 +1,5 @@
 package com.part3_team4.deokhoogam.domain.review;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.part3_team4.deokhoogam.domain.book.exception.BookNotFoundException;
-import com.part3_team4.deokhoogam.domain.review.controller.ReviewController;
-import com.part3_team4.deokhoogam.domain.review.dto.ReviewCreateRequest;
-import com.part3_team4.deokhoogam.domain.review.dto.ReviewResponse;
-import com.part3_team4.deokhoogam.domain.review.exception.ReviewAlreadyExistsException;
-import com.part3_team4.deokhoogam.domain.review.service.ReviewService;
-import com.part3_team4.deokhoogam.global.jwt.JwtFilter;
-import org.junit.jupiter.api.DisplayName;
-import org.junit.jupiter.api.Test;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
-import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
-import org.springframework.test.context.bean.override.mockito.MockitoBean;
-import org.springframework.test.web.servlet.MockMvc;
-
-import java.time.Instant;
-import java.util.UUID;
-
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
@@ -26,7 +7,25 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
+
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.part3_team4.deokhoogam.domain.book.exception.BookNotFoundException;
+import com.part3_team4.deokhoogam.domain.review.controller.ReviewController;
+import com.part3_team4.deokhoogam.domain.review.dto.ReviewCreateRequest;
+import com.part3_team4.deokhoogam.domain.review.dto.ReviewResponse;
+import com.part3_team4.deokhoogam.domain.review.exception.ReviewAlreadyExistsException;
+import com.part3_team4.deokhoogam.domain.review.service.ReviewService;
+import java.time.Instant;
+import java.util.UUID;
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Test;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
+import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.http.MediaType;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
+import org.springframework.test.web.servlet.MockMvc;
 
 @WebMvcTest(controllers = ReviewController.class)
 @AutoConfigureMockMvc(addFilters = false)
@@ -40,9 +39,6 @@ public class ReviewControllerTest {
 
     @MockitoBean
     ReviewService reviewService;
-
-    @MockitoBean
-    private JwtFilter jwtFilter;
 
     @Test
     @DisplayName("리뷰 등록 성공 시 201을 반환한다")
@@ -178,6 +174,26 @@ public class ReviewControllerTest {
                 .header("Deokhugam-Request-User-ID", userId.toString()))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.likedByMe").value(true));
+    }
+
+    @Test
+    @DisplayName("리뷰 삭제 성고시 204를 반환한다")
+    void deleteReview_success_return204() throws Exception {
+        UUID userId = UUID.randomUUID();
+        UUID reviewId = UUID.randomUUID();
+
+        mockMvc.perform(delete("/api/reviews/" + reviewId)
+                        .header("Deokhugam-Request-User-ID", userId.toString()))
+                .andExpect(status().isNoContent());
+    }
+
+    @Test
+    @DisplayName("헤더 없이 삭제 요청하면 400을 반환한다")
+    void deleteReview_missingHeader_returns400() throws Exception {
+        UUID reviewId = UUID.randomUUID();
+
+        mockMvc.perform(delete("/api/reviews/" + reviewId))
+                .andExpect(status().isBadRequest());
     }
 
 

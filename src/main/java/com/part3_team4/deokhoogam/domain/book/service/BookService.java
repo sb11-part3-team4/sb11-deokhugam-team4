@@ -3,8 +3,12 @@ package com.part3_team4.deokhoogam.domain.book.service;
 import com.part3_team4.deokhoogam.domain.book.dto.BookCreateRequest;
 import com.part3_team4.deokhoogam.domain.book.dto.BookDto;
 import com.part3_team4.deokhoogam.domain.book.dto.BookUpdateRequest;
+import com.part3_team4.deokhoogam.domain.book.dto.NaverBookDto;
 import java.util.UUID;
 import org.springframework.web.multipart.MultipartFile;
+import com.part3_team4.deokhoogam.domain.book.dto.BookGetListRequest;
+import com.part3_team4.deokhoogam.global.common.PageResponse;
+
 
 public interface BookService {
 
@@ -13,4 +17,15 @@ public interface BookService {
   BookDto update(UUID id, BookUpdateRequest request, MultipartFile thumbnailFile);
 
   BookDto getDetails(UUID bookId);
+
+  NaverBookDto getByIsbn(String isbn);
+
+  PageResponse<BookDto> getBooks(BookGetListRequest request);
+
+  void delete(UUID bookId);
+
+  void deleteHard(UUID bookId);
+
+
+
 }

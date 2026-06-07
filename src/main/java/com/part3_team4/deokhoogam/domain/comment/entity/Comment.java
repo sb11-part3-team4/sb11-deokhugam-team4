@@ -3,9 +3,14 @@ package com.part3_team4.deokhoogam.domain.comment.entity;
 import com.part3_team4.deokhoogam.domain.comment.exception.CommentContentRequiredException;
 import com.part3_team4.deokhoogam.domain.comment.exception.CommentContentTooLongException;
 import com.part3_team4.deokhoogam.domain.comment.exception.CommentInvalidArgumentException;
+import com.part3_team4.deokhoogam.domain.review.entity.Review;
+import com.part3_team4.deokhoogam.domain.user.entity.User;
 import com.part3_team4.deokhoogam.global.common.BaseEntity;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
+import jakarta.persistence.FetchType;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
 import java.util.UUID;
 import lombok.AccessLevel;
@@ -20,30 +25,37 @@ public class Comment extends BaseEntity {
 
     public static final int MAX_CONTENT_LENGTH = 1000;
 
-    // NOTE: Review 도메인과 aggregate 경계를 분리합니다.
-    // TODO: User, Review 엔티티 머지 후 @ManyToOne으로 교체
-    @Column(name = "review_id", nullable = false)
-    private UUID reviewId;
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "review_id", nullable = false)
+    private Review review;
 
-    // TODO: User, Review 엔티티 머지 후 @ManyToOne으로 교체
-    @Column(name = "user_id", nullable = false)
-    private UUID userId;
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "user_id", nullable = false)
+    private User user;
 
     @Column(nullable = false, length = MAX_CONTENT_LENGTH)
     private String content;
 
-    private Comment(UUID reviewId, UUID userId, String content) {
-        this.reviewId = reviewId;
-        this.userId = userId;
+    private Comment(Review review, User user, String content) {
+        this.review = review;
+        this.user = user;
         this.content = content;
     }
 
-    public static Comment create(UUID reviewId, UUID userId, String content) {
-        if (reviewId == null || userId == null) {
+    public static Comment create(Review review, User user, String content) {
+        if (review == null || user == null) {
             throw CommentInvalidArgumentException.create();
         }
         validate(content);
-        return new Comment(reviewId, userId, content);
+        return new Comment(review, user, content);
+    }
+
+    public UUID getReviewId() {
+        return review.getId();
+    }
+
+    public UUID getUserId() {
+        return user.getId();
     }
 
     public void updateContent(String content) {

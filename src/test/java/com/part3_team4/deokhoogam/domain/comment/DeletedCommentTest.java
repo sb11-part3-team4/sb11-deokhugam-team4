@@ -3,6 +3,8 @@ package com.part3_team4.deokhoogam.domain.comment;
 import com.part3_team4.deokhoogam.domain.comment.entity.Comment;
 import com.part3_team4.deokhoogam.domain.comment.entity.DeletedComment;
 import com.part3_team4.deokhoogam.domain.comment.exception.CommentInvalidArgumentException;
+import com.part3_team4.deokhoogam.domain.review.entity.Review;
+import com.part3_team4.deokhoogam.domain.user.entity.User;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
@@ -11,16 +13,30 @@ import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 class DeletedCommentTest {
 
     private static final UUID REVIEW_ID = UUID.randomUUID();
     private static final UUID USER_ID = UUID.randomUUID();
 
+    private Review mockReview() {
+        Review review = mock(Review.class);
+        when(review.getId()).thenReturn(REVIEW_ID);
+        return review;
+    }
+
+    private User mockUser() {
+        User user = mock(User.class);
+        when(user.getId()).thenReturn(USER_ID);
+        return user;
+    }
+
     @Test
     @DisplayName("Comment로부터 DeletedComment로 정상 변환된다")
     void from_comment_success() {
-        Comment comment = Comment.create(REVIEW_ID, USER_ID, "삭제할 댓글입니다.");
+        Comment comment = Comment.create(mockReview(), mockUser(), "삭제할 댓글입니다.");
 
         Instant before = Instant.now();
         DeletedComment deletedComment = DeletedComment.from(comment);
