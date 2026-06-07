@@ -130,4 +130,31 @@ public interface NotificationRepository extends JpaRepository<Notification, UUID
       Pageable pageable
   );
 
+  /**
+   * 확인한 지 오래된 알림을 물리 삭제합니다.
+   *
+   * 요구사항:
+   * - 확인한 알림 중 1주일이 경과된 알림은 자동으로 삭제됩니다.
+   * - 삭제는 매일 배치로 수행합니다.
+   *
+   * 삭제 조건:
+   * - confirmed = true
+   * - updatedAt < threshold
+   *
+   * 여기서 threshold는 Service 또는 Scheduler 계층에서
+   * "현재 시각 - 7일"로 계산해서 전달합니다.
+   *
+   * 예:
+   * - 현재 시각이 2026-06-04T00:00:00Z
+   * - threshold = 2026-05-28T00:00:00Z
+   * - confirmed=true 이면서 updatedAt이 2026-05-28보다 이전인 알림 삭제
+   *
+   * 반환값:
+   * - 삭제된 알림 개수
+   * Spring Data JPA가 메서드 이름을 해석해서 다음과 같은 의미의 delete 쿼리를 생성합니다.
+   * - confirmed가 true이고
+   * - updatedAt이 threshold보다 이전인 Notification 삭제
+   */
+  long deleteByConfirmedTrueAndUpdatedAtBefore(Instant threshold);
+
 }
