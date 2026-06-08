@@ -303,3 +303,21 @@ CREATE TABLE BATCH_JOB_EXECUTION_CONTEXT
 CREATE SEQUENCE BATCH_STEP_EXECUTION_SEQ MAXVALUE 9223372036854775807 NO CYCLE;
 CREATE SEQUENCE BATCH_JOB_EXECUTION_SEQ MAXVALUE 9223372036854775807 NO CYCLE;
 CREATE SEQUENCE BATCH_JOB_SEQ MAXVALUE 9223372036854775807 NO CYCLE;
+
+-- Power User Ranking
+CREATE TABLE power_user_ranking
+(
+    id         UUID           NOT NULL,
+    user_id    UUID           NOT NULL,
+    period     VARCHAR(20)    NOT NULL,
+    score      DECIMAL(10, 4) NOT NULL,
+    ranking    INTEGER        NOT NULL,
+    created_at TIMESTAMPTZ    NOT NULL,
+    updated_at TIMESTAMPTZ    NOT NULL,
+    PRIMARY KEY (id),
+    CONSTRAINT uk_power_user_ranking_user_period UNIQUE (user_id, period),
+    CONSTRAINT fk_power_user_ranking_user FOREIGN KEY (user_id) REFERENCES "user" (id)
+);
+
+-- Power User Ranking Index (기간별 랭킹 조회를 위한 인덱스)
+CREATE INDEX idx_power_user_ranking_period_ranking ON power_user_ranking (period, ranking);
