@@ -1,4 +1,4 @@
-package com.part3_team4.deokhoogam.domain.book.instructure.naver;
+package com.part3_team4.deokhoogam.domain.book.infrastructure.naver;
 
 import com.part3_team4.deokhoogam.domain.book.dto.NaverApiResponse;
 import com.part3_team4.deokhoogam.domain.book.dto.NaverBookDto;
