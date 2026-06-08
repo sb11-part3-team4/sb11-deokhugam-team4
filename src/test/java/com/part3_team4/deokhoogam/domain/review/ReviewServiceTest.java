@@ -631,4 +631,43 @@ public class ReviewServiceTest {
 
     }
 
+    @Test
+    @DisplayName("인기 리뷰 응답에 필요한 필드가 모두 포함된다")
+    void getPopularReviews_responseFields() {
+        UUID reviewId = UUID.randomUUID();
+        UUID userId = UUID.randomUUID();
+        UUID bookId = UUID.randomUUID();
+        BigDecimal score = new BigDecimal("0.7");
+
+        PopularReview popularReview = PopularReview.create(reviewId, "DAILY", score, 1, LocalDate.now());
+        Review review = Review.create(userId, bookId, 4, "좋은 책이에요");
+        Book book = Book.builder()
+                .title("테스트 책").author("저자").description("설명")
+                .publisher("출판사").publishedDate(LocalDate.of(2020,1,1))
+                .build();
+        User user = new User("test@test.com", "닉네임", "password");
+
+        given(popularReviewRepository.findByPeriod(eq("DAILY"), any(Pageable.class)))
+                .willReturn(List.of(popularReview));
+        given(reviewRepository.findById(reviewId)).willReturn(Optional.of(review));
+        given(bookRepository.findById(bookId)).willReturn(Optional.of(book));
+        given(userRepository.findById(userId)).willReturn(Optional.of(user));
+
+        PageResponse<PopularReviewResponse> response =
+                reviewService.getPopularReviews("DAILY", "ASC", null, null, 50);
+        PopularReviewResponse result = response.content().get(0);
+
+        assertThat(result.reviewId()).isEqualTo(reviewId);
+        assertThat(result.bookId()).isEqualTo(bookId);
+        assertThat(result.bookTitle()).isEqualTo("테스트 책");
+        assertThat(result.userId()).isEqualTo(userId);
+        assertThat(result.userNickname()).isEqualTo("닉네임");
+        assertThat(result.reviewContent()).isEqualTo("좋은 책이에요");
+        assertThat(result.reviewRating()).isEqualTo(4);
+        assertThat(result.period()).isEqualTo("DAILY");
+        assertThat(result.rank()).isEqualTo(1);
+        assertThat(result.score()).isEqualTo(score);
+
+    }
+
 }
