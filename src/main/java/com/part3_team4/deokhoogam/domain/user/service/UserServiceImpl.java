@@ -9,6 +9,7 @@ import com.part3_team4.deokhoogam.domain.user.dto.response.UserResponse;
 import com.part3_team4.deokhoogam.domain.user.entity.DeletedUser;
 import com.part3_team4.deokhoogam.domain.user.entity.User;
 import com.part3_team4.deokhoogam.domain.user.entity.UserDeletedEvent;
+import com.part3_team4.deokhoogam.domain.user.exception.ActiveUserHardDeleteException;
 import com.part3_team4.deokhoogam.domain.user.exception.InvalidCredentialsException;
 import com.part3_team4.deokhoogam.domain.user.exception.PasswordMismatchException;
 import com.part3_team4.deokhoogam.domain.user.exception.UserAlreadyExistsException;
@@ -121,15 +122,16 @@ public class UserServiceImpl implements UserService{
   @Override
   @Transactional
   public void hardDeleteUser(UUID userId) {
-    User user = userRepository.findById(userId)
+    if (userRepository.existsById(userId)) {
+      throw new ActiveUserHardDeleteException();
+    }
+
+    DeletedUser deletedUser = deleteUserRepository.findById(userId)
         .orElseThrow(() -> UserNotFoundException.withId(userId));
 
     eventPublisher.publishEvent(new UserDeletedEvent(userId));
-    userRepository.delete(user);
 
-    deleteUserRepository.findById(userId).ifPresent(deletedUser -> {
-      deleteUserRepository.delete(deletedUser);
-    });
+    deleteUserRepository.delete(deletedUser);
   }
 
   @Override

@@ -11,7 +11,7 @@ import com.part3_team4.deokhoogam.domain.book.entity.DeletedBook;
 import com.part3_team4.deokhoogam.domain.book.exception.BookNotFoundException;
 import com.part3_team4.deokhoogam.domain.book.exception.InvalidIsbnException;
 import com.part3_team4.deokhoogam.domain.book.exception.IsbnAlreadyExistsException;
-import com.part3_team4.deokhoogam.domain.book.instructure.naver.NaverApiService;
+import com.part3_team4.deokhoogam.domain.book.infrastructure.naver.NaverApiService;
 import com.part3_team4.deokhoogam.domain.book.repository.BookRepository;
 import com.part3_team4.deokhoogam.domain.book.repository.DeletedBookRepository;
 import com.part3_team4.deokhoogam.global.common.PageResponse;
@@ -44,7 +44,6 @@ public class BookServiceImpl implements BookService {
   private final FileUploader fileUploader;
 
   private final NaverApiService naverApiService;
-
 
 
   @Override
@@ -179,7 +178,8 @@ public class BookServiceImpl implements BookService {
   public void delete(UUID bookId) {
 
     //정보 가져온 후
-    Book book = bookRepository.findById(bookId).orElseThrow(()->BookNotFoundException.withId(bookId));
+    Book book = bookRepository.findById(bookId)
+        .orElseThrow(() -> BookNotFoundException.withId(bookId));
 
     //삭제
     bookRepository.deleteById(bookId);
@@ -198,7 +198,8 @@ public class BookServiceImpl implements BookService {
   public void deleteHard(UUID bookId) {
 
     //S3 삭제 및 URL 가져오기
-    DeletedBook deletedBook = deletedBookRepository.findById(bookId).orElseThrow(()->BookNotFoundException.withId(bookId));
+    DeletedBook deletedBook = deletedBookRepository.findById(bookId)
+        .orElseThrow(() -> BookNotFoundException.withId(bookId));
 
     deletedBookRepository.deleteById(bookId);
 

@@ -24,6 +24,7 @@ import com.part3_team4.deokhoogam.domain.book.exception.BookNotFoundException;
 import com.part3_team4.deokhoogam.domain.book.exception.InvalidIsbnException;
 import com.part3_team4.deokhoogam.domain.book.exception.IsbnAlreadyExistsException;
 import com.part3_team4.deokhoogam.domain.book.exception.OcrProcessingException;
+import com.part3_team4.deokhoogam.domain.book.service.BookRankingService;
 import com.part3_team4.deokhoogam.domain.book.service.BookService;
 import com.part3_team4.deokhoogam.domain.book.service.OcrService;
 import com.part3_team4.deokhoogam.global.common.PageResponse;
@@ -69,6 +70,9 @@ class BookControllerTest {
 
   @MockitoBean
   private OcrService ocrService;
+
+  @MockitoBean
+  private BookRankingService bookRankingService;
 
   @Test
   @DisplayName("올바른 도서 정보로 생성 요청 시에 201 Created를 반환한다")

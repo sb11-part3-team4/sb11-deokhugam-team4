@@ -15,7 +15,7 @@ public class MDCLoggingInterceptor implements HandlerInterceptor {
   public static final String REQUEST_METHOD = "requestMethod";
   public static final String REQUEST_URI = "requestUri";
 
-  public static final String REQUEST_ID_HEADER = "Discodeit-Request-ID";
+  public static final String REQUEST_ID_HEADER = "Deokhugam-Request-ID";
 
   @Override
   public boolean preHandle(HttpServletRequest request, HttpServletResponse response,

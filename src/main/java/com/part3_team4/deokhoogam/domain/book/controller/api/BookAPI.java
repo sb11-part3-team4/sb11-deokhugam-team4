@@ -2,8 +2,10 @@ package com.part3_team4.deokhoogam.domain.book.controller.api;
 
 import com.part3_team4.deokhoogam.domain.book.dto.BookDto;
 import com.part3_team4.deokhoogam.domain.book.dto.BookGetListRequest;
-import com.part3_team4.deokhoogam.global.common.PageResponse;
 import com.part3_team4.deokhoogam.domain.book.dto.NaverBookDto;
+import com.part3_team4.deokhoogam.domain.book.dto.ranking.BookRankingDto;
+import com.part3_team4.deokhoogam.domain.book.dto.ranking.RankingGetListRequest;
+import com.part3_team4.deokhoogam.global.common.PageResponse;
 import com.part3_team4.deokhoogam.global.exception.ErrorResponse;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Content;
@@ -52,7 +54,6 @@ public interface BookAPI {
   );
 
 
-
   @Operation(summary = "ISBN으로 도서 정보 조회")
   @ApiResponses(value = {
       @ApiResponse(responseCode = "200", description = "도서 정보 조회 성공",
@@ -70,11 +71,20 @@ public interface BookAPI {
   @ApiResponses(value = {
       @ApiResponse(responseCode = "200", description = "도서 목록 조회 성공",
           content = @Content(schema = @Schema(implementation = PageResponse.class))),
-      @ApiResponse(responseCode = "400", description = "잘못된 입력값",
+      @ApiResponse(responseCode = "400", description = "잘못된 입력 값",
           content = @Content(schema = @Schema(implementation = ErrorResponse.class)))
   })
   ResponseEntity<PageResponse<BookDto>> getBooks(
       @Valid @ModelAttribute BookGetListRequest request
   );
 
+  @Operation(summary = "인기도서 목록 조회")
+  @ApiResponses(value = {
+      @ApiResponse(responseCode = "200", description = "인기 도서 목록 조회 성공",
+          content = @Content(schema = @Schema(implementation = PageResponse.class))),
+      @ApiResponse(responseCode = "400", description = "잘못된 요청(랭킹 기간 오류, 정렬 방향 오류 등)",
+          content = @Content(schema = @Schema(implementation = ErrorResponse.class)))
+  })
+  public ResponseEntity<PageResponse<BookRankingDto>> getRankings(
+      @Valid @ModelAttribute RankingGetListRequest request);
 }
