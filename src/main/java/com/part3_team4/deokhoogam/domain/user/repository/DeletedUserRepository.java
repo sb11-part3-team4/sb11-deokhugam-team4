@@ -4,7 +4,6 @@ import com.part3_team4.deokhoogam.domain.user.entity.DeletedUser;
 import java.time.Instant;
 import java.util.List;
 import java.util.UUID;
-import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
@@ -16,5 +15,5 @@ public interface DeletedUserRepository extends JpaRepository<DeletedUser, UUID> 
   @Query("SELECT d.id FROM DeletedUser d WHERE d.deletedAt <= :cutoff")
   List<UUID> findUserIdsDeletedBefore(@Param("cutoff") Instant cutoff);
 
-  Page<DeletedUser> findByDeletedAtBefore(Instant deletedAt, Pageable pageable);
+  List<DeletedUser> findByDeletedAtBefore(Instant deletedAt, Pageable pageable);
 }
