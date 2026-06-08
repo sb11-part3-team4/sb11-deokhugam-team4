@@ -4,14 +4,18 @@ import com.part3_team4.deokhoogam.domain.book.exception.BookNotFoundException;
 import com.part3_team4.deokhoogam.domain.book.repository.BookRepository;
 import com.part3_team4.deokhoogam.domain.review.dto.*;
 import com.part3_team4.deokhoogam.domain.review.entity.DeletedReview;
+import com.part3_team4.deokhoogam.domain.review.entity.PopularReview;
 import com.part3_team4.deokhoogam.domain.review.entity.Review;
 import com.part3_team4.deokhoogam.domain.review.entity.ReviewLike;
 import com.part3_team4.deokhoogam.domain.review.exception.ReviewAlreadyExistsException;
 import com.part3_team4.deokhoogam.domain.review.exception.ReviewNotFoundException;
 import com.part3_team4.deokhoogam.domain.review.exception.ReviewNotOwnerException;
 import com.part3_team4.deokhoogam.domain.review.repository.DeletedReviewRepository;
+import com.part3_team4.deokhoogam.domain.review.repository.PopularReviewRepository;
 import com.part3_team4.deokhoogam.domain.review.repository.ReviewLikeRepository;
 import com.part3_team4.deokhoogam.domain.review.repository.ReviewRepository;
+import com.part3_team4.deokhoogam.domain.user.exception.UserNotFoundException;
+import com.part3_team4.deokhoogam.domain.user.repository.UserRepository;
 
 import java.util.HashSet;
 import java.util.List;
@@ -35,6 +39,8 @@ public class ReviewServiceImpl implements ReviewService {
     private final BookRepository bookRepository;
     private final ReviewLikeRepository reviewLikeRepository;
     private final DeletedReviewRepository deletedReviewRepository;
+    private final PopularReviewRepository popularReviewRepository;
+    private final UserRepository userRepository;
 
     @Override
     @Transactional
@@ -165,6 +171,48 @@ public class ReviewServiceImpl implements ReviewService {
                     ? String.valueOf(last.rating())
                     : last.createdAt() != null ? last.createdAt().toString() : null;
             nextAfter = last.id().toString();
+        }
+
+        return new PageResponse<>(content, nextCursor, nextAfter, content.size(), null, hasNext);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public PageResponse<PopularReviewResponse> getPopularReviews(String period, String direction, String cursor, String after, int limit) {
+        Pageable pageable = PageRequest.of(0, limit + 1, Sort.by(Sort.Direction.fromString(direction), "rank"));
+        List<PopularReview> popularReviews = popularReviewRepository.findByPeriod(period, pageable);
+
+        boolean hasNext = popularReviews.size() > limit;
+        if (hasNext) {
+            popularReviews = popularReviews.subList(0, limit);
+        }
+
+        List<PopularReviewResponse> content = popularReviews.stream()
+                .map(pr -> {
+                    Review review = reviewRepository.findById(pr.getReviewId())
+                            .orElseThrow(() -> ReviewNotFoundException.withId(pr.getReviewId()));
+                    var book = bookRepository.findById(review.getBookId())
+                            .orElseThrow(() -> BookNotFoundException.withId(review.getBookId()));
+                    var user = userRepository.findById(review.getUserId())
+                            .orElseThrow(() -> UserNotFoundException.withId(review.getUserId()));
+                    return new PopularReviewResponse(
+                            pr.getId(), pr.getReviewId(), review.getBookId(),
+                            book.getTitle(), book.getThumbnailUrl(),
+                            review.getUserId(), user.getName(),
+                            review.getContent(), review.getRating(),
+                            pr.getPeriod(), pr.getCreatedAt(),
+                            pr.getRank(), pr.getScore(),
+                            review.getLikeCount(), review.getCommentCount()
+                    );
+                })
+                .toList();
+
+        String nextCursor = null;
+        String nextAfter = null;
+        if (hasNext && !content.isEmpty()) {
+            PopularReviewResponse last = content.get(content.size() - 1);
+            nextCursor = String.valueOf(last.rank());
+            nextAfter = last.createdAt().toString();
         }
 
         return new PageResponse<>(content, nextCursor, nextAfter, content.size(), null, hasNext);

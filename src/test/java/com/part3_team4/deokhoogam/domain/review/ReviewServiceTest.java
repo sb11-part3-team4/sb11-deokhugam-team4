@@ -33,7 +33,6 @@ import com.part3_team4.deokhoogam.domain.review.exception.ReviewAlreadyExistsExc
 import org.springframework.data.domain.Pageable;
 
 import static ch.qos.logback.classic.spi.ThrowableProxyVO.build;
-import static com.part3_team4.deokhoogam.domain.review.entity.QPopularReview.popularReview;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
@@ -565,7 +564,7 @@ public class ReviewServiceTest {
         UUID userId = UUID.randomUUID();
         UUID bookId = UUID.randomUUID();
 
-        PopularReview popularreview = PopularReview.create(reviewId, "DAILY", new BigDecimal("0.7"), 1, LocalDate.now());
+        PopularReview popularReview = PopularReview.create(reviewId, "DAILY", new BigDecimal("0.7"), 1, LocalDate.now());
 
         Review review = Review.create(userId, bookId, 4, "좋은 책이에요");
 
