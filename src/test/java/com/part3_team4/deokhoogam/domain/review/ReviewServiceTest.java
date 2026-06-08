@@ -9,10 +9,13 @@ import com.part3_team4.deokhoogam.domain.review.exception.InvalidReviewException
 import com.part3_team4.deokhoogam.domain.review.exception.ReviewNotFoundException;
 import com.part3_team4.deokhoogam.domain.review.exception.ReviewNotOwnerException;
 import com.part3_team4.deokhoogam.domain.review.repository.DeletedReviewRepository;
+import com.part3_team4.deokhoogam.domain.review.repository.PopularReviewRepository;
 import com.part3_team4.deokhoogam.domain.review.repository.ReviewLikeRepository;
 import com.part3_team4.deokhoogam.domain.review.repository.ReviewRepository;
 import com.part3_team4.deokhoogam.domain.review.service.ReviewServiceImpl;
+import com.part3_team4.deokhoogam.domain.user.repository.UserRepository;
 import com.part3_team4.deokhoogam.global.common.PageResponse;
+import net.bytebuddy.asm.Advice;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -33,8 +36,11 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.BDDMockito.given;
-import static org.mockito.BDDMockito.then;
+import static org.mockito.BDDMockito.*;
+
+import com.part3_team4.deokhoogam.domain.review.entity.PopularReview;
+import com.part3_team4.deokhoogam.domain.user.entity.User;
+import java.math.BigDecimal;
 
 @ExtendWith(MockitoExtension.class)
 public class ReviewServiceTest {
@@ -49,6 +55,10 @@ public class ReviewServiceTest {
     ReviewLikeRepository reviewLikeRepository;
     @Mock
     DeletedReviewRepository deletedReviewRepository;
+    @Mock
+    PopularReviewRepository popularReviewRepository;
+    @Mock
+    UserRepository userRepository;
 
     @Test
     @DisplayName("정상적인 요청으로 리뷰를 등록하면 ReviewResponse를 반환한다")
@@ -546,5 +556,36 @@ public class ReviewServiceTest {
 
     }
 
+    @Test
+    @DisplayName("DAILY period로 조회하면 해당 period의 인기 리뷰 목록을 반환한다")
+    void getPopularReview_periodFilter_success() {
+        UUID reviewId = UUID.randomUUID();
+        UUID userId = UUID.randomUUID();
+        UUID bookId = UUID.randomUUID();
+
+        PopularReview popularreview = PopularReview.create(reviewId, "DAILY", new BigDecimal("0.7"), 1, LocalDate.now());
+
+        Review review = Review.create(userId, bookId, 4, "좋은 책이에요");
+
+        Book book = Book.builder()
+                .title("테스트 책").author("저자").description("설명")
+                .publisher("출판사").publishedDate(LocalDate.of(2020, 1, 1))
+                .build();
+        User user = new User("test@test.com", "닉네임", "password");
+
+        given(popularReviewRepository.findByPeriod(eq("DAILY"), any(Pageable.class)))
+                .willReturn(List.of(popularReview));
+        given(reviewRepository.findById(reviewId)).willReturn(Optional.of(review));
+
+        given(bookRepository.findById(bookId)).willReturn(Optional.of(book));
+
+        given(userRepository.findById(userId)).willReturn(Optional.of(user));
+
+        PageResponse<PopularReviewResponse> response = reviewService.getPopularReviews("DAILY", "ASC", null, null, 50);
+
+        assertThat(response.content()).hasSize(1);
+        assertThat(response.content().get(0).period()).isEqualTo("DAILY");
+
+    }
 
 }
