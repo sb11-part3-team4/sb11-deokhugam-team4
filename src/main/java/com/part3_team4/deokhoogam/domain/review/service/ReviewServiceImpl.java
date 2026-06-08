@@ -17,10 +17,7 @@ import com.part3_team4.deokhoogam.domain.review.repository.ReviewRepository;
 import com.part3_team4.deokhoogam.domain.user.exception.UserNotFoundException;
 import com.part3_team4.deokhoogam.domain.user.repository.UserRepository;
 
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
-import java.util.UUID;
+import java.util.*;
 
 import com.part3_team4.deokhoogam.global.common.PageResponse;
 import lombok.RequiredArgsConstructor;
@@ -30,6 +27,8 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+
+import static com.part3_team4.deokhoogam.domain.review.entity.QReview.review;
 
 @Service
 @RequiredArgsConstructor
@@ -188,7 +187,10 @@ public class ReviewServiceImpl implements ReviewService {
         }
 
         List<PopularReviewResponse> content = popularReviews.stream()
-                .map(this::toPopularReviewResponse)
+                .map(pr -> reviewRepository.findById(pr.getReviewId())
+                        .map(review -> toPopularReviewResponse(pr, review))
+                        .orElse(null))
+                .filter(Objects::nonNull)
                 .toList();
 
 
@@ -203,9 +205,7 @@ public class ReviewServiceImpl implements ReviewService {
         return new PageResponse<>(content, nextCursor, nextAfter, content.size(), null, hasNext);
     }
 
-    private PopularReviewResponse toPopularReviewResponse(PopularReview pr) {
-        Review review = reviewRepository.findById(pr.getReviewId())
-                .orElseThrow(() -> ReviewNotFoundException.withId(pr.getReviewId()));
+    private PopularReviewResponse toPopularReviewResponse(PopularReview pr, Review review) {
         var book = bookRepository.findById(review.getBookId())
                 .orElseThrow(() -> BookNotFoundException.withId(review.getBookId()));
         var user = userRepository.findById(review.getUserId())
