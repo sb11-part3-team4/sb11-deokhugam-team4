@@ -188,24 +188,9 @@ public class ReviewServiceImpl implements ReviewService {
         }
 
         List<PopularReviewResponse> content = popularReviews.stream()
-                .map(pr -> {
-                    Review review = reviewRepository.findById(pr.getReviewId())
-                            .orElseThrow(() -> ReviewNotFoundException.withId(pr.getReviewId()));
-                    var book = bookRepository.findById(review.getBookId())
-                            .orElseThrow(() -> BookNotFoundException.withId(review.getBookId()));
-                    var user = userRepository.findById(review.getUserId())
-                            .orElseThrow(() -> UserNotFoundException.withId(review.getUserId()));
-                    return new PopularReviewResponse(
-                            pr.getId(), pr.getReviewId(), review.getBookId(),
-                            book.getTitle(), book.getThumbnailUrl(),
-                            review.getUserId(), user.getName(),
-                            review.getContent(), review.getRating(),
-                            pr.getPeriod(), pr.getCreatedAt(),
-                            pr.getRank(), pr.getScore(),
-                            review.getLikeCount(), review.getCommentCount()
-                    );
-                })
+                .map(this::toPopularReviewResponse)
                 .toList();
+
 
         String nextCursor = null;
         String nextAfter = null;
@@ -216,6 +201,24 @@ public class ReviewServiceImpl implements ReviewService {
         }
 
         return new PageResponse<>(content, nextCursor, nextAfter, content.size(), null, hasNext);
+    }
+
+    private PopularReviewResponse toPopularReviewResponse(PopularReview pr) {
+        Review review = reviewRepository.findById(pr.getReviewId())
+                .orElseThrow(() -> ReviewNotFoundException.withId(pr.getReviewId()));
+        var book = bookRepository.findById(review.getBookId())
+                .orElseThrow(() -> BookNotFoundException.withId(review.getBookId()));
+        var user = userRepository.findById(review.getUserId())
+                .orElseThrow(() -> UserNotFoundException.withId(review.getUserId()));
+        return new PopularReviewResponse(
+                pr.getId(), pr.getReviewId(), review.getBookId(),
+                book.getTitle(), book.getThumbnailUrl(),
+                review.getUserId(), user.getName(),
+                review.getContent(), review.getRating(),
+                pr.getPeriod(), pr.getCreatedAt(),
+                pr.getRank(), pr.getScore(),
+                review.getLikeCount(), review.getCommentCount()
+        );
     }
 
 }
