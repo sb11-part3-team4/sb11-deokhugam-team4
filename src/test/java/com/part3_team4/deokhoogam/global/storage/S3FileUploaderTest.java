@@ -207,6 +207,55 @@ class S3FileUploaderTest {
   }
 
   @Test
+  @DisplayName("확장자는 정상이지만 지원하지 않는 MIME 타입이면 InvalidFileException을 던진다")
+  void upload_UnsupportedMimeType_ThrowsInvalidFileException() {
+    // given
+    String invalidMime = "application/json";
+    MockMultipartFile invalidMimeFile = new MockMultipartFile(
+        "thumbnailImage", "malware.png", invalidMime, "malicious_code".getBytes());
+
+    // when
+    Throwable thrown = catchThrowable(() -> s3FileUploader.upload(invalidMimeFile, DOMAIN_PATH));
+
+    // then
+    assertThat(thrown)
+        .isInstanceOf(InvalidFileException.class)
+        .satisfies(exception -> {
+          InvalidFileException e = (InvalidFileException) exception;
+          assertThat(e.getDetails())
+              .containsEntry(ErrorKey.FIELD.getValue(), ErrorKey.FILE.getValue())
+              .containsEntry(ErrorKey.VALUE.getValue(), invalidMime)
+              .containsEntry(ErrorKey.REASON.getValue(), "지원하지 않는 파일 타입(MIME)입니다.");
+        });
+
+    then(s3Template).shouldHaveNoInteractions();
+  }
+
+  @Test
+  @DisplayName("MIME 타입이 null이면 InvalidFileException을 던진다")
+  void upload_NullMimeType_ThrowsInvalidFileException() {
+    // given
+    MockMultipartFile nullMimeFile = new MockMultipartFile(
+        "thumbnailImage", "test.png", null, "bytes".getBytes());
+
+    // when
+    Throwable thrown = catchThrowable(() -> s3FileUploader.upload(nullMimeFile, DOMAIN_PATH));
+
+    // then
+    assertThat(thrown)
+        .isInstanceOf(InvalidFileException.class)
+        .satisfies(exception -> {
+          InvalidFileException e = (InvalidFileException) exception;
+          assertThat(e.getDetails())
+              .containsEntry(ErrorKey.FIELD.getValue(), ErrorKey.FILE.getValue())
+              .containsEntry(ErrorKey.VALUE.getValue(), "null")
+              .containsEntry(ErrorKey.REASON.getValue(), "지원하지 않는 파일 타입(MIME)입니다.");
+        });
+
+    then(s3Template).shouldHaveNoInteractions();
+  }
+
+  @Test
   @DisplayName("파일 크기가 0바이트이면 InvalidFileException을 던진다")
   void upload_EmptyFileContent_ThrowsInvalidFileException() {
     // given

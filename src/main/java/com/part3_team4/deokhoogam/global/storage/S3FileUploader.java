@@ -21,6 +21,8 @@ import software.amazon.awssdk.services.s3.model.S3Exception;
 public class S3FileUploader implements FileUploader {
 
   private static final Set<String> ALLOWED_EXTENSIONS = Set.of("png", "jpg", "jpeg", "webp");
+  private static final Set<String> ALLOWED_MIME = Set.of("image/png", "image/jpeg",
+      "image/webp");
 
   private final S3Template s3Template;
 
@@ -80,6 +82,12 @@ public class S3FileUploader implements FileUploader {
 
     if (file.isEmpty()) {
       throw InvalidFileException.withField(ErrorKey.FILE, "비어있는 파일은 업로드할 수 없습니다.");
+    }
+
+    String contentType = file.getContentType();
+    if (contentType == null || !ALLOWED_MIME.contains(contentType.toLowerCase())) {
+      throw InvalidFileException.withFieldAndValue(ErrorKey.FILE, String.valueOf(contentType),
+          "지원하지 않는 파일 타입(MIME)입니다.");
     }
 
     validateExtension(originalFilename);
