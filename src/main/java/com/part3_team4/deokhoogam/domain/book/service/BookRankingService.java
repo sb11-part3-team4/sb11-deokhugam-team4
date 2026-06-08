@@ -1,13 +1,13 @@
-package com.part3_team4.deokhoogam.domain.ranking.service;
+package com.part3_team4.deokhoogam.domain.book.service;
 
+import com.part3_team4.deokhoogam.domain.book.dto.ranking.BookRankingDto;
+import com.part3_team4.deokhoogam.domain.book.dto.ranking.RankingCursor;
 import com.part3_team4.deokhoogam.domain.book.entity.Book;
+import com.part3_team4.deokhoogam.domain.book.entity.BookRanking;
 import com.part3_team4.deokhoogam.domain.book.entity.Direction;
+import com.part3_team4.deokhoogam.domain.book.entity.PeriodType;
 import com.part3_team4.deokhoogam.domain.book.repository.BookRepository;
-import com.part3_team4.deokhoogam.domain.ranking.dto.BookRankingDto;
-import com.part3_team4.deokhoogam.domain.ranking.dto.RankingCursor;
-import com.part3_team4.deokhoogam.domain.ranking.entity.BookRanking;
-import com.part3_team4.deokhoogam.domain.ranking.entity.PeriodType;
-import com.part3_team4.deokhoogam.domain.ranking.repository.BookRankingRepository;
+import com.part3_team4.deokhoogam.domain.book.repository.ranking.BookRankingRepository;
 import com.part3_team4.deokhoogam.global.common.PageResponse;
 import com.part3_team4.deokhoogam.global.util.CursorUtils;
 import java.util.List;

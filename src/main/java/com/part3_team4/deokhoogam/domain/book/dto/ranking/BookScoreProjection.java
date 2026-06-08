@@ -1,4 +1,4 @@
-package com.part3_team4.deokhoogam.domain.ranking.dto;
+package com.part3_team4.deokhoogam.domain.book.dto.ranking;
 
 import java.math.BigDecimal;
 import java.util.UUID;

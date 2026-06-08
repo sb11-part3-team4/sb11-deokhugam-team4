@@ -5,7 +5,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import com.part3_team4.deokhoogam.domain.book.dto.BookCursor;
-import com.part3_team4.deokhoogam.domain.ranking.dto.RankingCursor;
+import com.part3_team4.deokhoogam.domain.book.dto.ranking.RankingCursor;
 import com.part3_team4.deokhoogam.global.exception.Base64Exception;
 import java.nio.charset.StandardCharsets;
 import java.util.Base64;

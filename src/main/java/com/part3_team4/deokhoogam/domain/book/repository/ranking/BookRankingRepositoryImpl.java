@@ -1,10 +1,10 @@
-package com.part3_team4.deokhoogam.domain.ranking.repository;
+package com.part3_team4.deokhoogam.domain.book.repository.ranking;
 
-import static com.part3_team4.deokhoogam.domain.ranking.entity.QBookRanking.bookRanking;
+import static com.part3_team4.deokhoogam.domain.book.entity.QBookRanking.bookRanking;
 
+import com.part3_team4.deokhoogam.domain.book.entity.BookRanking;
 import com.part3_team4.deokhoogam.domain.book.entity.Direction;
-import com.part3_team4.deokhoogam.domain.ranking.entity.BookRanking;
-import com.part3_team4.deokhoogam.domain.ranking.entity.PeriodType;
+import com.part3_team4.deokhoogam.domain.book.entity.PeriodType;
 import com.querydsl.core.types.dsl.BooleanExpression;
 import com.querydsl.jpa.impl.JPAQueryFactory;
 import java.util.List;

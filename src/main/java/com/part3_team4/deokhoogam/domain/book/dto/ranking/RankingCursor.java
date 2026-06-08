@@ -1,4 +1,4 @@
-package com.part3_team4.deokhoogam.domain.ranking.dto;
+package com.part3_team4.deokhoogam.domain.book.dto.ranking;
 
 import lombok.AllArgsConstructor;
 import lombok.Builder;

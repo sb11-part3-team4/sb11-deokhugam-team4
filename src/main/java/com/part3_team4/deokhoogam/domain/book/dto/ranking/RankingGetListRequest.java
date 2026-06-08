@@ -1,7 +1,7 @@
-package com.part3_team4.deokhoogam.domain.ranking.dto;
+package com.part3_team4.deokhoogam.domain.book.dto.ranking;
 
 import com.part3_team4.deokhoogam.domain.book.entity.Direction;
-import com.part3_team4.deokhoogam.domain.ranking.entity.PeriodType;
+import com.part3_team4.deokhoogam.domain.book.entity.PeriodType;
 import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
 

@@ -1,8 +1,8 @@
-package com.part3_team4.deokhoogam.domain.ranking.repository;
+package com.part3_team4.deokhoogam.domain.book.repository.ranking;
 
-import com.part3_team4.deokhoogam.domain.ranking.dto.BookScoreProjection;
-import com.part3_team4.deokhoogam.domain.ranking.entity.BookRanking;
-import com.part3_team4.deokhoogam.domain.ranking.entity.PeriodType;
+import com.part3_team4.deokhoogam.domain.book.dto.ranking.BookScoreProjection;
+import com.part3_team4.deokhoogam.domain.book.entity.BookRanking;
+import com.part3_team4.deokhoogam.domain.book.entity.PeriodType;
 import java.time.Instant;
 import java.util.List;
 import java.util.UUID;
@@ -11,7 +11,8 @@ import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
-public interface BookRankingRepository extends JpaRepository<BookRanking, UUID>, BookRankingRepositoryCustom {
+public interface BookRankingRepository extends JpaRepository<BookRanking, UUID>,
+    BookRankingRepositoryCustom {
 
   @Query(value = """
         SELECT CAST(book_id AS UUID) AS bookId,

@@ -1,12 +1,12 @@
-package com.part3_team4.deokhoogam.domain.ranking;
+package com.part3_team4.deokhoogam.domain.book.ranking;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import com.part3_team4.deokhoogam.domain.book.dto.ranking.BookScoreProjection;
+import com.part3_team4.deokhoogam.domain.book.entity.BookRanking;
 import com.part3_team4.deokhoogam.domain.book.entity.Direction;
-import com.part3_team4.deokhoogam.domain.ranking.dto.BookScoreProjection;
-import com.part3_team4.deokhoogam.domain.ranking.entity.BookRanking;
-import com.part3_team4.deokhoogam.domain.ranking.entity.PeriodType;
-import com.part3_team4.deokhoogam.domain.ranking.repository.BookRankingRepository;
+import com.part3_team4.deokhoogam.domain.book.entity.PeriodType;
+import com.part3_team4.deokhoogam.domain.book.repository.ranking.BookRankingRepository;
 import com.part3_team4.deokhoogam.domain.review.entity.Review;
 import com.part3_team4.deokhoogam.global.config.JpaAuditingConfig;
 import com.part3_team4.deokhoogam.global.config.QuerydslConfig;

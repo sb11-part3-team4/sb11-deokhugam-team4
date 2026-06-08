@@ -1,4 +1,4 @@
-package com.part3_team4.deokhoogam.domain.ranking;
+package com.part3_team4.deokhoogam.domain.book.ranking;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
@@ -7,10 +7,12 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-import com.part3_team4.deokhoogam.domain.ranking.controller.BookRankingController;
-import com.part3_team4.deokhoogam.domain.ranking.dto.BookRankingDto;
-import com.part3_team4.deokhoogam.domain.ranking.entity.PeriodType;
-import com.part3_team4.deokhoogam.domain.ranking.service.BookRankingService;
+import com.part3_team4.deokhoogam.domain.book.controller.BookController;
+import com.part3_team4.deokhoogam.domain.book.dto.ranking.BookRankingDto;
+import com.part3_team4.deokhoogam.domain.book.entity.PeriodType;
+import com.part3_team4.deokhoogam.domain.book.service.BookRankingService;
+import com.part3_team4.deokhoogam.domain.book.service.BookService;
+import com.part3_team4.deokhoogam.domain.book.service.OcrService;
 import com.part3_team4.deokhoogam.global.common.PageResponse;
 import java.math.BigDecimal;
 import java.time.Instant;
@@ -26,7 +28,7 @@ import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 
 
-@WebMvcTest(BookRankingController.class)
+@WebMvcTest(BookController.class)
 @AutoConfigureMockMvc(addFilters = false)
 @ActiveProfiles("test")
 
@@ -37,6 +39,13 @@ class BookRankingControllerTest {
 
   @MockitoBean
   private BookRankingService bookRankingService;
+
+  @MockitoBean
+  private BookService bookService;
+
+  @MockitoBean
+  private OcrService ocrService;
+
 
   @Test
   @DisplayName("정상 요청이면 200과 랭킹 목록을 반환한다")

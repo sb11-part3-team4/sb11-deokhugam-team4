@@ -6,6 +6,9 @@ import com.part3_team4.deokhoogam.domain.book.dto.BookDto;
 import com.part3_team4.deokhoogam.domain.book.dto.BookGetListRequest;
 import com.part3_team4.deokhoogam.domain.book.dto.BookUpdateRequest;
 import com.part3_team4.deokhoogam.domain.book.dto.NaverBookDto;
+import com.part3_team4.deokhoogam.domain.book.dto.ranking.BookRankingDto;
+import com.part3_team4.deokhoogam.domain.book.dto.ranking.RankingGetListRequest;
+import com.part3_team4.deokhoogam.domain.book.service.BookRankingService;
 import com.part3_team4.deokhoogam.domain.book.service.BookService;
 import com.part3_team4.deokhoogam.domain.book.service.OcrService;
 import com.part3_team4.deokhoogam.global.common.PageResponse;
@@ -24,6 +27,7 @@ import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.ModelAttribute;
 import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -41,6 +45,7 @@ public class BookController implements BookAPI {
 
   private final BookService bookService;
   private final OcrService ocrService;
+  private final BookRankingService bookRankingService;
 
   @Operation(summary = "도서 등록", description = "새로운 도서를 등록합니다.")
   @ApiResponses({
@@ -127,7 +132,6 @@ public class BookController implements BookAPI {
   }
 
 
-
   @Operation(summary = "OCR 기반 ISBN 인식", description = "OCR을 통해 ISBN을 인식합니다.")
   @ApiResponses({
       @ApiResponse(responseCode = "200", description = "ISBN 인식 성공"),
@@ -141,4 +145,17 @@ public class BookController implements BookAPI {
 
     return ResponseEntity.ok(extractedIsbn);
   }
+
+
+  @GetMapping(value = "/popular")
+  public ResponseEntity<PageResponse<BookRankingDto>> getRankings(
+      @Valid @ModelAttribute RankingGetListRequest request) {
+
+    PageResponse<BookRankingDto> response = bookRankingService.getRankings(
+        request.period(), request.direction(), request.cursor(), request.limit());
+
+    return ResponseEntity.ok().body(response);
+  }
+
+
 }

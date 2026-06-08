@@ -1,8 +1,7 @@
-package com.part3_team4.deokhoogam.domain.ranking.config;
+package com.part3_team4.deokhoogam.batch.BookRanking;
 
 
-import com.part3_team4.deokhoogam.batch.BookRanking.RankingCalculator;
-import com.part3_team4.deokhoogam.domain.ranking.entity.PeriodType;
+import com.part3_team4.deokhoogam.domain.book.entity.PeriodType;
 import lombok.RequiredArgsConstructor;
 import org.springframework.batch.core.Job;
 import org.springframework.batch.core.Step;

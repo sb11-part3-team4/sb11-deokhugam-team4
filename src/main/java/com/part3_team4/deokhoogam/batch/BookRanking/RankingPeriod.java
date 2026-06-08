@@ -1,6 +1,6 @@
 package com.part3_team4.deokhoogam.batch.BookRanking;
 
-import com.part3_team4.deokhoogam.domain.ranking.entity.PeriodType;
+import com.part3_team4.deokhoogam.domain.book.entity.PeriodType;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.ZoneId;
