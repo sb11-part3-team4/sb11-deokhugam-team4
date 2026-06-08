@@ -2,6 +2,7 @@ package com.part3_team4.deokhoogam.domain.ranking.repository;
 
 import static com.part3_team4.deokhoogam.domain.ranking.entity.QBookRanking.bookRanking;
 
+import com.part3_team4.deokhoogam.domain.book.entity.Direction;
 import com.part3_team4.deokhoogam.domain.ranking.entity.BookRanking;
 import com.part3_team4.deokhoogam.domain.ranking.entity.PeriodType;
 import com.querydsl.core.types.dsl.BooleanExpression;
@@ -18,15 +19,19 @@ public class BookRankingRepositoryImpl implements BookRankingRepositoryCustom {
   private final JPAQueryFactory queryFactory;
 
   @Override
-  public Slice<BookRanking> getRankings(PeriodType period, Integer cursor, int limit) {
+  public Slice<BookRanking> getRankings(PeriodType period, Direction direction,
+      Integer cursor, int limit) {
+
+    boolean isAsc = (direction == null || direction == Direction.ASC);  // 기본 ASC
+
     List<BookRanking> content = queryFactory
         .selectFrom(bookRanking)
         .where(
-            bookRanking.period.eq(period),   // 기간 필터
-            cursorCondition(cursor)          // 커서: ranking 다음부터
+            bookRanking.period.eq(period),
+            cursorCondition(cursor, isAsc)
         )
-        .orderBy(bookRanking.ranking.asc())  // 순위 오름차순
-        .limit(limit + 1)                    // hasNext 판단용 +1
+        .orderBy(isAsc ? bookRanking.ranking.asc() : bookRanking.ranking.desc())
+        .limit(limit + 1)
         .fetch();
 
     boolean hasNext = content.size() > limit;
@@ -36,11 +41,11 @@ public class BookRankingRepositoryImpl implements BookRankingRepositoryCustom {
     return new SliceImpl<>(content, PageRequest.of(0, limit), hasNext);
   }
 
-  // 커서가 null이면 첫 페이지(조건 없음), 있으면 그 ranking보다 큰 것부터
-  private BooleanExpression cursorCondition(Integer cursor) {
+  private BooleanExpression cursorCondition(Integer cursor, boolean isAsc) {
     if (cursor == null) {
       return null;
     }
-    return bookRanking.ranking.gt(cursor);
+    // ASC면 cursor보다 큰 ranking, DESC면 작은 ranking
+    return isAsc ? bookRanking.ranking.gt(cursor) : bookRanking.ranking.lt(cursor);
   }
 }

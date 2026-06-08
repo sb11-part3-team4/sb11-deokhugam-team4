@@ -11,7 +11,7 @@ import com.part3_team4.deokhoogam.domain.book.entity.DeletedBook;
 import com.part3_team4.deokhoogam.domain.book.exception.BookNotFoundException;
 import com.part3_team4.deokhoogam.domain.book.exception.InvalidIsbnException;
 import com.part3_team4.deokhoogam.domain.book.exception.IsbnAlreadyExistsException;
-import com.part3_team4.deokhoogam.domain.book.instructure.naver.NaverApiService;
+import com.part3_team4.deokhoogam.domain.book.infrastructure.naver.NaverApiService;
 import com.part3_team4.deokhoogam.domain.book.repository.BookRepository;
 import com.part3_team4.deokhoogam.domain.book.repository.DeletedBookRepository;
 import com.part3_team4.deokhoogam.global.common.PageResponse;

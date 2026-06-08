@@ -23,6 +23,11 @@ spring:
     console:
       enabled: true
 
+
+  batch:
+    jdbc:
+      initialize-schema: always
+
 logging:
   level:
     com.sprint.mission.discodeit: DEBUG
@@ -35,4 +40,6 @@ springdoc:
     enabled: true
   swagger-ui:
     enabled: true
+
+
 

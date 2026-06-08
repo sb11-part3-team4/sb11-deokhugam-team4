@@ -7,6 +7,7 @@ import java.time.Instant;
 import java.util.List;
 import java.util.UUID;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
@@ -15,7 +16,7 @@ public interface BookRankingRepository extends JpaRepository<BookRanking, UUID>,
   @Query(value = """
         SELECT CAST(book_id AS UUID) AS bookId,
                COUNT(*) AS reviewCount,
-               AVG(CAST(rating AS DECIMAL(10,4))) AS avgRating
+               AVG(CAST(rating AS DECIMAL(3,2))) AS avgRating
         FROM (
             SELECT book_id, rating, created_at FROM review
             UNION ALL
@@ -30,7 +31,7 @@ public interface BookRankingRepository extends JpaRepository<BookRanking, UUID>,
   @Query(value = """
         SELECT CAST(book_id AS UUID) AS bookId,
                COUNT(*) AS reviewCount,
-               AVG(CAST(rating AS DECIMAL(10,4))) AS avgRating
+               AVG(CAST(rating AS DECIMAL(3,2))) AS avgRating
         FROM (
             SELECT book_id, rating FROM review
             UNION ALL
@@ -40,5 +41,13 @@ public interface BookRankingRepository extends JpaRepository<BookRanking, UUID>,
         """, nativeQuery = true)
   List<BookScoreProjection> aggregateAllTimeScores();
 
+  @Query(value = """
+    SELECT book_id
+    FROM review
+    LIMIT 1
+    """, nativeQuery = true)
+  Object findBookIdRaw();
+
+  @Modifying(clearAutomatically = true, flushAutomatically = true)
   void deleteByPeriod(PeriodType period);
 }

@@ -127,12 +127,6 @@ public class BookController implements BookAPI {
   }
 
 
-  @GetMapping("/popular")
-  public ResponseEntity<PageResponse> getPopularBooks() {
-
-
-    return ResponseEntity.ok().body(null);
-  }
 
   @Operation(summary = "OCR 기반 ISBN 인식", description = "OCR을 통해 ISBN을 인식합니다.")
   @ApiResponses({
