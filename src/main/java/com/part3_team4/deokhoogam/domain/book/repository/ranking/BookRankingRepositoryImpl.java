@@ -5,6 +5,7 @@ import static com.part3_team4.deokhoogam.domain.book.entity.QBookRanking.bookRan
 import com.part3_team4.deokhoogam.domain.book.entity.BookRanking;
 import com.part3_team4.deokhoogam.domain.book.entity.Direction;
 import com.part3_team4.deokhoogam.domain.book.entity.PeriodType;
+import com.querydsl.core.types.OrderSpecifier;
 import com.querydsl.core.types.dsl.BooleanExpression;
 import com.querydsl.jpa.impl.JPAQueryFactory;
 import java.util.List;
@@ -22,15 +23,20 @@ public class BookRankingRepositoryImpl implements BookRankingRepositoryCustom {
   public Slice<BookRanking> getRankings(PeriodType period, Direction direction,
       Integer cursor, int limit) {
 
-    boolean isAsc = (direction == null || direction == Direction.ASC);  // 기본 ASC
+    boolean isAsc = (direction == null || direction == Direction.ASC);
+    PeriodType targetPeriod = (period == null) ? PeriodType.DAILY : period;
+
+    OrderSpecifier<Integer> order = isAsc
+        ? bookRanking.ranking.asc()
+        : bookRanking.ranking.desc();
 
     List<BookRanking> content = queryFactory
         .selectFrom(bookRanking)
         .where(
-            bookRanking.period.eq(period),
+            bookRanking.period.eq(targetPeriod),
             cursorCondition(cursor, isAsc)
         )
-        .orderBy(isAsc ? bookRanking.ranking.asc() : bookRanking.ranking.desc())
+        .orderBy(order)
         .limit(limit + 1)
         .fetch();
 
@@ -45,7 +51,6 @@ public class BookRankingRepositoryImpl implements BookRankingRepositoryCustom {
     if (cursor == null) {
       return null;
     }
-    // ASC면 cursor보다 큰 ranking, DESC면 작은 ranking
     return isAsc ? bookRanking.ranking.gt(cursor) : bookRanking.ranking.lt(cursor);
   }
 }

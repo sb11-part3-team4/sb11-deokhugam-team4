@@ -2,13 +2,19 @@ package com.part3_team4.deokhoogam.batch.BookRanking;
 
 
 import com.part3_team4.deokhoogam.domain.book.dto.ranking.BookScoreProjection;
+import com.part3_team4.deokhoogam.domain.book.entity.Book;
 import com.part3_team4.deokhoogam.domain.book.entity.BookRanking;
 import com.part3_team4.deokhoogam.domain.book.entity.PeriodType;
+import com.part3_team4.deokhoogam.domain.book.repository.BookRepository;
 import com.part3_team4.deokhoogam.domain.book.repository.ranking.BookRankingRepository;
 import java.math.BigDecimal;
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
+import java.util.Map;
+import java.util.UUID;
+import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
@@ -18,6 +24,8 @@ import org.springframework.transaction.annotation.Transactional;
 public class RankingCalculator {
 
   private final BookRankingRepository bookRankingRepository;
+  private final BookRepository bookRepository;
+
   private final RankingScoreCalculator scoreCalculator;
 
   @Transactional
@@ -37,8 +45,17 @@ public class RankingCalculator {
       scored.add(new Scored(s, score));
     }
 
-    // 4. 점수 높은 순 정렬 → 순위 매기기
-    scored.sort(Comparator.comparing(Scored::score).reversed());
+
+    // 4. 동점 정렬용: 책 createdAt 한 번에 조회
+    List<UUID> bookIds = scored.stream().map(s -> s.projection().getBookId()).toList();
+    Map<UUID, Instant> createdAtMap = bookRepository.findAllById(bookIds).stream()
+        .collect(Collectors.toMap(Book::getId, Book::getCreatedAt));
+
+    // 점수 내림차순, 동점이면 createdAt 오름차순(먼저 등록된 책 우선)
+    scored.sort(
+        Comparator.comparing(Scored::score).reversed()
+            .thenComparing(s -> createdAtMap.getOrDefault(s.projection().getBookId(), Instant.MAX))
+    );
 
     List<BookRanking> rankings = new ArrayList<>();
     int rank = 1;

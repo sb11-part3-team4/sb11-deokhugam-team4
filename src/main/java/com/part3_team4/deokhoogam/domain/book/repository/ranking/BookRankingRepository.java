@@ -29,25 +29,6 @@ public interface BookRankingRepository extends JpaRepository<BookRanking, UUID>,
   List<BookScoreProjection> aggregateScores(@Param("start") Instant start,
       @Param("end") Instant end);
 
-  @Query(value = """
-        SELECT CAST(book_id AS UUID) AS bookId,
-               COUNT(*) AS reviewCount,
-               AVG(CAST(rating AS DECIMAL(3,2))) AS avgRating
-        FROM (
-            SELECT book_id, rating FROM review
-            UNION ALL
-            SELECT book_id, rating FROM deleted_review
-        ) AS all_reviews
-        GROUP BY book_id
-        """, nativeQuery = true)
-  List<BookScoreProjection> aggregateAllTimeScores();
-
-  @Query(value = """
-    SELECT book_id
-    FROM review
-    LIMIT 1
-    """, nativeQuery = true)
-  Object findBookIdRaw();
 
   @Modifying(clearAutomatically = true, flushAutomatically = true)
   void deleteByPeriod(PeriodType period);
