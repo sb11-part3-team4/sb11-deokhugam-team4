@@ -6,10 +6,12 @@ import com.part3_team4.deokhoogam.global.exception.storage.StorageOperationExcep
 import io.awspring.cloud.s3.S3Resource;
 import io.awspring.cloud.s3.S3Template;
 import java.io.IOException;
+import java.io.InputStream;
 import java.util.Set;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.tika.Tika;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 import org.springframework.web.multipart.MultipartFile;
@@ -23,6 +25,8 @@ public class S3FileUploader implements FileUploader {
   private static final Set<String> ALLOWED_EXTENSIONS = Set.of("png", "jpg", "jpeg", "webp");
   private static final Set<String> ALLOWED_MIME = Set.of("image/png", "image/jpeg",
       "image/webp");
+
+  private static final Tika TIKA = new Tika();
 
   private final S3Template s3Template;
 
@@ -84,13 +88,25 @@ public class S3FileUploader implements FileUploader {
       throw InvalidFileException.withField(ErrorKey.FILE, "비어있는 파일은 업로드할 수 없습니다.");
     }
 
+    validateExtension(originalFilename);
+
     String contentType = file.getContentType();
     if (contentType == null || !ALLOWED_MIME.contains(contentType.toLowerCase())) {
       throw InvalidFileException.withFieldAndValue(ErrorKey.FILE, String.valueOf(contentType),
           "지원하지 않는 파일 타입(MIME)입니다.");
     }
 
-    validateExtension(originalFilename);
+    try (InputStream inputStream = file.getInputStream()) {
+      String detectedMimeType = TIKA.detect(inputStream);
+
+      if (!ALLOWED_MIME.contains(detectedMimeType.toLowerCase())) {
+        log.warn("파일 변조 의심: 요청된 MIME={}, 실제 MIME={}", contentType, detectedMimeType);
+        throw InvalidFileException.withFieldAndValue(
+            ErrorKey.FILE, detectedMimeType, "실제 파일 타입과 불일치합니다.");
+      }
+    } catch (IOException e) {
+      throw InvalidFileException.withField(ErrorKey.FILE, "파일 검증 중 오류가 발생했습니다.");
+    }
   }
 
   private void validateDomainPath(String domainPath) {

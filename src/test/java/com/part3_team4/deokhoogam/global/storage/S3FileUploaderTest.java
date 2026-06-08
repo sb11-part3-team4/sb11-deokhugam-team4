@@ -43,6 +43,13 @@ class S3FileUploaderTest {
   private static final String BUCKET_NAME = "deokhugam-bucket";
   private static final String DOMAIN_PATH = "books";
 
+  private static final byte[] PNG_BYTES = {
+      (byte) 0x89, 0x50, 0x4E, 0x47,
+      0x0D, 0x0A, 0x1A, 0x0A,
+      0x00, 0x00, 0x00, 0x0D,
+      0x49, 0x48, 0x44, 0x52
+  };
+
   @BeforeEach
   void setUp() {
     ReflectionTestUtils.setField(s3FileUploader, "bucketName", BUCKET_NAME);
@@ -56,7 +63,7 @@ class S3FileUploaderTest {
   @DisplayName("정상적인 파일이 주어지면 S3 업로드 후 URL을 반환한다")
   void upload_ValidFile_ReturnsUrl() throws Exception {
     // given
-    MockMultipartFile file = createFixtureFile("test.png", "bytes".getBytes());
+    MockMultipartFile file = createFixtureFile("test.png", PNG_BYTES);
     String expectedUrl = "https://deokhoogam-bucket.s3.ap-northeast-2.amazonaws.com/books/dynamic-key.png";
 
     S3Resource mockResource = mock(S3Resource.class);
@@ -80,7 +87,7 @@ class S3FileUploaderTest {
   @DisplayName("S3 업로드 중 예외가 발생하면 cleanup 후 StorageOperationException을 던진다")
   void upload_S3Exception_TriggersCleanupAndThrowsException() {
     // given
-    MockMultipartFile file = createFixtureFile("test.png", "bytes".getBytes());
+    MockMultipartFile file = createFixtureFile("test.png", PNG_BYTES);
 
     given(s3Template.upload(eq(BUCKET_NAME), any(String.class), any(InputStream.class),
         eq(null))).willThrow(S3Exception.builder().message("S3 인프라 장애").build());
@@ -117,7 +124,7 @@ class S3FileUploaderTest {
   @DisplayName("파일 이름이 공백이면 InvalidFileException을 던진다")
   void upload_EmptyFilename_ThrowsInvalidFileException() {
     // given
-    MockMultipartFile emptyNameFile = createFixtureFile("", "bytes".getBytes());
+    MockMultipartFile emptyNameFile = createFixtureFile("", PNG_BYTES);
 
     // when
     Throwable thrown = catchThrowable(() -> s3FileUploader.upload(emptyNameFile, DOMAIN_PATH));
@@ -141,7 +148,7 @@ class S3FileUploaderTest {
   void upload_EmptyDomainPath_ThrowsInvalidFileException() {
     // given
     MockMultipartFile file =
-        createFixtureFile("test.png", "bytes".getBytes());
+        createFixtureFile("test.png", PNG_BYTES);
 
     // when
     Throwable thrown = catchThrowable(() -> s3FileUploader.upload(file, "   "));
@@ -164,7 +171,7 @@ class S3FileUploaderTest {
   @DisplayName("지원하지 않는 확장자이면 InvalidFileException을 던진다")
   void upload_UnsupportedExtension_ThrowsInvalidFileException() {
     // given
-    MockMultipartFile txtFile = createFixtureFile("invalid.txt", "bytes".getBytes());
+    MockMultipartFile txtFile = createFixtureFile("invalid.txt", PNG_BYTES);
 
     // when
     Throwable thrown = catchThrowable(() -> s3FileUploader.upload(txtFile, DOMAIN_PATH));
@@ -187,7 +194,7 @@ class S3FileUploaderTest {
   @DisplayName("확장자 형식이 잘못되면 InvalidFileException을 던진다")
   void upload_MalformedExtension_ThrowsInvalidFileException() {
     // given
-    MockMultipartFile malformedFile = createFixtureFile("invalid_file.", "bytes".getBytes());
+    MockMultipartFile malformedFile = createFixtureFile("invalid_file.", PNG_BYTES);
 
     // when
     Throwable thrown = catchThrowable(() -> s3FileUploader.upload(malformedFile, DOMAIN_PATH));
@@ -236,7 +243,7 @@ class S3FileUploaderTest {
   void upload_NullMimeType_ThrowsInvalidFileException() {
     // given
     MockMultipartFile nullMimeFile = new MockMultipartFile(
-        "thumbnailImage", "test.png", null, "bytes".getBytes());
+        "thumbnailImage", "test.png", null, PNG_BYTES);
 
     // when
     Throwable thrown = catchThrowable(() -> s3FileUploader.upload(nullMimeFile, DOMAIN_PATH));
@@ -250,6 +257,34 @@ class S3FileUploaderTest {
               .containsEntry(ErrorKey.FIELD.getValue(), ErrorKey.FILE.getValue())
               .containsEntry(ErrorKey.VALUE.getValue(), "null")
               .containsEntry(ErrorKey.REASON.getValue(), "지원하지 않는 파일 타입(MIME)입니다.");
+        });
+
+    then(s3Template).shouldHaveNoInteractions();
+  }
+
+  @Test
+  @DisplayName("MIME은 정상이지만 실제 파일 타입이 다르면 InvalidFileException을 던진다")
+  void upload_MimeSpoofing_ThrowsInvalidFileException() {
+    // given
+    MockMultipartFile fakeImageFile = new MockMultipartFile(
+        "thumbnailImage",
+        "virus.png",
+        "image/png",
+        "not_a_real_png".getBytes()
+    );
+
+    // when
+    Throwable thrown = catchThrowable(() -> s3FileUploader.upload(fakeImageFile, DOMAIN_PATH));
+
+    // then
+    assertThat(thrown)
+        .isInstanceOf(InvalidFileException.class)
+        .satisfies(exception -> {
+          InvalidFileException e = (InvalidFileException) exception;
+
+          assertThat(e.getDetails())
+              .containsEntry(ErrorKey.FIELD.getValue(), ErrorKey.FILE.getValue())
+              .containsEntry(ErrorKey.REASON.getValue(), "실제 파일 타입과 불일치합니다.");
         });
 
     then(s3Template).shouldHaveNoInteractions();
@@ -282,7 +317,7 @@ class S3FileUploaderTest {
   @DisplayName("예상하지 못한 RuntimeException은 그대로 전파한다")
   void upload_UnexpectedRuntimeException_Propagates() {
     // given
-    MockMultipartFile file = createFixtureFile("test.png", "bytes".getBytes());
+    MockMultipartFile file = createFixtureFile("test.png", PNG_BYTES);
 
     given(s3Template.upload(eq(BUCKET_NAME), any(String.class), any(InputStream.class),
         eq(null))).willThrow(new IllegalArgumentException("bug"));
