@@ -6,11 +6,13 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.batch.core.BatchStatus;
+import org.springframework.batch.core.Job;
 import org.springframework.batch.core.JobExecution;
 import org.springframework.batch.test.JobLauncherTestUtils;
 import org.springframework.batch.test.JobRepositoryTestUtils;
 import org.springframework.batch.test.context.SpringBatchTest;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.jdbc.core.JdbcTemplate;
@@ -42,8 +44,13 @@ class DeleteOrphanCommentJobConfigTest {
     @Autowired
     private DeletedCommentRepository deletedCommentRepository;
 
+    @Autowired
+    @Qualifier("deleteOrphanCommentJob")
+    private Job deleteOrphanCommentJob;
+
     @BeforeEach
     void setUp() {
+        jobLauncherTestUtils.setJob(deleteOrphanCommentJob);
         jobRepositoryTestUtils.removeJobExecutions();
         jdbcTemplate.execute("DELETE FROM deleted_comment");
         jdbcTemplate.execute("DELETE FROM comment");
