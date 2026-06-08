@@ -23,6 +23,7 @@ import com.part3_team4.deokhoogam.domain.book.exception.BookNotFoundException;
 import com.part3_team4.deokhoogam.domain.book.exception.InvalidIsbnException;
 import com.part3_team4.deokhoogam.domain.book.exception.IsbnAlreadyExistsException;
 import com.part3_team4.deokhoogam.domain.book.instructure.naver.NaverApiService;
+import com.part3_team4.deokhoogam.domain.book.repository.BookPersistence;
 import com.part3_team4.deokhoogam.domain.book.repository.BookRepository;
 import com.part3_team4.deokhoogam.domain.book.repository.DeletedBookRepository;
 import com.part3_team4.deokhoogam.domain.book.service.BookServiceImpl;
@@ -77,6 +78,9 @@ class BookServiceTest {
   @Mock
   private FileUploader fileUploader;
 
+  @Mock
+  private BookPersistence bookPersistence;
+
   private static final String BOOK_THUMBNAIL_DIR = "books";
   private static final String ISBN_UNIQUE_CONSTRAINT = "uk_book_isbn";
 
@@ -99,7 +103,7 @@ class BookServiceTest {
     setField(mockSavedBook, "id", mockId);
 
     given(bookRepository.existsByIsbn(request.isbn())).willReturn(false);
-    given(bookRepository.save(any(Book.class))).willReturn(mockSavedBook);
+    given(bookPersistence.save(any(Book.class))).willReturn(mockSavedBook);
 
     // when
     BookDto result = bookService.create(request, null);
@@ -111,7 +115,7 @@ class BookServiceTest {
     assertThat(result.title()).isEqualTo(request.title());
 
     ArgumentCaptor<Book> bookCaptor = ArgumentCaptor.forClass(Book.class);
-    then(bookRepository).should().save(bookCaptor.capture());
+    then(bookPersistence).should().save(bookCaptor.capture());
 
     Book actualSavedBook = bookCaptor.getValue();
     assertThat(actualSavedBook.getIsbn()).isEqualTo(request.isbn());
@@ -148,7 +152,7 @@ class BookServiceTest {
         .build();
     setField(mockSavedBook, "id", mockId);
 
-    given(bookRepository.save(any(Book.class))).willReturn(mockSavedBook);
+    given(bookPersistence.save(any(Book.class))).willReturn(mockSavedBook);
 
     // when
     BookDto result = bookService.create(request, thumbnailFile);
@@ -158,7 +162,7 @@ class BookServiceTest {
     assertThat(result.thumbnailUrl()).isEqualTo(mockUploadedUrl);
 
     ArgumentCaptor<Book> bookCaptor = ArgumentCaptor.forClass(Book.class);
-    then(bookRepository).should().save(bookCaptor.capture());
+    then(bookPersistence).should().save(bookCaptor.capture());
     assertThat(bookCaptor.getValue().getThumbnailUrl()).isEqualTo(mockUploadedUrl);
   }
 
@@ -182,7 +186,7 @@ class BookServiceTest {
         .isInstanceOf(RuntimeException.class)
         .hasMessageContaining("S3 업로드 에러 발생");
 
-    then(bookRepository).should(never()).save(any(Book.class));
+    then(bookPersistence).shouldHaveNoInteractions();
   }
 
   @Test
@@ -197,7 +201,7 @@ class BookServiceTest {
         .isInstanceOf(IsbnAlreadyExistsException.class);
 
     then(bookRepository).should().existsByIsbn(request.isbn());
-    then(bookRepository).shouldHaveNoMoreInteractions();
+    then(bookPersistence).shouldHaveNoInteractions();
   }
 
   @Test
@@ -209,7 +213,7 @@ class BookServiceTest {
 
     DataIntegrityViolationException exception = createDataIntegrityViolation(
         ISBN_UNIQUE_CONSTRAINT);
-    given(bookRepository.save(any(Book.class))).willThrow(exception);
+    given(bookPersistence.save(any(Book.class))).willThrow(exception);
 
     // when & then
     assertThatThrownBy(() -> bookService.create(request, null))
@@ -224,7 +228,7 @@ class BookServiceTest {
     given(bookRepository.existsByIsbn(request.isbn())).willReturn(false);
 
     DataIntegrityViolationException exception = createDataIntegrityViolation("other_constraint");
-    given(bookRepository.save(any(Book.class))).willThrow(exception);
+    given(bookPersistence.save(any(Book.class))).willThrow(exception);
 
     // when & then
     assertThatThrownBy(() -> bookService.create(request, null))
@@ -242,7 +246,7 @@ class BookServiceTest {
     DataIntegrityViolationException exception = new DataIntegrityViolationException("예외 발생",
         differentCause);
 
-    given(bookRepository.save(any(Book.class))).willThrow(exception);
+    given(bookPersistence.save(any(Book.class))).willThrow(exception);
 
     // when & then
     assertThatThrownBy(() -> bookService.create(request, null))
@@ -254,21 +258,20 @@ class BookServiceTest {
   void updateBook_Success() {
     // given
     UUID targetId = UUID.randomUUID();
-    BookCreateRequest createRequest = BookFixtures.validBookCreateRequest();
     BookUpdateRequest updateRequest = BookFixtures.validBookUpdateRequest();
 
-    Book existingBook = Book.builder()
-        .isbn(createRequest.isbn())
-        .title(createRequest.title())
-        .author(createRequest.author())
-        .description(createRequest.description())
-        .publisher(createRequest.publisher())
-        .publishedDate(createRequest.publishedDate())
+    Book updatedBook = Book.builder()
+        .isbn("1234567890123")
+        .title(updateRequest.title())
+        .author(updateRequest.author())
+        .description(updateRequest.description())
+        .publisher(updateRequest.publisher())
+        .publishedDate(updateRequest.publishedDate())
         .build();
+    setField(updatedBook, "id", targetId);
 
-    setField(existingBook, "id", targetId);
-
-    given(bookRepository.findById(targetId)).willReturn(Optional.of(existingBook));
+    given(bookPersistence.update(eq(targetId), eq(updateRequest), eq(null))).willReturn(
+        updatedBook);
 
     // when
     BookDto result = bookService.update(targetId, updateRequest, null);
@@ -279,14 +282,7 @@ class BookServiceTest {
     assertThat(result.title()).isEqualTo(updateRequest.title());
     assertThat(result.author()).isEqualTo(updateRequest.author());
 
-    assertThat(existingBook.getTitle()).isEqualTo(updateRequest.title());
-    assertThat(existingBook.getAuthor()).isEqualTo(updateRequest.author());
-    assertThat(existingBook.getDescription()).isEqualTo(updateRequest.description());
-    assertThat(existingBook.getPublisher()).isEqualTo(updateRequest.publisher());
-    assertThat(existingBook.getPublishedDate()).isEqualTo(updateRequest.publishedDate());
-
-    then(bookRepository).should().findById(targetId);
-    then(bookRepository).should(never()).save(any(Book.class));
+    then(bookPersistence).should().update(eq(targetId), eq(updateRequest), eq(null));
   }
 
   @Test
@@ -299,22 +295,23 @@ class BookServiceTest {
         "thumbnailFile", "image.png", "image/png", "test_content".getBytes());
     String newMockUrl = "https://s3.deokhugam.com/books/new-image.png";
 
-    Book existingBook = BookFixtures.validBook("1234567890123");
-    setField(existingBook, "id", targetId);
+    Book updatedBook = BookFixtures.validBook("1234567890123");
+    setField(updatedBook, "id", targetId);
+    ReflectionTestUtils.setField(updatedBook, "thumbnailUrl", newMockUrl);
 
-    given(bookRepository.findById(targetId)).willReturn(Optional.of(existingBook));
     given(fileUploader.upload(any(MultipartFile.class), eq(BOOK_THUMBNAIL_DIR))).willReturn(
         newMockUrl);
+    given(bookPersistence.update(eq(targetId), eq(request), eq(newMockUrl))).willReturn(
+        updatedBook);
 
     // when
     BookDto result = bookService.update(targetId, request, thumbnailFile);
 
     // then
     assertThat(result.thumbnailUrl()).isEqualTo(newMockUrl);
-    assertThat(existingBook.getThumbnailUrl()).isEqualTo(newMockUrl);
 
     then(fileUploader).should(times(1)).upload(any(), eq(BOOK_THUMBNAIL_DIR));
-    then(bookRepository).should(never()).save(any(Book.class));
+    then(bookPersistence).should().update(eq(targetId), eq(request), eq(newMockUrl));
   }
 
   @Test
@@ -326,9 +323,6 @@ class BookServiceTest {
     MockMultipartFile thumbnailFile = new MockMultipartFile(
         "thumbnailFile", "image.png", "image/png", "test_content".getBytes());
 
-    Book existingBook = BookFixtures.validBook("1234567890123");
-    given(bookRepository.findById(targetId)).willReturn(Optional.of(existingBook));
-
     given(fileUploader.upload(any(MultipartFile.class), eq(BOOK_THUMBNAIL_DIR)))
         .willThrow(new RuntimeException("S3 업로드 에러 발생"));
 
@@ -336,6 +330,8 @@ class BookServiceTest {
     assertThatThrownBy(() -> bookService.update(targetId, request, thumbnailFile))
         .isInstanceOf(RuntimeException.class)
         .hasMessageContaining("S3 업로드 에러 발생");
+
+    then(bookPersistence).shouldHaveNoInteractions();
   }
 
   @Test
@@ -345,15 +341,14 @@ class BookServiceTest {
     UUID nonExistentId = UUID.randomUUID();
     BookUpdateRequest request = BookFixtures.validBookUpdateRequest();
 
-    given(bookRepository.findById(nonExistentId)).willReturn(
-        Optional.empty());
+    given(bookPersistence.update(eq(nonExistentId), eq(request), eq(null)))
+        .willThrow(BookNotFoundException.withId(nonExistentId));
 
     // when & then
     assertThatThrownBy(() -> bookService.update(nonExistentId, request, null))
         .isInstanceOf(BookNotFoundException.class);
 
-    then(bookRepository).should().findById(nonExistentId);
-    then(bookRepository).shouldHaveNoMoreInteractions();
+    then(bookPersistence).should().update(eq(nonExistentId), eq(request), eq(null));
   }
 
   @Nested
@@ -466,6 +461,7 @@ class BookServiceTest {
 
 
   }
+
   @Nested
   @DisplayName("도서 목록 조회 메서드에서")
   class TestGetBooks {
@@ -485,7 +481,7 @@ class BookServiceTest {
         List<Book> mockBooks = BookFixtureFactory.createBookList();
         Slice<Book> mockSlice = new SliceImpl<>(mockBooks);
 
-        given(bookRepository.getBooks(any(),any())).willReturn(mockSlice);
+        given(bookRepository.getBooks(any(), any())).willReturn(mockSlice);
 
         //when
         PageResponse<BookDto> result = bookService.getBooks(request);
@@ -497,7 +493,7 @@ class BookServiceTest {
         assertThat(result.hasNext()).isFalse();
         assertThat(result.nextCursor()).isNull();
 
-        verify(bookRepository, times(1)).getBooks(any(),any());
+        verify(bookRepository, times(1)).getBooks(any(), any());
       }
 
 
@@ -515,10 +511,10 @@ class BookServiceTest {
         ReflectionTestUtils.setField(mockBooks.get(0), "createdAt", Instant.now());
 
         Pageable pageable = PageRequest.of(0, request.limit());
-        Slice<Book> mockSlice = new SliceImpl<>(mockBooks,pageable,true);
+        Slice<Book> mockSlice = new SliceImpl<>(mockBooks, pageable, true);
 
         //when
-        given(bookRepository.getBooks(any(),any())).willReturn(mockSlice);
+        given(bookRepository.getBooks(any(), any())).willReturn(mockSlice);
         PageResponse<BookDto> result = bookService.getBooks(request);
 
         //then
@@ -542,7 +538,7 @@ class BookServiceTest {
 
         Slice<Book> mockSlice = new SliceImpl<>(List.of());
 
-        given(bookRepository.getBooks(any(),any())).willReturn(mockSlice);
+        given(bookRepository.getBooks(any(), any())).willReturn(mockSlice);
 
         // when
         PageResponse<BookDto> result = bookService.getBooks(request);
@@ -558,7 +554,6 @@ class BookServiceTest {
       void return_next_page_when_valid_cursor_provided() {
         // given
         Book mockBook = BookFixtureFactory.createBook4();
-
 
         BookCursor cursor = new BookCursor(
             mockBook.getTitle(),
@@ -578,7 +573,7 @@ class BookServiceTest {
 
         Slice<Book> mockSlice = new SliceImpl<>(mockBooks);
 
-        given(bookRepository.getBooks(any(),any())).willReturn(mockSlice);
+        given(bookRepository.getBooks(any(), any())).willReturn(mockSlice);
 
         // when
         PageResponse<BookDto> result = bookService.getBooks(request);
@@ -586,7 +581,7 @@ class BookServiceTest {
         // then
         assertThat(result.content()).isNotEmpty();
 
-        verify(bookRepository, times(1)).getBooks(any(),any());
+        verify(bookRepository, times(1)).getBooks(any(), any());
       }
     }
 
@@ -609,7 +604,7 @@ class BookServiceTest {
             .hasMessageContaining("잘못된 입력값입니다.");
 
         // 커서 디코딩 중 예외 발생 -> 리포지토리 접근 X
-        verify(bookRepository, never()).getBooks(any(),any());
+        verify(bookRepository, never()).getBooks(any(), any());
       }
 
       @Test
@@ -629,14 +624,12 @@ class BookServiceTest {
             .hasMessageContaining("잘못된 커서로 인해 디코딩에 실패했습니다");
 
         // 커서 디코딩 중 예외 발생 -> 리포지토리 접근 X
-        verify(bookRepository, never()).getBooks(any(),any());
+        verify(bookRepository, never()).getBooks(any(), any());
       }
 
     }
 
   }
-
-
 
 
   @Nested
@@ -651,7 +644,8 @@ class BookServiceTest {
     void deleteBook_success_and_move_to_deleted_table() {
 
       //given
-      given(bookRepository.findById(any())).willReturn(Optional.of(BookFixtures.validBookToId(mockId)));
+      given(bookRepository.findById(any())).willReturn(
+          Optional.of(BookFixtures.validBookToId(mockId)));
 
       DeletedBook deletedBook = BookFixtures.deletedBook(mockId);
 
@@ -676,9 +670,6 @@ class BookServiceTest {
       assertThatThrownBy(() -> bookService.delete(mockId))
           .isInstanceOf(BookNotFoundException.class);
     }
-
-
-
   }
 
 
@@ -692,7 +683,8 @@ class BookServiceTest {
 
       UUID mockId = UUID.randomUUID();
 
-      given(deletedBookRepository.findById(mockId)).willReturn(Optional.of(BookFixtures.deletedBook(mockId)));
+      given(deletedBookRepository.findById(mockId)).willReturn(
+          Optional.of(BookFixtures.deletedBook(mockId)));
 
       bookService.deleteHard(mockId);
 
@@ -700,13 +692,11 @@ class BookServiceTest {
       then(deletedBookRepository).should().deleteById(mockId);
       then(fileUploader).should().delete(any());
       then(fileUploader).shouldHaveNoMoreInteractions();
-
     }
 
     @Test
     @DisplayName("유효한 도서 아이디가 아닐경우 예외를 발생시킨다")
     void fail_delete_book_hard_when_book_not_found() {
-
 
       given(deletedBookRepository.findById(any())).willReturn(Optional.empty());
 
@@ -717,8 +707,6 @@ class BookServiceTest {
       then(deletedBookRepository).shouldHaveNoMoreInteractions();
       then(fileUploader).shouldHaveNoMoreInteractions();
     }
-
-
   }
 
 
@@ -729,6 +717,4 @@ class BookServiceTest {
         constraintName);
     return new DataIntegrityViolationException("데이터 무결성 예외 발생", cause);
   }
-
-
 }
