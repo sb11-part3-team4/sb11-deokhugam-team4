@@ -5,6 +5,7 @@ import com.part3_team4.deokhoogam.global.exception.storage.InvalidFileException;
 import com.part3_team4.deokhoogam.global.exception.storage.StorageOperationException;
 import io.awspring.cloud.s3.S3Resource;
 import io.awspring.cloud.s3.S3Template;
+import java.io.IOException;
 import java.util.Set;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
@@ -12,6 +13,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 import org.springframework.web.multipart.MultipartFile;
+import software.amazon.awssdk.services.s3.model.S3Exception;
 
 @Slf4j
 @Component
@@ -42,7 +44,7 @@ public class S3FileUploader implements FileUploader {
       log.info("S3 파일 업로드 성공: {}", key);
       return s3Resource.getURL().toString();
 
-    } catch (Exception e) {
+    } catch (S3Exception | IOException e) {
       log.error("S3 파일 전송/인프라 장애 발생: {}", key, e);
       cleanup(key);
 
@@ -114,7 +116,7 @@ public class S3FileUploader implements FileUploader {
     try {
       s3Template.deleteObject(bucketName, key);
       log.info("S3 파일 정리 완료: {}", key);
-    } catch (Exception e) {
+    } catch (S3Exception e) {
       log.error("S3 파일 정리 실패: {}", key, e);
     }
   }

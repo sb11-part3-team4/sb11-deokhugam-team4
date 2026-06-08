@@ -28,6 +28,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.mock.web.MockMultipartFile;
 import org.springframework.test.util.ReflectionTestUtils;
+import software.amazon.awssdk.services.s3.model.S3Exception;
 
 @ExtendWith(MockitoExtension.class)
 @DisplayName("S3FileUploaderTest 단위 테스트")
@@ -82,7 +83,7 @@ class S3FileUploaderTest {
     MockMultipartFile file = createFixtureFile("test.png", "bytes".getBytes());
 
     given(s3Template.upload(eq(BUCKET_NAME), any(String.class), any(InputStream.class),
-        eq(null))).willThrow(new RuntimeException("S3 인프라 장애"));
+        eq(null))).willThrow(S3Exception.builder().message("S3 인프라 장애").build());
 
     // when
     Throwable thrown = catchThrowable(() -> s3FileUploader.upload(file, DOMAIN_PATH));
@@ -228,6 +229,21 @@ class S3FileUploaderTest {
     then(s3Template).shouldHaveNoInteractions();
   }
 
+  @Test
+  @DisplayName("예상하지 못한 RuntimeException은 그대로 전파한다")
+  void upload_UnexpectedRuntimeException_Propagates() {
+    // given
+    MockMultipartFile file = createFixtureFile("test.png", "bytes".getBytes());
+
+    given(s3Template.upload(eq(BUCKET_NAME), any(String.class), any(InputStream.class),
+        eq(null))).willThrow(new IllegalArgumentException("bug"));
+
+    // when & then
+    assertThatThrownBy(() -> s3FileUploader.upload(file, DOMAIN_PATH)).isInstanceOf(
+        IllegalArgumentException.class);
+  }
+
+
   @Nested
   @DisplayName("S3 삭제 로직에서")
   class S3_delete_Test {
@@ -280,15 +296,13 @@ class S3FileUploaderTest {
       String fullUrl = "https://test-bucket.s3.ap-northeast-2.amazonaws.com/book/error.png";
       String expectedKey = "book/error.png";
 
-      willThrow(new RuntimeException("내부 예외"))
-          .given(s3Template).deleteObject(BUCKET_NAME, expectedKey);
+      S3Exception s3Exception = mock(S3Exception.class);
+
+      willThrow(s3Exception).given(s3Template).deleteObject(BUCKET_NAME, expectedKey);
 
       // when & then
       assertThatCode(() -> s3FileUploader.delete(fullUrl))
           .doesNotThrowAnyException();
     }
-
-
   }
-
 }
