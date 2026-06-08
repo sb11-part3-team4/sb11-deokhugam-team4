@@ -3,8 +3,6 @@ package com.part3_team4.deokhoogam.domain.book.controller.api;
 import com.part3_team4.deokhoogam.domain.book.dto.BookDto;
 import com.part3_team4.deokhoogam.domain.book.dto.BookGetListRequest;
 import com.part3_team4.deokhoogam.domain.book.dto.NaverBookDto;
-import com.part3_team4.deokhoogam.domain.book.dto.ranking.BookRankingDto;
-import com.part3_team4.deokhoogam.domain.book.dto.ranking.RankingGetListRequest;
 import com.part3_team4.deokhoogam.global.common.PageResponse;
 import com.part3_team4.deokhoogam.global.exception.ErrorResponse;
 import io.swagger.v3.oas.annotations.Operation;
@@ -77,18 +75,5 @@ public interface BookAPI {
   ResponseEntity<PageResponse<BookDto>> getBooks(
       @Valid @ModelAttribute BookGetListRequest request
   );
-
-
-  @Operation(summary = "인기 도서 목록 조회")
-  @ApiResponses(value = {
-      @ApiResponse(responseCode = "200", description = "인기도서 목록 조회 성공",
-          content = @Content(schema = @Schema(implementation = PageResponse.class))),
-      @ApiResponse(responseCode = "400", description = "잘못된 요청",
-          content = @Content(schema = @Schema(implementation = ErrorResponse.class)))
-  })
-  public ResponseEntity<PageResponse<BookRankingDto>> getRankings(
-      @Valid @ModelAttribute RankingGetListRequest request
-  );
-
 
 }

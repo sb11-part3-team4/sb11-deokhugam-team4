@@ -2,10 +2,7 @@ package com.part3_team4.deokhoogam.domain.review;
 
 import com.part3_team4.deokhoogam.domain.book.entity.Book;
 import com.part3_team4.deokhoogam.domain.book.repository.BookRepository;
-import com.part3_team4.deokhoogam.domain.review.dto.ReviewCreateRequest;
-import com.part3_team4.deokhoogam.domain.review.dto.ReviewLikeResponse;
-import com.part3_team4.deokhoogam.domain.review.dto.ReviewResponse;
-import com.part3_team4.deokhoogam.domain.review.dto.ReviewUpdateRequest;
+import com.part3_team4.deokhoogam.domain.review.dto.*;
 import com.part3_team4.deokhoogam.domain.review.entity.DeletedReview;
 import com.part3_team4.deokhoogam.domain.review.entity.Review;
 import com.part3_team4.deokhoogam.domain.review.exception.InvalidReviewException;
@@ -15,6 +12,7 @@ import com.part3_team4.deokhoogam.domain.review.repository.DeletedReviewReposito
 import com.part3_team4.deokhoogam.domain.review.repository.ReviewLikeRepository;
 import com.part3_team4.deokhoogam.domain.review.repository.ReviewRepository;
 import com.part3_team4.deokhoogam.domain.review.service.ReviewServiceImpl;
+import com.part3_team4.deokhoogam.global.common.PageResponse;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -23,11 +21,13 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.time.LocalDate;
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
 import com.part3_team4.deokhoogam.domain.book.exception.BookNotFoundException;
 import com.part3_team4.deokhoogam.domain.review.exception.ReviewAlreadyExistsException;
+import org.springframework.data.domain.Pageable;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -313,4 +313,238 @@ public class ReviewServiceTest {
         assertThatThrownBy(() -> reviewService.toggleLike(reviewId, userId))
                 .isInstanceOf(ReviewNotFoundException.class);
     }
+
+    @Test
+    @DisplayName("조건 없이 조회하면 전체 리뷰 목록을 반환한다")
+    void getReviews_success() {
+        UUID requestUserId = UUID.randomUUID();
+        UUID bookId = UUID.randomUUID();
+
+        Review review1 = Review.create(UUID.randomUUID(), bookId, 4, "좋은 책이에요");
+        Review review2 = Review.create(UUID.randomUUID(), bookId, 3, "그냥 그래요");
+
+        ReviewListRequest request = new ReviewListRequest(
+                null, null, null, "createdAt", "DESC", null, null, 50
+        );
+
+        given(reviewRepository.findReviews(any(), any(), any(), any(Pageable.class)))
+                .willReturn(List.of(review1, review2));
+        given(reviewLikeRepository.findLikedReviewIds(any(), any()))
+                .willReturn(List.of());
+
+        PageResponse<ReviewResponse> response = reviewService.getReviews(requestUserId, request);
+
+        assertThat(response.content()).hasSize(2);
+        assertThat(response.hasNext()).isFalse();
+    }
+
+    @Test
+    @DisplayName("유저명으로 리뷰를 검색하면 해당 유저의 리뷰만 반환한다")
+    void getReviews_userID() {
+        UUID targetUserId = UUID.randomUUID();
+        UUID bookId = UUID.randomUUID();
+        UUID requestUserId = UUID.randomUUID();
+
+        Review review1 = Review.create(targetUserId, bookId, 4, "좋은 책이에요");
+        Review review2 = Review.create(targetUserId, bookId, 2, "별로에요");
+
+        ReviewListRequest request = new ReviewListRequest(
+                targetUserId, null, null, "createdAt", "DESC", null, null, 50
+        );
+
+        given(reviewRepository.findReviews(any(), any(), any(), any(Pageable.class)))
+                .willReturn(List.of(review1, review2));
+        given(reviewLikeRepository.findLikedReviewIds(any(), any()))
+                .willReturn(List.of());
+
+        PageResponse<ReviewResponse> response = reviewService.getReviews(requestUserId, request);
+
+        assertThat(response.content()).hasSize(2);
+        assertThat(response.content()).allMatch(r -> r.userId().equals(targetUserId));
+    }
+
+    @Test
+    @DisplayName("도서명으로 리뷰를 검색하면 해당 도서의 리뷰만 반환한다")
+    void getReviews_bookId() {
+        UUID targetBookId = UUID.randomUUID();
+        UUID requestUserId = UUID.randomUUID();
+
+        Review review1 = Review.create(UUID.randomUUID(), targetBookId, 4, "좋은 책이에요");
+        Review review2 = Review.create(UUID.randomUUID(), targetBookId, 3, "괜찮아요");
+
+        ReviewListRequest request = new ReviewListRequest(
+                null, targetBookId, null, "createdAt", "DESC", null, null, 50
+        );
+
+        given(reviewRepository.findReviews(any(), any(), any(), any(Pageable.class)))
+                .willReturn(List.of(review1, review2));
+        given(reviewLikeRepository.findLikedReviewIds(any(), any()))
+                .willReturn(List.of());
+
+        PageResponse<ReviewResponse> response = reviewService.getReviews(requestUserId, request);
+
+        assertThat(response.content()).hasSize(2);
+        assertThat(response.content()).allMatch(r -> r.bookId().equals(targetBookId));
+    }
+
+    @Test
+    @DisplayName("keyword으로 리뷰를 검색하면 해당 keyword가 포함된 리뷰만 반환한다")
+    void getReviews_keyWord() {
+        UUID requestUserId = UUID.randomUUID();
+
+        Review review1 = Review.create(UUID.randomUUID(), UUID.randomUUID(), 4, "좋은 책이에요");
+        Review review2 = Review.create(UUID.randomUUID(), UUID.randomUUID(), 3, "좋은 내용이에요");
+
+        ReviewListRequest request = new ReviewListRequest(
+                null, null, "좋은", "createdAt", "DESC", null, null, 50
+        );
+
+        given(reviewRepository.findReviews(any(), any(), any(), any(Pageable.class)))
+                .willReturn(List.of(review1, review2));
+        given(reviewLikeRepository.findLikedReviewIds(any(), any()))
+                .willReturn(List.of());
+
+        PageResponse<ReviewResponse> response = reviewService.getReviews(requestUserId, request);
+
+        assertThat(response.content()).hasSize(2);
+        assertThat(response.content()).allMatch(r -> r.content().contains("좋은"));
+    }
+
+    @Test
+    @DisplayName("createdAt 내림차순 정렬로 조회하면 최신 리뷰가 먼저 반환된다")
+    void getReviews_createdAt() {
+        UUID requestUserId = UUID.randomUUID();
+
+        Review review1 = Review.create(UUID.randomUUID(), UUID.randomUUID(), 4, "좋은 책이에요");
+        Review review2 = Review.create(UUID.randomUUID(), UUID.randomUUID(), 3, "괜찮아요");
+
+        ReviewListRequest request = new ReviewListRequest(
+                null, null, null, "createdAt", "DESC", null, null, 50
+        );
+
+        given(reviewRepository.findReviews(any(), any(), any(), any(Pageable.class)))
+                .willReturn(List.of(review1, review2));
+        given(reviewLikeRepository.findLikedReviewIds(any(), any()))
+                .willReturn(List.of());
+
+        PageResponse<ReviewResponse> response = reviewService.getReviews(requestUserId, request);
+
+        assertThat(response.content().get(0).id()).isEqualTo(review1.getId());
+        assertThat(response.content().get(1).id()).isEqualTo(review2.getId());
+    }
+
+    @Test
+    @DisplayName("rating 내림차순 정렬로 조회하면 높은 평점의 리뷰가 먼저 반환된다")
+    void getReviews_rating() {
+        UUID requestUserId = UUID.randomUUID();
+
+        Review review1 = Review.create(UUID.randomUUID(), UUID.randomUUID(), 4, "좋은 책이에요");
+        Review review2 = Review.create(UUID.randomUUID(), UUID.randomUUID(), 3, "괜찮아요");
+
+        ReviewListRequest request = new ReviewListRequest(
+                null, null, null, "rating", "DESC", null, null, 50
+        );
+
+        given(reviewRepository.findReviews(any(), any(), any(), any(Pageable.class)))
+                .willReturn(List.of(review1, review2));
+        given(reviewLikeRepository.findLikedReviewIds(any(), any()))
+                .willReturn(List.of());
+
+        PageResponse<ReviewResponse> response = reviewService.getReviews(requestUserId, request);
+
+        assertThat(response.content().get(0).id()).isEqualTo(review1.getId());
+        assertThat(response.content().get(1).id()).isEqualTo(review2.getId());
+    }
+
+    @Test
+    @DisplayName("요청자가 좋아요를 누른 리뷰는 likedByMe가 true로 반환된다")
+    void getReviews_likedByMe() {
+        UUID requestUserId = UUID.randomUUID();
+
+        Review review1 = Review.create(UUID.randomUUID(), UUID.randomUUID(), 4, "좋은 책이에요");
+        Review review2 = Review.create(UUID.randomUUID(), UUID.randomUUID(), 3, "괜찮아요");
+
+        ReviewListRequest request = new ReviewListRequest(
+                null, null, null, "createdAt", "DESC", null, null, 50
+        );
+
+        given(reviewRepository.findReviews(any(), any(), any(), any(Pageable.class)))
+                .willReturn(List.of(review1, review2));
+        given(reviewLikeRepository.findLikedReviewIds(any(), any()))
+                .willReturn(List.of(review1.getId(), review2.getId()));
+
+        PageResponse<ReviewResponse> response = reviewService.getReviews(requestUserId, request);
+
+        assertThat(response.content()).allMatch(r -> r.likedByMe());
+    }
+
+    @Test
+    @DisplayName("검색 결과가 0건 이면 빈 배열과 hasNext=false를 반환한다")
+    void getReviews_emptyResult() {
+        UUID requestUserId = UUID.randomUUID();
+
+        ReviewListRequest request = new ReviewListRequest(
+                null, null, null, "createdAt", "DESC", null, null, 50
+        );
+
+        given(reviewRepository.findReviews(any(), any(), any(), any(Pageable.class)))
+                .willReturn(List.of());
+        given(reviewLikeRepository.findLikedReviewIds(any(), any()))
+                .willReturn(List.of());
+
+        PageResponse<ReviewResponse> response = reviewService.getReviews(requestUserId, request);
+
+        assertThat(response.content()).isEmpty();
+        assertThat(response.hasNext()).isFalse();
+    }
+
+    @Test
+    @DisplayName("마지막 페이지 조회 시 nextCursor=null, hasNext=false를 반환한다")
+    void getReviews_lastPage() {
+        UUID requestUserId = UUID.randomUUID();
+
+        Review review1 = Review.create(UUID.randomUUID(), UUID.randomUUID(), 4, "좋은 책이에요");
+        Review review2 = Review.create(UUID.randomUUID(), UUID.randomUUID(), 3, "괜찮아요");
+
+        ReviewListRequest request = new ReviewListRequest(
+                null, null, null, "createdAt", "DESC", null, null, 2
+        );
+
+        given(reviewRepository.findReviews(any(), any(), any(), any(Pageable.class)))
+                .willReturn(List.of(review1, review2));
+        given(reviewLikeRepository.findLikedReviewIds(any(), any()))
+                .willReturn(List.of());
+
+        PageResponse<ReviewResponse> response = reviewService.getReviews(requestUserId, request);
+
+        assertThat(response.hasNext()).isFalse();
+        assertThat(response.nextCursor()).isNull();
+    }
+
+    @Test
+    @DisplayName("다음 페이지가 있으면 hasNext=true를 반환한다")
+    void getReviews_hasNext() {
+        UUID requestUserId = UUID.randomUUID();
+
+        Review review1 = Review.create(UUID.randomUUID(), UUID.randomUUID(), 4, "좋은 책이에요");
+        Review review2 = Review.create(UUID.randomUUID(), UUID.randomUUID(), 3, "괜찮아요");
+        Review review3 = Review.create(UUID.randomUUID(), UUID.randomUUID(), 2, "별로에요");
+
+        ReviewListRequest request = new ReviewListRequest(
+                null, null, null, "createdAt", "DESC", null, null, 2
+        );
+
+        given(reviewRepository.findReviews(any(), any(), any(), any(Pageable.class)))
+                .willReturn(List.of(review1, review2, review3));
+        given(reviewLikeRepository.findLikedReviewIds(any(), any()))
+                .willReturn(List.of());
+
+        PageResponse<ReviewResponse> response = reviewService.getReviews(requestUserId, request);
+
+        assertThat(response.hasNext()).isTrue();
+        assertThat(response.content()).hasSize(2);
+
+    }
+
+
 }

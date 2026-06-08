@@ -9,9 +9,7 @@ import com.part3_team4.deokhoogam.domain.book.dto.ranking.RankingCursor;
 import com.part3_team4.deokhoogam.global.exception.Base64Exception;
 import java.nio.charset.StandardCharsets;
 import java.util.Base64;
-import org.springframework.stereotype.Component;
 
-@Component
 public class CursorUtils {
 
   private static ObjectMapper objectMapper = new ObjectMapper();
@@ -36,7 +34,9 @@ public class CursorUtils {
 
   // 디코딩 메서드
   public static BookCursor decodeCursor(String base64Cursor) {
-    if (base64Cursor == null || base64Cursor.isBlank()) return null;
+    if (base64Cursor == null || base64Cursor.isBlank()) {
+      return null;
+    }
     try {
       byte[] decodedBytes = Base64.getDecoder().decode(base64Cursor);
       String json = new String(decodedBytes, StandardCharsets.UTF_8);

@@ -10,6 +10,7 @@ import com.part3_team4.deokhoogam.global.common.PageResponse;
 import java.time.Instant;
 import java.util.List;
 import java.util.UUID;
+import java.util.Objects;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -41,16 +42,30 @@ public class NotificationServiceImpl implements NotificationService {
    * 새 알림은 아직 확인하지 않은 상태이므로 confirmed=false로 저장합니다.
    */
   @Override
-  public void createNotification(UUID userId, UUID reviewId, String reviewContent, String sender) {
-    Notification notification = Notification.builder()
-        .userId(userId)
-        .reviewId(reviewId)
-        .reviewContent(reviewContent)
-        .message(sender + "님이 내 리뷰에 반응했습니다.")
-        .confirmed(false)
-        .build();
+  public void createNotification(
+      UUID userId,
+      UUID reviewId,
+      String reviewContent,
+      String sender
+  ) {
+    // 기존 호출부와의 호환성을 유지하기 위한 공통 알림 생성 메서드입니다.
+    saveNotification(
+        userId,
+        reviewId,
+        reviewContent,
+        sender + "님이 내 리뷰에 반응했습니다."
+    );
+  }
 
-    notificationRepository.save(notification);
+  /**
+   * 리뷰 작성자와 반응을 남긴 사용자가 같은지 확인합니다.
+   *
+   * @param receiverId 알림을 받을 리뷰 작성자 ID
+   * @param actorId 좋아요 또는 댓글을 남긴 사용자 ID
+   * @return 자기 행동이면 true, 다른 사용자의 행동이면 false
+   */
+  private boolean isSelfAction(UUID receiverId, UUID actorId) {
+    return receiverId.equals(actorId);
   }
 
   /**
@@ -74,7 +89,8 @@ public class NotificationServiceImpl implements NotificationService {
       String sender,
       UUID actorId
   ) {
-    if (receiverId.equals(actorId)) {
+    // 자신의 리뷰에 직접 반응한 경우에는 자기 알림을 만들지 않습니다.
+    if (isSelfAction(receiverId, actorId)) {
       return;
     }
 
@@ -125,6 +141,171 @@ public class NotificationServiceImpl implements NotificationService {
         notificationRepository.findAllByUserIdAndConfirmedFalse(requesterId);
 
     notifications.forEach(notification -> notification.updateConfirmed(true));
+  }
+
+  /**
+   * 좋아요 발생 알림을 생성합니다.
+   *
+   * receiverId와 actorId가 같으면 자기 자신의 리뷰에 좋아요를 누른 상황이므로
+   * 불필요한 자기 알림을 생성하지 않습니다.
+   */
+  @Override
+  public void createLikeNotification(
+      UUID receiverId,
+      UUID reviewId,
+      String reviewContent,
+      String sender,
+      UUID actorId
+  ) {
+    // 자신의 리뷰에 좋아요를 누른 경우에는 알림을 만들지 않습니다.
+    if (isSelfAction(receiverId, actorId)) {
+      return;
+    }
+
+    // 좋아요 알림에 맞는 메시지와 함께 Notification 엔티티를 저장합니다.
+    saveNotification(
+        receiverId,
+        reviewId,
+        reviewContent,
+        sender + "님이 내 리뷰에 좋아요를 눌렀습니다."
+    );
+  }
+
+  /**
+   * 댓글 발생 알림을 생성합니다.
+   *
+   * receiverId와 actorId가 같으면 자기 자신의 리뷰에 댓글을 작성한 상황이므로
+   * 불필요한 자기 알림을 생성하지 않습니다.
+   */
+  @Override
+  public void createCommentNotification(
+      UUID receiverId,
+      UUID reviewId,
+      String reviewContent,
+      String sender,
+      UUID actorId
+  ) {
+    // 자신의 리뷰에 댓글을 작성한 경우에는 알림을 만들지 않습니다.
+    if (isSelfAction(receiverId, actorId)) {
+      return;
+    }
+
+    // 댓글 알림에 맞는 메시지와 함께 Notification 엔티티를 저장합니다.
+    saveNotification(
+        receiverId,
+        reviewId,
+        reviewContent,
+        sender + "님이 내 리뷰에 댓글을 남겼습니다."
+    );
+  }
+
+  /**
+   * 인기 리뷰 선정 알림을 생성합니다.
+   *
+   * 요구사항:
+   * - 내가 작성한 리뷰의 인기 순위가 각 기간별 10위 내에 선정되면 알림이 생성됩니다.
+   *
+   * 인기 리뷰 선정은 사용자의 직접 행동이 아니라 배치 결과이므로,
+   * 좋아요/댓글 알림과 달리 actorId를 받지 않습니다.
+   */
+  @Override
+  public void createPopularReviewNotification(
+      UUID receiverId,
+      UUID reviewId,
+      String reviewContent,
+      String period,
+      int rank
+  ) {
+    // period는 인기 리뷰 기간을 나타내는 필수 값입니다.
+    // null이면 switch 문에서 NullPointerException이 발생할 수 있으므로
+    // 메시지 생성 전에 명시적으로 검증합니다.
+    Objects.requireNonNull(period, "period must not be null");
+
+    // 요구사항은 "각 기간별 10위 내" 선정 시 알림 생성입니다.
+    // 따라서 1~10위가 아닌 순위는 알림 생성 대상이 아닙니다.
+    if (!isTopTenRank(rank)) {
+      return;
+    }
+
+    saveNotification(
+        receiverId,
+        reviewId,
+        reviewContent,
+        buildPopularReviewMessage(period, rank)
+    );
+  }
+
+  /**
+   * 인기 리뷰 기간 코드를 사용자에게 보여줄 한글 표현으로 변환합니다.
+   *
+   * 현재 PopularReview 엔티티는 period를 enum이 아니라 String으로 관리합니다.
+   * 따라서 알림 도메인도 같은 String 값을 받아 메시지 표시용 문구로 변환합니다.
+   *
+   * 지원 값:
+   * - DAILY -> 일간
+   * - WEEKLY -> 주간
+   * - MONTHLY -> 월간
+   * - ALL_TIME -> 역대
+   *
+   * 알 수 없는 값은 그대로 사용합니다.
+   * 이렇게 하면 대시보드/배치 쪽에서 새로운 period 값을 추가하더라도
+   * 알림 생성 자체가 깨지지 않습니다.
+   */
+  private String toPeriodLabel(String period) {
+    return switch (period) {
+      case "DAILY" -> "일간";
+      case "WEEKLY" -> "주간";
+      case "MONTHLY" -> "월간";
+      case "ALL_TIME" -> "역대";
+      default -> period;
+    };
+  }
+
+  /**
+   * 인기 리뷰 알림 생성 대상 순위인지 확인합니다.
+   *
+   * 요구사항에서는 각 기간별 10위 이내에 선정된 리뷰에 대해서만
+   * 알림을 생성한다고 되어 있습니다.
+   *
+   * @param rank 인기 리뷰 순위
+   * @return 1위부터 10위까지면 true, 그 외 순위면 false
+   */
+  private boolean isTopTenRank(int rank) {
+    return rank >= 1 && rank <= 10;
+  }
+
+  /**
+   * 인기 리뷰 선정 알림 메시지를 생성합니다.
+   *
+   * 메시지 형식을 한 곳에서 관리하면,
+   * 나중에 문구를 변경할 때 알림 생성 로직을 건드리지 않아도 됩니다.
+   */
+  private String buildPopularReviewMessage(String period, int rank) {
+    return "내 리뷰가 " + toPeriodLabel(period) + " 인기 리뷰 " + rank + "위에 선정되었습니다.";
+  }
+
+  /**
+   * 알림 유형별 메서드에서 공통으로 사용하는 저장 메서드입니다.
+   *
+   * 좋아요와 댓글 알림은 메시지만 다르고 Notification 생성 과정은 같으므로,
+   * 중복되는 엔티티 생성 및 Repository 저장 코드를 이 메서드로 분리합니다.
+   */
+  private void saveNotification(
+      UUID receiverId,
+      UUID reviewId,
+      String reviewContent,
+      String message
+  ) {
+    Notification notification = Notification.builder()
+        .userId(receiverId)
+        .reviewId(reviewId)
+        .reviewContent(reviewContent)
+        .message(message)
+        // 새로 생성된 알림은 아직 사용자가 확인하지 않았으므로 false입니다.
+        .confirmed(false)
+        .build();
+
+    notificationRepository.save(notification);
   }
 
   @Override
@@ -188,4 +369,6 @@ public class NotificationServiceImpl implements NotificationService {
         hasNext
     );
   }
+
+
 }
