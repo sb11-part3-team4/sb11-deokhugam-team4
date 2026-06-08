@@ -15,7 +15,7 @@ public interface ReviewRepository extends JpaRepository<Review, UUID>{
         SELECT r FROM Review r
         WHERE (:userId IS NULL OR r.userId = :userId)
         AND (:bookId IS NULL OR r.bookId = :bookId)
-        AND (:keyword IS NULL OR r.content LIKE CONCAT('%', :keyword, '%'))
+        AND (:keyword IS NULL OR r.content LIKE CONCAT('%', CAST(:keyword AS String), '%'))
         """)
     List<Review> findReviews(
             @Param("userId") UUID userId,
