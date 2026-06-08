@@ -402,4 +402,126 @@ class NotificationServiceTest {
     assertThat(savedNotification.isConfirmed()).isFalse();
   }
 
+  @Test
+  @DisplayName("리뷰가 기간별 인기 리뷰 Top 10에 선정되면 작성자에게 알림을 생성한다")
+  void createPopularReviewNotification() {
+    // given
+    // 인기 리뷰 알림을 받을 리뷰 작성자 ID입니다.
+    UUID receiverId = UUID.randomUUID();
+
+    // 인기 순위에 선정된 리뷰 ID입니다.
+    UUID reviewId = UUID.randomUUID();
+
+    // 알림 화면에 함께 표시할 리뷰 내용입니다.
+    String reviewContent = "등장인물의 감정 변화가 인상적인 책이었습니다.";
+
+    // 현재 PopularReview 엔티티가 기간을 String으로 관리하므로
+    // 알림 Service도 동일하게 String 값을 전달받습니다.
+    String period = "DAILY";
+
+    // 해당 기간의 인기 리뷰 순위입니다.
+    // 1위부터 10위까지만 알림 생성 대상입니다.
+    int rank = 3;
+
+    // when
+    // 인기 리뷰 집계 배치가 Top 10 결과를 확정한 뒤 호출할 메서드입니다.
+    //
+    // 아직 createPopularReviewNotification(...) 메서드가 없으므로
+    // 현재 Red 단계에서는 컴파일 실패가 발생하는 것이 정상입니다.
+    notificationService.createPopularReviewNotification(
+        receiverId,
+        reviewId,
+        reviewContent,
+        period,
+        rank
+    );
+
+    // then
+    // Repository에 전달된 Notification을 캡처하여
+    // 수신자, 리뷰 정보, 메시지, 확인 상태를 검증합니다.
+    ArgumentCaptor<Notification> captor =
+        ArgumentCaptor.forClass(Notification.class);
+
+    then(notificationRepository)
+        .should()
+        .save(captor.capture());
+
+    Notification savedNotification = captor.getValue();
+
+    // 인기 리뷰 작성자가 알림 수신자여야 합니다.
+    assertThat(savedNotification.getUserId()).isEqualTo(receiverId);
+
+    // 선정된 인기 리뷰와 알림이 연결되어야 합니다.
+    assertThat(savedNotification.getReviewId()).isEqualTo(reviewId);
+
+    // 알림에는 선정 당시 리뷰 내용이 함께 저장되어야 합니다.
+    assertThat(savedNotification.getReviewContent()).isEqualTo(reviewContent);
+
+    // DAILY는 사용자에게 보여줄 때 "일간"으로 표현하고,
+    // 몇 위에 선정되었는지 메시지에 포함해야 합니다.
+    assertThat(savedNotification.getMessage())
+        .isEqualTo("내 리뷰가 일간 인기 리뷰 3위에 선정되었습니다.");
+
+    // 새로 생성된 알림은 아직 확인하지 않은 상태여야 합니다.
+    assertThat(savedNotification.isConfirmed()).isFalse();
+  }
+
+  @Test
+  @DisplayName("리뷰 순위가 Top 10 밖이면 인기 리뷰 알림을 생성하지 않는다")
+  void createPopularReviewNotificationSkippedWhenOutsideTop10() {
+    // given
+    UUID receiverId = UUID.randomUUID();
+    UUID reviewId = UUID.randomUUID();
+
+    String reviewContent = "인기 리뷰 순위 테스트를 위한 내용입니다.";
+    String period = "WEEKLY";
+
+    // 11위는 Top 10 범위에 포함되지 않으므로 알림 생성 대상이 아닙니다.
+    int rank = 11;
+
+    // when
+    notificationService.createPopularReviewNotification(
+        receiverId,
+        reviewId,
+        reviewContent,
+        period,
+        rank
+    );
+
+    // then
+    // 요구사항은 각 기간별 10위 이내에 선정된 리뷰만 대상으로 하므로
+    // 11위 리뷰에 대한 Notification이 저장되면 안 됩니다.
+    then(notificationRepository)
+        .should(never())
+        .save(any(Notification.class));
+  }
+
+  @Test
+  @DisplayName("인기 리뷰 기간이 null이면 알림을 생성하지 않고 예외가 발생한다")
+  void createPopularReviewNotificationWithNullPeriod() {
+    // given
+    UUID receiverId = UUID.randomUUID();
+    UUID reviewId = UUID.randomUUID();
+    String reviewContent = "인기 리뷰 기간 null 검증 테스트입니다.";
+
+    // when & then
+    // period는 인기 리뷰 알림 메시지를 만들기 위한 필수 값입니다.
+    // null이 들어오면 switch 문에서 우연히 NPE가 나도록 두지 않고,
+    // Service 진입점에서 명시적으로 NullPointerException을 발생시킵니다.
+    assertThatThrownBy(() ->
+        notificationService.createPopularReviewNotification(
+            receiverId,
+            reviewId,
+            reviewContent,
+            null,
+            1
+        )
+    ).isInstanceOf(NullPointerException.class);
+
+    // 필수 값이 잘못 들어온 요청이므로 알림은 저장되지 않아야 합니다.
+    then(notificationRepository)
+        .should(never())
+        .save(any(Notification.class));
+  }
+
 }
