@@ -7,7 +7,6 @@ import jakarta.persistence.MappedSuperclass;
 import java.time.Instant;
 import java.util.UUID;
 import lombok.Getter;
-import lombok.Setter;
 import org.springframework.data.annotation.CreatedDate;
 import org.springframework.data.annotation.LastModifiedDate;
 import org.springframework.data.jpa.domain.support.AuditingEntityListener;
@@ -28,5 +27,11 @@ public class BaseEntity {
 
   public BaseEntity() {
     this.id = UUID.randomUUID();
+  }
+
+  protected BaseEntity(UUID id, Instant createdAt, Instant updatedAt) {
+    this.id = id;
+    this.createdAt = createdAt;
+    this.updatedAt = updatedAt;
   }
 }

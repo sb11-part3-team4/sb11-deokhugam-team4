@@ -21,6 +21,8 @@ public class DeletedUser {
 
   private String email;
 
+  private String password;
+
   @Column(name = "nickname")
   private String name;
 
@@ -37,6 +39,7 @@ public class DeletedUser {
     this.id = id;
     this.email = email;
     this.name = name;
+    this.password = "DELETED";
     this.createdAt = createdAt;
     this.updatedAt = updatedAt;
     this.deletedAt = Instant.now();

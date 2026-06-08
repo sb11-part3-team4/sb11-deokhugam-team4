@@ -23,7 +23,6 @@ import com.part3_team4.deokhoogam.domain.user.dto.response.UserResponse;
 import com.part3_team4.deokhoogam.domain.user.exception.PasswordMismatchException;
 import com.part3_team4.deokhoogam.domain.user.exception.UserNotFoundException;
 import com.part3_team4.deokhoogam.domain.user.service.UserService;
-import com.part3_team4.deokhoogam.global.jwt.JwtFilter;
 import java.util.UUID;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -46,9 +45,6 @@ public class UserControllerTest {
 
   @MockitoBean
   private UserService userService;
-
-  @MockitoBean
-  private JwtFilter jwtFilter;
 
   @Test
   @DisplayName("회원가입 API 성공 - 201 반환")
@@ -96,7 +92,7 @@ public class UserControllerTest {
     mockMvc.perform(get("/api/users/{userId}", userId))
         .andExpect(status().isOk())
         .andExpect(jsonPath("$.email").value("test@deokhugam.com"))
-        .andExpect(jsonPath("$.name").value("testUser"));
+        .andExpect(jsonPath("$.nickname").value("testUser"));
   }
 
   @Test
@@ -191,13 +187,24 @@ public class UserControllerTest {
   }
 
   @Test
-  @DisplayName("로그인 성공 - 200반환 및 토큰 발급")
+  @DisplayName("회원 물리 삭제 성공 - 204 반환")
+  void hardDeleteUser_success() throws Exception {
+    UUID userId = UUID.randomUUID();
+
+    mockMvc.perform(delete("/api/users/{userId}/hard", userId))
+        .andExpect(status().isNoContent());
+
+    then(userService).should().hardDeleteUser(userId);
+  }
+
+  @Test
+  @DisplayName("로그인 성공 - 200반환")
   void login_success() throws Exception {
     UserLoginRequestDto request = new UserLoginRequestDto(
         "test@deokhugam.com", "password123!");
 
     UserLoginResultDto mockResult = new UserLoginResultDto(
-        "eyjh...fakeToken", UUID.randomUUID(), "test@deokhugam.com", "testUser", java.time.Instant.now());
+        "", UUID.randomUUID(), "test@deokhugam.com", "testUser", java.time.Instant.now());
 
     given(userService.login(request.email(), request.password()))
         .willReturn(mockResult);
@@ -206,7 +213,6 @@ public class UserControllerTest {
             .contentType(MediaType.APPLICATION_JSON)
             .content(objectMapper.writeValueAsString(request)))
         .andExpect(status().isOk())
-        .andExpect(org.springframework.test.web.servlet.result.MockMvcResultMatchers.header().string("Authorization", "Bearer eyjh...fakeToken")) // 헤더 검증
         .andExpect(jsonPath("$.email").value("test@deokhugam.com"));
   }
 
@@ -221,5 +227,16 @@ public class UserControllerTest {
         .content(objectMapper.writeValueAsString(request)))
         .andExpect(status().isBadRequest())
         .andExpect(jsonPath("$.code").value("COMMON-002"));
+  }
+
+  @Test
+  @DisplayName("파워 유저 조회 (임시 API) 성공 - 빈 맵 반환")
+  void getPowerUsers_success() throws Exception {
+    mockMvc.perform(get("/api/users/power"))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.content").isEmpty())
+        .andExpect(jsonPath("$.hasNext").value(false))
+        .andExpect(jsonPath("$.totalElements").value(0))
+        .andExpect(jsonPath("$.size").value(0));
   }
 }

@@ -79,6 +79,66 @@ public interface NotificationService {
   void readAll(UUID requesterId);
 
   /**
+   * 리뷰에 좋아요가 발생했을 때 알림을 생성합니다.
+   *
+   * 다른 도메인의 좋아요 처리 로직이 호출할 알림 도메인의 진입점입니다.
+   * 리뷰 작성자와 좋아요를 누른 사용자가 같으면 알림을 생성하지 않습니다.
+   *
+   * @param receiverId 알림을 받을 리뷰 작성자 ID
+   * @param reviewId 좋아요가 발생한 리뷰 ID
+   * @param reviewContent 알림에 표시할 리뷰 내용
+   * @param sender 좋아요를 누른 사용자 닉네임
+   * @param actorId 좋아요를 누른 사용자 ID
+   */
+  void createLikeNotification(
+      UUID receiverId,
+      UUID reviewId,
+      String reviewContent,
+      String sender,
+      UUID actorId
+  );
+
+  /**
+   * 리뷰에 댓글이 작성되었을 때 알림을 생성합니다.
+   *
+   * 다른 도메인의 댓글 등록 로직이 호출할 알림 도메인의 진입점입니다.
+   * 리뷰 작성자와 댓글 작성자가 같으면 알림을 생성하지 않습니다.
+   *
+   * @param receiverId 알림을 받을 리뷰 작성자 ID
+   * @param reviewId 댓글이 작성된 리뷰 ID
+   * @param reviewContent 알림에 표시할 리뷰 내용
+   * @param sender 댓글 작성자 닉네임
+   * @param actorId 댓글 작성자 ID
+   */
+  void createCommentNotification(
+      UUID receiverId,
+      UUID reviewId,
+      String reviewContent,
+      String sender,
+      UUID actorId
+  );
+
+  /**
+   * 리뷰가 기간별 인기 리뷰 Top 10에 선정되었을 때 알림을 생성합니다.
+   *
+   * 인기 리뷰 집계 배치 또는 대시보드 도메인에서 호출할 알림 도메인의 진입점입니다.
+   * 요구사항상 각 기간별 10위 이내에 선정된 리뷰에 대해서만 알림을 생성합니다.
+   *
+   * @param receiverId 알림을 받을 리뷰 작성자 ID
+   * @param reviewId 인기 리뷰로 선정된 리뷰 ID
+   * @param reviewContent 알림에 표시할 리뷰 내용
+   * @param period 인기 리뷰 기간. 예: DAILY, WEEKLY, MONTHLY, ALL_TIME
+   * @param rank 해당 기간의 인기 리뷰 순위
+   */
+  void createPopularReviewNotification(
+      UUID receiverId,
+      UUID reviewId,
+      String reviewContent,
+      String period,
+      int rank
+  );
+
+  /**
    * 사용자의 알림 목록을 커서 페이지네이션으로 조회합니다.
    *
    * @param userId 알림을 조회할 사용자 ID
