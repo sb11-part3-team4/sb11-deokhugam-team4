@@ -32,6 +32,8 @@ import com.part3_team4.deokhoogam.domain.book.exception.BookNotFoundException;
 import com.part3_team4.deokhoogam.domain.review.exception.ReviewAlreadyExistsException;
 import org.springframework.data.domain.Pageable;
 
+import static ch.qos.logback.classic.spi.ThrowableProxyVO.build;
+import static com.part3_team4.deokhoogam.domain.review.entity.QPopularReview.popularReview;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
@@ -585,6 +587,47 @@ public class ReviewServiceTest {
 
         assertThat(response.content()).hasSize(1);
         assertThat(response.content().get(0).period()).isEqualTo("DAILY");
+
+    }
+
+    @Test
+    @DisplayName("rank 오름차순으로 조회하면 낮은 rank가 먼저 반환된다")
+    void getPopularReviews_sortedByRankAsc() {
+        UUID reviewId1 = UUID.randomUUID();
+        UUID userId1 = UUID.randomUUID();
+        UUID bookId1 = UUID.randomUUID();
+        UUID reviewId2 = UUID.randomUUID();
+        UUID userId2 = UUID.randomUUID();
+        UUID bookId2 = UUID.randomUUID();
+
+        PopularReview rank1 = PopularReview.create(reviewId1, "DAILY", new BigDecimal("1.0"), 1, LocalDate.now());
+        PopularReview rank2 = PopularReview.create(reviewId2, "DAILY", new BigDecimal("0.7"), 2, LocalDate.now());
+
+        Review review1 = Review.create(userId1, bookId1, 5, "아주 좋아요");
+        Review review2 = Review.create(userId2, bookId2, 4, "좋아요");
+
+        Book book1 = Book.builder().title("책1").author("저자1").description("설명1").publisher("출판사1").publishedDate(LocalDate.of(2020, 1, 1)).build();
+        Book book2 = Book.builder().title("책2").author("저자2").description("설명2").publisher("출판사2").publishedDate(LocalDate.of(2020, 1, 1)).build();
+
+        User user1 = new User("a@a.com", "유저1", "pw");
+        User user2 = new User("b@b.com", "유저2", "pw");
+
+        given(popularReviewRepository.findByPeriod(eq("DAILY"), any(Pageable.class)))
+                .willReturn(List.of(rank1, rank2));
+        given(reviewRepository.findById(reviewId1)).willReturn(Optional.of(review1));
+        given(reviewRepository.findById(reviewId2)).willReturn(Optional.of(review2));
+
+        given(bookRepository.findById(bookId1)).willReturn(Optional.of(book1));
+        given(bookRepository.findById(bookId2)).willReturn(Optional.of(book2));
+
+        given(userRepository.findById(userId1)).willReturn(Optional.of(user1));
+        given(userRepository.findById(userId2)).willReturn(Optional.of(user2));
+
+        PageResponse<PopularReviewResponse> response =
+                reviewService.getPopularReviews("DAILY", "ASC", null, null, 50);
+
+        assertThat(response.content().get(0).rank()).isEqualTo(1);
+        assertThat(response.content().get(1).rank()).isEqualTo(2);
 
     }
 
