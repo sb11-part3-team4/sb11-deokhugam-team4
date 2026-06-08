@@ -57,7 +57,7 @@ class BookIntegrationTest {
     BookCreateRequest request = BookFixtures.validBookCreateRequest();
 
     MockMultipartFile file = new MockMultipartFile(
-        "file", "image.png", "image/png", "content".getBytes()
+        "thumbnailImage", "image.png", "image/png", "content".getBytes()
     );
 
     String uploadedUrl = "https://s3.com/books/image.png";
@@ -92,7 +92,7 @@ class BookIntegrationTest {
     BookUpdateRequest request = BookFixtures.validBookUpdateRequest();
 
     MockMultipartFile newFile = new MockMultipartFile(
-        "file", "new.png", "image/png", "new".getBytes()
+        "thumbnailImage", "new.png", "image/png", "new".getBytes()
     );
 
     String newUrl = "https://s3.com/books/new.png";
