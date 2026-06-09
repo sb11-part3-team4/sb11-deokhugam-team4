@@ -9,10 +9,14 @@ import com.part3_team4.deokhoogam.domain.review.exception.InvalidReviewException
 import com.part3_team4.deokhoogam.domain.review.exception.ReviewNotFoundException;
 import com.part3_team4.deokhoogam.domain.review.exception.ReviewNotOwnerException;
 import com.part3_team4.deokhoogam.domain.review.repository.DeletedReviewRepository;
+import com.part3_team4.deokhoogam.domain.review.repository.PopularReviewRepository;
 import com.part3_team4.deokhoogam.domain.review.repository.ReviewLikeRepository;
 import com.part3_team4.deokhoogam.domain.review.repository.ReviewRepository;
 import com.part3_team4.deokhoogam.domain.review.service.ReviewServiceImpl;
+import com.part3_team4.deokhoogam.domain.user.repository.UserRepository;
 import com.part3_team4.deokhoogam.global.common.PageResponse;
+import net.bytebuddy.asm.Advice;
+import org.aspectj.util.Reflection;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -29,12 +33,18 @@ import com.part3_team4.deokhoogam.domain.book.exception.BookNotFoundException;
 import com.part3_team4.deokhoogam.domain.review.exception.ReviewAlreadyExistsException;
 import org.springframework.data.domain.Pageable;
 
+import static ch.qos.logback.classic.spi.ThrowableProxyVO.build;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.BDDMockito.given;
-import static org.mockito.BDDMockito.then;
+import static org.mockito.BDDMockito.*;
+
+import com.part3_team4.deokhoogam.domain.review.entity.PopularReview;
+import com.part3_team4.deokhoogam.domain.user.entity.User;
+import org.springframework.test.util.ReflectionTestUtils;
+
+import java.math.BigDecimal;
 
 @ExtendWith(MockitoExtension.class)
 public class ReviewServiceTest {
@@ -49,6 +59,10 @@ public class ReviewServiceTest {
     ReviewLikeRepository reviewLikeRepository;
     @Mock
     DeletedReviewRepository deletedReviewRepository;
+    @Mock
+    PopularReviewRepository popularReviewRepository;
+    @Mock
+    UserRepository userRepository;
 
     @Test
     @DisplayName("정상적인 요청으로 리뷰를 등록하면 ReviewResponse를 반환한다")
@@ -546,5 +560,129 @@ public class ReviewServiceTest {
 
     }
 
+    @Test
+    @DisplayName("DAILY period로 조회하면 해당 period의 인기 리뷰 목록을 반환한다")
+    void getPopularReview_periodFilter_success() {
+        UUID reviewId = UUID.randomUUID();
+        UUID userId = UUID.randomUUID();
+        UUID bookId = UUID.randomUUID();
+
+        PopularReview popularReview = PopularReview.create(reviewId, "DAILY", new BigDecimal("0.7"), 1, LocalDate.now());
+
+        Review review = Review.create(userId, bookId, 4, "좋은 책이에요");
+        ReflectionTestUtils.setField(review, "id", reviewId);
+
+        Book book = Book.builder()
+                .title("테스트 책").author("저자").description("설명")
+                .publisher("출판사").publishedDate(LocalDate.of(2020, 1, 1))
+                .build();
+        ReflectionTestUtils.setField(book, "id", bookId);
+
+        User user = new User("test@test.com", "닉네임", "password");
+        ReflectionTestUtils.setField(user, "id", userId);
+
+        given(popularReviewRepository.findByPeriod(eq("DAILY"), any(Pageable.class)))
+                .willReturn(List.of(popularReview));
+        given(reviewRepository.findAllById(anyList())).willReturn(List.of(review));
+
+        given(bookRepository.findAllById(anyList())).willReturn(List.of(book));
+
+        given(userRepository.findAllById(anyList())).willReturn(List.of(user));
+
+        PageResponse<PopularReviewResponse> response = reviewService.getPopularReviews("DAILY", "ASC", null, null, 50);
+
+        assertThat(response.content()).hasSize(1);
+        assertThat(response.content().get(0).period()).isEqualTo("DAILY");
+
+    }
+
+    @Test
+    @DisplayName("rank 오름차순으로 조회하면 낮은 rank가 먼저 반환된다")
+    void getPopularReviews_sortedByRankAsc() {
+        UUID reviewId1 = UUID.randomUUID();
+        UUID userId1 = UUID.randomUUID();
+        UUID bookId1 = UUID.randomUUID();
+        UUID reviewId2 = UUID.randomUUID();
+        UUID userId2 = UUID.randomUUID();
+        UUID bookId2 = UUID.randomUUID();
+
+        PopularReview rank1 = PopularReview.create(reviewId1, "DAILY", new BigDecimal("1.0"), 1, LocalDate.now());
+        PopularReview rank2 = PopularReview.create(reviewId2, "DAILY", new BigDecimal("0.7"), 2, LocalDate.now());
+
+        Review review1 = Review.create(userId1, bookId1, 5, "아주 좋아요");
+        ReflectionTestUtils.setField(review1, "id", reviewId1);
+
+        Review review2 = Review.create(userId2, bookId2, 4, "좋아요");
+        ReflectionTestUtils.setField(review2, "id", reviewId2);
+
+        Book book1 = Book.builder().title("책1").author("저자1").description("설명1").publisher("출판사1").publishedDate(LocalDate.of(2020, 1, 1)).build();
+        ReflectionTestUtils.setField(book1, "id", bookId1);
+
+        Book book2 = Book.builder().title("책2").author("저자2").description("설명2").publisher("출판사2").publishedDate(LocalDate.of(2020, 1, 1)).build();
+        ReflectionTestUtils.setField(book2, "id", bookId2);
+
+        User user1 = new User("a@a.com", "유저1", "pw");
+        ReflectionTestUtils.setField(user1, "id", userId1);
+
+        User user2 = new User("b@b.com", "유저2", "pw");
+        ReflectionTestUtils.setField(user2, "id", userId2);
+
+        given(popularReviewRepository.findByPeriod(eq("DAILY"), any(Pageable.class)))
+                .willReturn(List.of(rank1, rank2));
+        given(reviewRepository.findAllById(anyList())).willReturn(List.of(review1, review2));
+
+        given(bookRepository.findAllById(anyList())).willReturn(List.of(book1, book2));
+
+        given(userRepository.findAllById(anyList())).willReturn(List.of(user1, user2));
+        PageResponse<PopularReviewResponse> response =
+                reviewService.getPopularReviews("DAILY", "ASC", null, null, 50);
+
+        assertThat(response.content().get(0).rank()).isEqualTo(1);
+        assertThat(response.content().get(1).rank()).isEqualTo(2);
+
+    }
+
+    @Test
+    @DisplayName("인기 리뷰 응답에 필요한 필드가 모두 포함된다")
+    void getPopularReviews_responseFields() {
+        UUID reviewId = UUID.randomUUID();
+        UUID userId = UUID.randomUUID();
+        UUID bookId = UUID.randomUUID();
+        BigDecimal score = new BigDecimal("0.7");
+
+        PopularReview popularReview = PopularReview.create(reviewId, "DAILY", score, 1, LocalDate.now());
+        Review review = Review.create(userId, bookId, 4, "좋은 책이에요");
+        ReflectionTestUtils.setField(review, "id", reviewId);
+
+        Book book = Book.builder()
+                .title("테스트 책").author("저자").description("설명")
+                .publisher("출판사").publishedDate(LocalDate.of(2020,1,1))
+                .build();
+        ReflectionTestUtils.setField(book, "id", bookId);
+
+        User user = new User("test@test.com", "닉네임", "password");
+        ReflectionTestUtils.setField(user, "id", userId);
+
+        given(popularReviewRepository.findByPeriod(eq("DAILY"), any(Pageable.class)))
+                .willReturn(List.of(popularReview));
+        given(reviewRepository.findAllById(anyList())).willReturn(List.of(review));
+        given(bookRepository.findAllById(anyList())).willReturn(List.of(book));
+        given(userRepository.findAllById(anyList())).willReturn(List.of(user));
+
+        PageResponse<PopularReviewResponse> response =
+                reviewService.getPopularReviews("DAILY", "ASC", null, null, 50);
+        PopularReviewResponse result = response.content().get(0);
+
+        assertThat(result.reviewId()).isEqualTo(reviewId);
+        assertThat(result.bookId()).isEqualTo(bookId);
+        assertThat(result.bookTitle()).isEqualTo("테스트 책");
+        assertThat(result.userId()).isEqualTo(userId);
+        assertThat(result.userNickname()).isEqualTo("닉네임");
+        assertThat(result.reviewContent()).isEqualTo("좋은 책이에요");
+        assertThat(result.reviewRating()).isEqualTo(4);
+        assertThat(result.period()).isEqualTo("DAILY");
+        assertThat(result.rank()).isEqualTo(1);
+        assertThat(result.score()).isEqualTo(score);
+    }
 
 }

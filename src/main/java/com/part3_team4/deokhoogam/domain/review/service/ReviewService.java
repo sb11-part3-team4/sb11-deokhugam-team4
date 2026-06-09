@@ -13,4 +13,5 @@ public interface ReviewService {
     void deleteReview(UUID reviewId, UUID userId);
     ReviewLikeResponse toggleLike(UUID reviewId, UUID userId);
     PageResponse<ReviewResponse> getReviews(UUID userId, ReviewListRequest request);
+    PageResponse<PopularReviewResponse> getPopularReviews(String period, String direction, String cursor, String after, int limit);
 }
