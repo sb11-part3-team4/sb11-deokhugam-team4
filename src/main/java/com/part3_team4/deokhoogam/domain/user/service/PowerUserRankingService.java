@@ -26,7 +26,7 @@ public class PowerUserRankingService {
   private final UserService userService;
   private final PowerUserRankingRepository powerUserRankingRepository;
 
-  public record UserScore(UUID userId, double score) {
+  public record UserScore(UUID userId, BigDecimal score) {
 
   }
 
@@ -57,15 +57,18 @@ public class PowerUserRankingService {
 
     List<UserScore> userScores = new ArrayList<>();
 
+    BigDecimal reviewWeight = new BigDecimal("0.5");
+    BigDecimal likeWeight = new BigDecimal("0.2");
+    BigDecimal commentWeight = new BigDecimal("0.3");
+
     for (UUID userId : activeUserIds) {
-      double reviewScore = reviewScores.getOrDefault(userId, BigDecimal.ZERO).doubleValue();
-      long likeCount = likeCounts.getOrDefault(userId, 0L);
-      long commentCount = commentCounts.getOrDefault(userId, 0L);
+      BigDecimal rScore = reviewScores.getOrDefault(userId, BigDecimal.ZERO).multiply(reviewWeight);
+      BigDecimal lScore = BigDecimal.valueOf(likeCounts.getOrDefault(userId, 0L)).multiply(likeWeight);
+      BigDecimal cScore = BigDecimal.valueOf(commentCounts.getOrDefault(userId, 0L)).multiply(commentWeight);
 
-      // (리뷰 * 0.5) + (좋아요 * 0.2) + (댓글 * 0.3)
-      double totalScore = (reviewScore * 0.5) + (likeCount * 0.2) + (commentCount * 0.3);
+      BigDecimal totalScore = rScore.add(lScore).add(cScore);
 
-      if (totalScore > 0) {
+      if (totalScore.compareTo(BigDecimal.ZERO) > 0) {
         userScores.add(new UserScore(userId, totalScore));
       }
     }
@@ -100,16 +103,17 @@ public class PowerUserRankingService {
   }
 
   public List<PowerUserRanking> assignRankings(List<UserScore> userScores, PowerUserPeriod period) {
-    // 점수 기준 내림차순 정렬
+
     List<UserScore> sortedScores = new ArrayList<>(userScores);
-    sortedScores.sort((a, b) -> Double.compare(b.score(), a.score()));
+    sortedScores.sort((a, b) -> b.score().compareTo(a.score()));
 
     List<PowerUserRanking> rankings = new ArrayList<>();
     for (int i = 0; i < sortedScores.size(); i++) {
+      UserScore userScore = sortedScores.get(i);
       rankings.add(PowerUserRanking.builder()
-          .userId(sortedScores.get(i).userId())
+          .userId(userScore.userId())
           .period(period)
-          .score(sortedScores.get(i).score())
+          .score(userScore.score())
           .ranking(i + 1)
           .build());
     }

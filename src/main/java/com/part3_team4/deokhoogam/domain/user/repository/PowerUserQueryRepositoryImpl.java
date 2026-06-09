@@ -26,8 +26,6 @@ public class PowerUserQueryRepositoryImpl implements PowerUserQueryRepository {
   @Override
   public Map<UUID, BigDecimal> getReviewPopularScoreSum(Instant startDate, Instant endDate) {
     //해당 기간에 작성된 리뷰와 연결된 인기 점수의 합산을 유저별로 구분
-    log.info("▶ 리뷰 점수 집계 쿼리 실행 시작");
-
     List<Tuple> results = queryFactory
         .select(review.userId, review.count())
         .from(review)
@@ -35,15 +33,13 @@ public class PowerUserQueryRepositoryImpl implements PowerUserQueryRepository {
         .groupBy(review.userId)
         .fetch();
 
-    log.info("▶ 리뷰 점수 집계 쿼리 완료, 결과 개수: {}", results.size());
-
     return results.stream()
         .filter(tuple -> tuple.get(review.userId) != null)
         .collect(Collectors.toMap(
             tuple -> tuple.get(review.userId),
             tuple -> {
               Long count = tuple.get(1, Long.class);
-              return count != null ? BigDecimal.valueOf(count * 0.5) : BigDecimal.ZERO;
+              return count != null ? BigDecimal.valueOf(count) : BigDecimal.ZERO;
             },
             (existing, replacement) -> existing
         ));

@@ -9,6 +9,7 @@ import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
+import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.UUID;
 import lombok.AccessLevel;
@@ -34,8 +35,8 @@ public class PowerUserRanking {
   @Column(nullable = false)
   private PowerUserPeriod period;
 
-  @Column(name = "score", nullable = false)
-  private Double score;
+  @Column(name = "score", nullable = false, precision = 10, scale = 4)
+  private BigDecimal score;
 
   @Column(name = "ranking", nullable = false)
   private Integer ranking;
@@ -49,7 +50,7 @@ public class PowerUserRanking {
   private Instant updatedAt;
 
   @Builder
-  public PowerUserRanking(UUID userId, PowerUserPeriod period, Double score, Integer ranking) {
+  public PowerUserRanking(UUID userId, PowerUserPeriod period, BigDecimal score, Integer ranking) {
     this.userId = userId;
     this.period = period;
     this.score = score;
