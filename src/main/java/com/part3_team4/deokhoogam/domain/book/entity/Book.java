@@ -56,16 +56,20 @@ public class Book extends BaseEntity {
   @Column(name = "thumbnail_url", length = THUMBNAIL_URL_MAX_LENGTH)
   private String thumbnailUrl;
 
+  @Column(name = "original_filename")
+  private String originalFilename;
+
   @Column(name = "review_count", nullable = false)
   private int reviewCount;
 
   @Column(name = "rating", nullable = false, precision = 3, scale = 2)
   private BigDecimal rating;
 
+
   // ===== 생성 =====
   @Builder
   public Book(String title, String author, String description, String publisher,
-      LocalDate publishedDate, String isbn, String thumbnailUrl) {
+      LocalDate publishedDate, String isbn, String thumbnailUrl, String originalFilename) {
     validateBookInfo(title, author, description, publisher, publishedDate);
     validateLength(title, TITLE_MAX_LENGTH, ErrorKey.BOOK_TITLE);
     validateLength(author, AUTHOR_MAX_LENGTH, ErrorKey.BOOK_AUTHOR);
@@ -80,6 +84,7 @@ public class Book extends BaseEntity {
     this.publishedDate = publishedDate;
     this.isbn = isbn;
     this.thumbnailUrl = thumbnailUrl;
+    this.originalFilename = originalFilename;
 
     this.reviewCount = 0;
     this.rating = BigDecimal.ZERO;
@@ -100,10 +105,11 @@ public class Book extends BaseEntity {
     this.publisher = newPublisher;
     this.publishedDate = newPublishedDate;
   }
-  
-  public void updateThumbnail(String newThumbnailUrl) {
+
+  public void updateThumbnail(String newThumbnailUrl, String originalFilename) {
     validateLength(newThumbnailUrl, THUMBNAIL_URL_MAX_LENGTH, ErrorKey.BOOK_THUMBNAIL_URL);
     this.thumbnailUrl = newThumbnailUrl;
+    this.originalFilename = originalFilename;
   }
 
   public void updateReviewData(int newReviewCount, BigDecimal newRating) {

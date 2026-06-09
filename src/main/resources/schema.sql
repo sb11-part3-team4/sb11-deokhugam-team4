@@ -1,30 +1,31 @@
 CREATE
-EXTENSION IF NOT EXISTS pg_trgm;
+    EXTENSION IF NOT EXISTS pg_trgm;
 
 -- Book
 CREATE TABLE book
 (
-    id             UUID PRIMARY KEY,
-    title          VARCHAR(255)  NOT NULL,
-    author         VARCHAR(100)  NOT NULL,
-    description    TEXT          NOT NULL,
-    publisher      VARCHAR(100)  NOT NULL,
-    published_date DATE          NOT NULL,
-    isbn           TEXT,
-    thumbnail_url  VARCHAR(512),
-    review_count   INTEGER       NOT NULL,
-    rating         DECIMAL(3, 2) NOT NULL,
-    created_at     TIMESTAMPTZ   NOT NULL,
-    updated_at     TIMESTAMPTZ   NOT NULL,
+    id                UUID PRIMARY KEY,
+    title             VARCHAR(255)  NOT NULL,
+    author            VARCHAR(100)  NOT NULL,
+    description       TEXT          NOT NULL,
+    publisher         VARCHAR(100)  NOT NULL,
+    published_date    DATE          NOT NULL,
+    isbn              TEXT,
+    thumbnail_url     VARCHAR(512),
+    original_filename VARCHAR(255),
+    review_count      INTEGER       NOT NULL,
+    rating            DECIMAL(3, 2) NOT NULL,
+    created_at        TIMESTAMPTZ   NOT NULL,
+    updated_at        TIMESTAMPTZ   NOT NULL,
 
     -- 제약
     CONSTRAINT uk_book_isbn UNIQUE (isbn)
 );
 
 -- 검색
-CREATE INDEX idx_book_search_combined ON book USING GIN ((COALESCE (title, '') || ' ' ||
-    COALESCE (author, '') || ' ' ||
-    COALESCE (isbn, '')) gin_trgm_ops);
+CREATE INDEX idx_book_search_combined ON book USING GIN ((COALESCE(title, '') || ' ' ||
+                                                          COALESCE(author, '') || ' ' ||
+                                                          COALESCE(isbn, '')) gin_trgm_ops);
 -- 정렬
 CREATE INDEX idx_book_cursor_title ON book (title DESC, created_at DESC, id DESC);
 -- 정렬
@@ -37,19 +38,20 @@ CREATE INDEX idx_book_cursor_review_count ON book (review_count DESC, created_at
 -- DeletedBook
 CREATE TABLE deleted_book
 (
-    id             UUID PRIMARY KEY,
-    title          VARCHAR(255)  NOT NULL,
-    author         VARCHAR(100)  NOT NULL,
-    description    TEXT          NOT NULL,
-    publisher      VARCHAR(100)  NOT NULL,
-    published_date DATE          NOT NULL,
-    isbn           VARCHAR(20),
-    thumbnail_url  VARCHAR(512),
-    review_count   INTEGER       NOT NULL,
-    rating         DECIMAL(3, 2) NOT NULL,
-    created_at     TIMESTAMPTZ   NOT NULL,
-    updated_at     TIMESTAMPTZ   NOT NULL,
-    deleted_at     TIMESTAMPTZ   NOT NULL
+    id                UUID PRIMARY KEY,
+    title             VARCHAR(255)  NOT NULL,
+    author            VARCHAR(100)  NOT NULL,
+    description       TEXT          NOT NULL,
+    publisher         VARCHAR(100)  NOT NULL,
+    published_date    DATE          NOT NULL,
+    isbn              VARCHAR(20),
+    thumbnail_url     VARCHAR(512),
+    original_filename VARCHAR(255),
+    review_count      INTEGER       NOT NULL,
+    rating            DECIMAL(3, 2) NOT NULL,
+    created_at        TIMESTAMPTZ   NOT NULL,
+    updated_at        TIMESTAMPTZ   NOT NULL,
+    deleted_at        TIMESTAMPTZ   NOT NULL
 );
 
 -- User
@@ -128,7 +130,7 @@ CREATE TABLE popular_review
 (
     id         UUID PRIMARY KEY,
     review_id  UUID           NOT NULL,
-    period VARCHAR (50) NOT NULL,
+    period     VARCHAR(50)    NOT NULL,
     score      DECIMAL(10, 2) NOT NULL,
     rank       INTEGER        NOT NULL,
     base_date  DATE           NOT NULL,
@@ -203,15 +205,15 @@ CREATE TABLE deleted_notification
 -- Book Ranking
 CREATE TABLE book_ranking
 (
-    id                  UUID                     NOT NULL,
-    book_id             UUID                     NOT NULL,
-    period VARCHAR (20) NOT NULL,
-    score               DECIMAL(10, 4)           NOT NULL,
-    ranking             INTEGER                  NOT NULL,
-    period_review_count BIGINT                   NOT NULL,
-    period_rating       DECIMAL(3, 2)            NOT NULL,
-    created_at          TIMESTAMPTZ NOT NULL,
-    updated_at          TIMESTAMPTZ NOT NULL,
+    id                  UUID           NOT NULL,
+    book_id             UUID           NOT NULL,
+    period              VARCHAR(20)    NOT NULL,
+    score               DECIMAL(10, 4) NOT NULL,
+    ranking             INTEGER        NOT NULL,
+    period_review_count BIGINT         NOT NULL,
+    period_rating       DECIMAL(3, 2)  NOT NULL,
+    created_at          TIMESTAMPTZ    NOT NULL,
+    updated_at          TIMESTAMPTZ    NOT NULL,
     PRIMARY KEY (id),
     CONSTRAINT uk_book_ranking_book_period UNIQUE (book_id, period)
 );

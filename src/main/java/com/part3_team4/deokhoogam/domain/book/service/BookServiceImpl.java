@@ -12,6 +12,7 @@ import com.part3_team4.deokhoogam.domain.book.exception.BookNotFoundException;
 import com.part3_team4.deokhoogam.domain.book.exception.InvalidIsbnException;
 import com.part3_team4.deokhoogam.domain.book.exception.IsbnAlreadyExistsException;
 import com.part3_team4.deokhoogam.domain.book.infrastructure.naver.NaverApiService;
+import com.part3_team4.deokhoogam.domain.book.repository.BookPersistence;
 import com.part3_team4.deokhoogam.domain.book.repository.BookRepository;
 import com.part3_team4.deokhoogam.domain.book.repository.DeletedBookRepository;
 import com.part3_team4.deokhoogam.global.common.PageResponse;
@@ -45,15 +46,14 @@ public class BookServiceImpl implements BookService {
 
   private final NaverApiService naverApiService;
 
+  private final BookPersistence bookPersistence;
 
   @Override
-  @Transactional
   public BookDto create(BookCreateRequest request, MultipartFile thumbnailFile) {
     validateDuplicateIsbn(request.isbn());
 
     String thumbnailUrl = uploadThumbnail(thumbnailFile);
-
-    // TODO: S3 업로드 후 DB 저장 실패 시 고아 파일 처리 정책
+    String originalFilename = extractOriginalFilename(thumbnailFile);
 
     try {
       Book book = Book.builder()
@@ -64,38 +64,45 @@ public class BookServiceImpl implements BookService {
           .publisher(request.publisher())
           .publishedDate(request.publishedDate())
           .thumbnailUrl(thumbnailUrl)
+          .originalFilename(originalFilename)
           .build();
 
-      return BookDto.from(bookRepository.save(book));
+      return BookDto.from(bookPersistence.save(book));
+
     } catch (DataIntegrityViolationException e) {
+      if (thumbnailUrl != null) {
+        fileUploader.delete(thumbnailUrl);
+      }
+
       if (isDuplicateIsbnViolation(e)) {
         throw IsbnAlreadyExistsException.withIsbn(request.isbn());
+      }
+      throw e;
+
+    } catch (Exception e) {
+      if (thumbnailUrl != null) {
+        fileUploader.delete(thumbnailUrl);
       }
       throw e;
     }
   }
 
   @Override
-  @Transactional
   public BookDto update(UUID id, BookUpdateRequest request, MultipartFile thumbnailFile) {
-    Book book = bookRepository.findById(id)
-        .orElseThrow(() -> BookNotFoundException.withId(id));
-
     String newThumbnailUrl = uploadThumbnail(thumbnailFile);
-    if (newThumbnailUrl != null) {
-      // TODO: 기존 파일 삭제 정책
-      book.updateThumbnail(newThumbnailUrl);
+    String originalFilename = extractOriginalFilename(thumbnailFile);
+
+    try {
+      // TODO: 기존 썸네일 삭제 정책은 추후 Reconciliation를 도입하여 고도화 예정
+      Book updatedBook = bookPersistence.update(id, request, newThumbnailUrl, originalFilename);
+      return BookDto.from(updatedBook);
+
+    } catch (Exception e) {
+      if (newThumbnailUrl != null) {
+        fileUploader.delete(newThumbnailUrl);
+      }
+      throw e;
     }
-
-    book.updateBookInfo(
-        request.title(),
-        request.author(),
-        request.description(),
-        request.publisher(),
-        request.publishedDate()
-    );
-
-    return BookDto.from(book);
   }
 
 
@@ -232,6 +239,13 @@ public class BookServiceImpl implements BookService {
       cause = cause.getCause();
     }
     return false;
+  }
+
+  private String extractOriginalFilename(MultipartFile file) {
+    if (file == null || file.isEmpty()) {
+      return null;
+    }
+    return file.getOriginalFilename();
   }
 
 }

@@ -5,13 +5,18 @@ import com.part3_team4.deokhoogam.global.exception.storage.InvalidFileException;
 import com.part3_team4.deokhoogam.global.exception.storage.StorageOperationException;
 import io.awspring.cloud.s3.S3Resource;
 import io.awspring.cloud.s3.S3Template;
+import java.io.IOException;
+import java.io.InputStream;
 import java.util.Set;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.tika.Tika;
+import org.apache.tika.io.TikaInputStream;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 import org.springframework.web.multipart.MultipartFile;
+import software.amazon.awssdk.services.s3.model.S3Exception;
 
 @Slf4j
 @Component
@@ -19,6 +24,10 @@ import org.springframework.web.multipart.MultipartFile;
 public class S3FileUploader implements FileUploader {
 
   private static final Set<String> ALLOWED_EXTENSIONS = Set.of("png", "jpg", "jpeg", "webp");
+  private static final Set<String> ALLOWED_MIME = Set.of("image/png", "image/jpeg",
+      "image/webp");
+
+  private static final Tika TIKA = new Tika();
 
   private final S3Template s3Template;
 
@@ -27,10 +36,10 @@ public class S3FileUploader implements FileUploader {
 
   @Override
   public String upload(MultipartFile file, String domainPath) {
-    validateFile(file);
+    String originalFilename = validateFile(file);
     validateDomainPath(domainPath);
 
-    String key = createKey(domainPath, file.getOriginalFilename());
+    String key = createKey(domainPath, originalFilename);
 
     try {
       S3Resource s3Resource = s3Template.upload(
@@ -42,7 +51,7 @@ public class S3FileUploader implements FileUploader {
       log.info("S3 파일 업로드 성공: {}", key);
       return s3Resource.getURL().toString();
 
-    } catch (Exception e) {
+    } catch (S3Exception | IOException e) {
       log.error("S3 파일 전송/인프라 장애 발생: {}", key, e);
       cleanup(key);
 
@@ -66,7 +75,7 @@ public class S3FileUploader implements FileUploader {
     cleanup(key);
   }
 
-  private void validateFile(MultipartFile file) {
+  private String validateFile(MultipartFile file) {
     if (file == null) {
       throw InvalidFileException.withField(ErrorKey.FILE, "파일이 존재하지 않습니다.");
     }
@@ -81,7 +90,30 @@ public class S3FileUploader implements FileUploader {
     }
 
     validateExtension(originalFilename);
+
+    String contentType = file.getContentType();
+    if (contentType == null || !ALLOWED_MIME.contains(contentType.toLowerCase())) {
+      throw InvalidFileException.withFieldAndValue(ErrorKey.FILE, String.valueOf(contentType),
+          "지원하지 않는 파일 타입(MIME)입니다.");
+    }
+
+    try (InputStream inputStream = file.getInputStream();
+        TikaInputStream tikaInputStream = TikaInputStream.get(inputStream)) {
+
+      String detectedMimeType = TIKA.detect(tikaInputStream);
+
+      if (!ALLOWED_MIME.contains(detectedMimeType.toLowerCase())) {
+        log.warn("파일 변조 의심: 요청된 MIME={}, 실제 MIME={}", contentType, detectedMimeType);
+        throw InvalidFileException.withFieldAndValue(
+            ErrorKey.FILE, detectedMimeType, "실제 파일 타입과 불일치합니다.");
+      }
+    } catch (IOException e) {
+      log.error("파일 검증 중 시스템 I/O 오류 발생: {}", originalFilename, e);
+      throw StorageOperationException.uploadFailed(originalFilename, e);
+    }
+    return originalFilename;
   }
+
 
   private void validateDomainPath(String domainPath) {
     if (domainPath == null || domainPath.isBlank()) {
@@ -107,16 +139,10 @@ public class S3FileUploader implements FileUploader {
   }
 
   private String createKey(String domainPath, String originalFilename) {
-    return domainPath + "/" + UUID.randomUUID() + "_" + originalFilename;
-  }
+    int lastDotIndex = originalFilename.lastIndexOf(".");
+    String extension = originalFilename.substring(lastDotIndex + 1).toLowerCase();
 
-  private void cleanup(String key) {
-    try {
-      s3Template.deleteObject(bucketName, key);
-      log.info("S3 파일 정리 완료: {}", key);
-    } catch (Exception e) {
-      log.error("S3 파일 정리 실패: {}", key, e);
-    }
+    return domainPath + "/" + UUID.randomUUID() + "." + extension;
   }
 
   private String extractKey(String fileUrl) {
@@ -132,6 +158,15 @@ public class S3FileUploader implements FileUploader {
     } catch (java.net.URISyntaxException e) {
       log.error("잘못된 파일 URL 형식입니다: {}", fileUrl);
       throw InvalidFileException.withFieldAndValue(ErrorKey.FILE, fileUrl, "유효하지 않은 파일 URL입니다.");
+    }
+  }
+
+  private void cleanup(String key) {
+    try {
+      s3Template.deleteObject(bucketName, key);
+      log.info("S3 파일 정리 완료: {}", key);
+    } catch (S3Exception e) {
+      log.error("S3 파일 정리 실패: " + key, e);
     }
   }
 }
