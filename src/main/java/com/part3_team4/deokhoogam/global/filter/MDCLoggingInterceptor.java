@@ -12,9 +12,11 @@ import org.springframework.web.servlet.HandlerInterceptor;
 public class MDCLoggingInterceptor implements HandlerInterceptor {
 
   public static final String REQUEST_ID = "requestId";
+  public static final String REQUEST_IP = "requestIp";
   public static final String REQUEST_METHOD = "requestMethod";
   public static final String REQUEST_URI = "requestUri";
 
+  //요청 아이디 추가
   public static final String REQUEST_ID_HEADER = "Deokhugam-Request-ID";
 
   @Override
@@ -22,9 +24,11 @@ public class MDCLoggingInterceptor implements HandlerInterceptor {
       @NonNull Object handler) {
     // 요청 ID 생성 (UUID)
     String requestId = UUID.randomUUID().toString().replaceAll("-", "");
+    String clientIp = extractClientIp(request);
 
     // MDC에 컨텍스트 정보 추가
     MDC.put(REQUEST_ID, requestId);
+    MDC.put(REQUEST_IP, clientIp);
     MDC.put(REQUEST_METHOD, request.getMethod());
     MDC.put(REQUEST_URI, request.getRequestURI());
 
@@ -42,4 +46,15 @@ public class MDCLoggingInterceptor implements HandlerInterceptor {
     log.debug("Request completed");
     MDC.clear();
   }
+
+
+  private String extractClientIp(HttpServletRequest request) {
+    String ip = request.getHeader("X-Forwarded-For");
+    if (ip != null && !ip.isBlank()) {
+      return ip.split(",")[0].trim(); // 최초 프록시(클라이언트 주소) 만 가져옴.
+    }
+    return request.getRemoteAddr();
+  }
 }
+
+

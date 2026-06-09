@@ -5,7 +5,7 @@
     conversionWord="clr"/>
 
   <property name="DEV_PATTERN"
-    value="%d{yy-MM-dd HH:mm:ss.SSS} [%thread] %clr(%-5level) %-36logger{36} [%X{requestId:-NO_ID}] - %msg%n"/>
+    value="%d{yy-MM-dd HH:mm:ss.SSS} [%thread] %clr(%-5level) %-36logger{36} [%X{requestId:-NO_ID}] [%X{requestIp:-NO_IP}] - %msg%n"/>
 
   <appender class="ch.qos.logback.core.ConsoleAppender" name="CONSOLE">
     <encoder>
@@ -16,8 +16,10 @@
   <appender class="ch.qos.logback.core.ConsoleAppender" name="JSON">
     <encoder class="net.logstash.logback.encoder.LogstashEncoder">
       <includeMdcKeyName>requestId</includeMdcKeyName>
+      <includeMdcKeyName>requestIp</includeMdcKeyName>
     </encoder>
   </appender>
+
 
   <springProfile name="local,dev">
     <root level="INFO">
@@ -30,5 +32,7 @@
       <appender-ref ref="JSON"/>
     </root>
   </springProfile>
+
+
 
 </configuration>
