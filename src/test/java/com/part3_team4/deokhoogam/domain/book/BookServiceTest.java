@@ -124,13 +124,14 @@ class BookServiceTest {
   }
 
   @Test
-  @DisplayName("도서 등록 시 썸네일 파일이 주어지면 파일 저장소에 업로드 후 반환된 URL을 포함하여 저장한다")
+  @DisplayName("도서 등록 시 썸네일 파일이 주어지면 파일 저장소에 업로드 후 원본 파일명도 함께 저장한다")
   void createBook_WithThumbnail_Success() {
     // given
     BookCreateRequest request = BookFixtures.validBookCreateRequest();
+    String originalFilename = "image.png";
     MockMultipartFile thumbnailFile = new MockMultipartFile(
         "thumbnailFile",
-        "image.png",
+        originalFilename,
         "image/png",
         "test_content".getBytes());
 
@@ -149,6 +150,7 @@ class BookServiceTest {
         .publisher(request.publisher())
         .publishedDate(request.publishedDate())
         .thumbnailUrl(mockUploadedUrl)
+        .originalFilename(originalFilename)
         .build();
     setField(mockSavedBook, "id", mockId);
 
@@ -164,6 +166,7 @@ class BookServiceTest {
     ArgumentCaptor<Book> bookCaptor = ArgumentCaptor.forClass(Book.class);
     then(bookPersistence).should().save(bookCaptor.capture());
     assertThat(bookCaptor.getValue().getThumbnailUrl()).isEqualTo(mockUploadedUrl);
+    assertThat(bookCaptor.getValue().getOriginalFilename()).isEqualTo(originalFilename);
   }
 
   @Test
@@ -319,8 +322,8 @@ class BookServiceTest {
         .build();
     setField(updatedBook, "id", targetId);
 
-    given(bookPersistence.update(eq(targetId), eq(updateRequest), eq(null))).willReturn(
-        updatedBook);
+    given(bookPersistence.update(eq(targetId), eq(updateRequest), eq(null), eq(null)))
+        .willReturn(updatedBook);
 
     // when
     BookDto result = bookService.update(targetId, updateRequest, null);
@@ -331,27 +334,32 @@ class BookServiceTest {
     assertThat(result.title()).isEqualTo(updateRequest.title());
     assertThat(result.author()).isEqualTo(updateRequest.author());
 
-    then(bookPersistence).should().update(eq(targetId), eq(updateRequest), eq(null));
+    then(bookPersistence).should().update(eq(targetId), eq(updateRequest), eq(null), eq(null));
   }
 
   @Test
-  @DisplayName("도서 정보 수정 시 썸네일 파일이 주어지면 파일 업로드 후 URL을 업데이트한다")
+  @DisplayName("도서 정보 수정 시 썸네일 파일이 주어지면 파일 업로드 후 URL과 원본 파일명을 업데이트한다")
   void updateBook_WithThumbnail_Success() {
     // given
     UUID targetId = UUID.randomUUID();
     BookUpdateRequest request = BookFixtures.validBookUpdateRequest();
+    String newOriginalFilename = "image.png";
     MockMultipartFile thumbnailFile = new MockMultipartFile(
-        "thumbnailFile", "image.png", "image/png", "test_content".getBytes());
+        "thumbnailFile",
+        newOriginalFilename,
+        "image/png",
+        "test_content".getBytes());
     String newMockUrl = "https://s3.deokhugam.com/books/new-image.png";
 
     Book updatedBook = BookFixtures.validBook("1234567890123");
     setField(updatedBook, "id", targetId);
     ReflectionTestUtils.setField(updatedBook, "thumbnailUrl", newMockUrl);
+    ReflectionTestUtils.setField(updatedBook, "originalFilename", newOriginalFilename);
 
     given(fileUploader.upload(any(MultipartFile.class), eq(BOOK_THUMBNAIL_DIR))).willReturn(
         newMockUrl);
-    given(bookPersistence.update(eq(targetId), eq(request), eq(newMockUrl))).willReturn(
-        updatedBook);
+    given(bookPersistence.update(eq(targetId), eq(request), eq(newMockUrl),
+        eq(newOriginalFilename))).willReturn(updatedBook);
 
     // when
     BookDto result = bookService.update(targetId, request, thumbnailFile);
@@ -360,7 +368,8 @@ class BookServiceTest {
     assertThat(result.thumbnailUrl()).isEqualTo(newMockUrl);
 
     then(fileUploader).should(times(1)).upload(any(), eq(BOOK_THUMBNAIL_DIR));
-    then(bookPersistence).should().update(eq(targetId), eq(request), eq(newMockUrl));
+    then(bookPersistence).should()
+        .update(eq(targetId), eq(request), eq(newMockUrl), eq(newOriginalFilename));
   }
 
   @Test
@@ -389,16 +398,17 @@ class BookServiceTest {
     // given
     UUID bookId = UUID.randomUUID();
     BookUpdateRequest request = BookFixtures.validBookUpdateRequest();
+    String newOriginalFilename = "new.png";
     MockMultipartFile newFile = new MockMultipartFile(
         "thumbnailImage",
-        "new.png",
+        newOriginalFilename,
         "image/png",
         "new-content".getBytes());
     String newUploadedUrl = "https://s3.com/books/new.png";
 
     given(fileUploader.upload(any(), any())).willReturn(newUploadedUrl);
-    given(bookPersistence.update(eq(bookId), any(), eq(newUploadedUrl))).willThrow(
-        new RuntimeException("Update Failed"));
+    given(bookPersistence.update(eq(bookId), any(), eq(newUploadedUrl), eq(newOriginalFilename)))
+        .willThrow(new RuntimeException("Update Failed"));
 
     // when & then
     assertThatThrownBy(() -> bookService.update(bookId, request, newFile))
@@ -413,15 +423,15 @@ class BookServiceTest {
     // given
     UUID nonExistentId = UUID.randomUUID();
     BookUpdateRequest request = BookFixtures.validBookUpdateRequest();
-
-    given(bookPersistence.update(eq(nonExistentId), eq(request), eq(null)))
+    
+    given(bookPersistence.update(eq(nonExistentId), eq(request), eq(null), eq(null)))
         .willThrow(BookNotFoundException.withId(nonExistentId));
 
     // when & then
     assertThatThrownBy(() -> bookService.update(nonExistentId, request, null))
         .isInstanceOf(BookNotFoundException.class);
 
-    then(bookPersistence).should().update(eq(nonExistentId), eq(request), eq(null));
+    then(bookPersistence).should().update(eq(nonExistentId), eq(request), eq(null), eq(null));
   }
 
   @Nested

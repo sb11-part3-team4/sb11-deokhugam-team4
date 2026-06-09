@@ -20,7 +20,8 @@ public class BookPersistence {
   }
 
   @Transactional
-  public Book update(UUID id, BookUpdateRequest request, String newThumbnailUrl) {
+  public Book update(UUID id, BookUpdateRequest request, String newThumbnailUrl,
+      String originalFilename) {
     Book book = bookRepository.findById(id)
         .orElseThrow(() -> BookNotFoundException.withId(id));
 
@@ -33,7 +34,7 @@ public class BookPersistence {
     );
 
     if (newThumbnailUrl != null) {
-      book.updateThumbnail(newThumbnailUrl);
+      book.updateThumbnail(newThumbnailUrl, originalFilename);
     }
 
     return book;

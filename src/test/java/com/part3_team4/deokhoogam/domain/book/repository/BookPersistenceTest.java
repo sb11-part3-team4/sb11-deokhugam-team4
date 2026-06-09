@@ -51,19 +51,18 @@ class BookPersistenceTest {
   void update_WithNewThumbnail_UpdatesBookAndThumbnail() {
     // given
     UUID targetId = UUID.randomUUID();
-
     BookUpdateRequest request = BookFixtures.validBookUpdateRequest();
 
     String oldThumbnailUrl = "https://s3.com/old-image.png";
+    String oldOriginalFilename = "old-image.png";
+
     String newThumbnailUrl = "https://s3.com/new-image.png";
+    String newOriginalFilename = "new-image.png";
 
     Book existingBook = BookFixtures.validBook("1234567890123");
 
-    ReflectionTestUtils.setField(
-        existingBook,
-        "thumbnailUrl",
-        oldThumbnailUrl
-    );
+    ReflectionTestUtils.setField(existingBook, "thumbnailUrl", oldThumbnailUrl);
+    ReflectionTestUtils.setField(existingBook, "originalFilename", oldOriginalFilename);
 
     given(bookRepository.findById(targetId))
         .willReturn(Optional.of(existingBook));
@@ -72,8 +71,8 @@ class BookPersistenceTest {
     Book result = bookPersistence.update(
         targetId,
         request,
-        newThumbnailUrl
-    );
+        newThumbnailUrl,
+        newOriginalFilename);
 
     // then
     assertThat(result.getTitle()).isEqualTo(request.title());
@@ -82,8 +81,8 @@ class BookPersistenceTest {
     assertThat(result.getPublisher()).isEqualTo(request.publisher());
     assertThat(result.getPublishedDate()).isEqualTo(request.publishedDate());
 
-    assertThat(result.getThumbnailUrl())
-        .isEqualTo(newThumbnailUrl);
+    assertThat(result.getThumbnailUrl()).isEqualTo(newThumbnailUrl);
+    assertThat(result.getOriginalFilename()).isEqualTo(newOriginalFilename);
 
     then(bookRepository).should().findById(targetId);
     then(bookRepository).shouldHaveNoMoreInteractions();
@@ -94,18 +93,15 @@ class BookPersistenceTest {
   void update_WithoutThumbnail_KeepsExistingThumbnail() {
     // given
     UUID targetId = UUID.randomUUID();
-
     BookUpdateRequest request = BookFixtures.validBookUpdateRequest();
 
     String oldThumbnailUrl = "https://s3.com/old-image.png";
+    String oldOriginalFilename = "old-image.png";
 
     Book existingBook = BookFixtures.validBook("1234567890123");
 
-    ReflectionTestUtils.setField(
-        existingBook,
-        "thumbnailUrl",
-        oldThumbnailUrl
-    );
+    ReflectionTestUtils.setField(existingBook, "thumbnailUrl", oldThumbnailUrl);
+    ReflectionTestUtils.setField(existingBook, "originalFilename", oldOriginalFilename);
 
     given(bookRepository.findById(targetId))
         .willReturn(Optional.of(existingBook));
@@ -114,8 +110,8 @@ class BookPersistenceTest {
     Book result = bookPersistence.update(
         targetId,
         request,
-        null
-    );
+        null,
+        null);
 
     // then
     assertThat(result.getTitle()).isEqualTo(request.title());
@@ -124,8 +120,8 @@ class BookPersistenceTest {
     assertThat(result.getPublisher()).isEqualTo(request.publisher());
     assertThat(result.getPublishedDate()).isEqualTo(request.publishedDate());
 
-    assertThat(result.getThumbnailUrl())
-        .isEqualTo(oldThumbnailUrl);
+    assertThat(result.getThumbnailUrl()).isEqualTo(oldThumbnailUrl);
+    assertThat(result.getOriginalFilename()).isEqualTo(oldOriginalFilename);
 
     then(bookRepository).should().findById(targetId);
     then(bookRepository).shouldHaveNoMoreInteractions();
@@ -136,17 +132,14 @@ class BookPersistenceTest {
   void update_WithNonExistentId_ThrowsException() {
     // given
     UUID nonExistentId = UUID.randomUUID();
-
-    BookUpdateRequest request =
-        BookFixtures.validBookUpdateRequest();
+    BookUpdateRequest request = BookFixtures.validBookUpdateRequest();
 
     given(bookRepository.findById(nonExistentId))
         .willReturn(Optional.empty());
 
     // when & then
     assertThatThrownBy(() ->
-        bookPersistence.update(nonExistentId, request, null)
-    )
+        bookPersistence.update(nonExistentId, request, null, null))
         .isInstanceOf(BookNotFoundException.class);
 
     then(bookRepository).should().findById(nonExistentId);

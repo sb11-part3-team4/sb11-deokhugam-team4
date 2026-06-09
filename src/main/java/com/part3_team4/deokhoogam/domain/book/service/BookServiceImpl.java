@@ -53,6 +53,7 @@ public class BookServiceImpl implements BookService {
     validateDuplicateIsbn(request.isbn());
 
     String thumbnailUrl = uploadThumbnail(thumbnailFile);
+    String originalFilename = extractOriginalFilename(thumbnailFile);
 
     try {
       Book book = Book.builder()
@@ -63,6 +64,7 @@ public class BookServiceImpl implements BookService {
           .publisher(request.publisher())
           .publishedDate(request.publishedDate())
           .thumbnailUrl(thumbnailUrl)
+          .originalFilename(originalFilename)
           .build();
 
       return BookDto.from(bookPersistence.save(book));
@@ -88,10 +90,11 @@ public class BookServiceImpl implements BookService {
   @Override
   public BookDto update(UUID id, BookUpdateRequest request, MultipartFile thumbnailFile) {
     String newThumbnailUrl = uploadThumbnail(thumbnailFile);
+    String originalFilename = extractOriginalFilename(thumbnailFile);
 
     try {
       // TODO: 기존 썸네일 삭제 정책은 추후 Reconciliation를 도입하여 고도화 예정
-      Book updatedBook = bookPersistence.update(id, request, newThumbnailUrl);
+      Book updatedBook = bookPersistence.update(id, request, newThumbnailUrl, originalFilename);
       return BookDto.from(updatedBook);
 
     } catch (Exception e) {
@@ -236,6 +239,13 @@ public class BookServiceImpl implements BookService {
       cause = cause.getCause();
     }
     return false;
+  }
+
+  private String extractOriginalFilename(MultipartFile file) {
+    if (file == null || file.isEmpty()) {
+      return null;
+    }
+    return file.getOriginalFilename();
   }
 
 }
