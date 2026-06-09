@@ -10,8 +10,8 @@ import org.springframework.batch.core.job.builder.JobBuilder;
 import org.springframework.batch.core.repository.JobRepository;
 import org.springframework.batch.core.step.builder.StepBuilder;
 import org.springframework.batch.item.ItemWriter;
-import org.springframework.batch.item.database.JpaPagingItemReader;
-import org.springframework.batch.item.database.builder.JpaPagingItemReaderBuilder;
+import org.springframework.batch.item.database.JpaCursorItemReader;
+import org.springframework.batch.item.database.builder.JpaCursorItemReaderBuilder;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.transaction.PlatformTransactionManager;
@@ -53,13 +53,11 @@ public class DeleteOrphanCommentJobConfig {
     }
 
     @Bean
-    public JpaPagingItemReader<DeletedComment> orphanDeletedCommentReader() {
-        return new JpaPagingItemReaderBuilder<DeletedComment>()
+    public JpaCursorItemReader<DeletedComment> orphanDeletedCommentReader() {
+        return new JpaCursorItemReaderBuilder<DeletedComment>()
             .name("orphanDeletedCommentReader")
             .entityManagerFactory(entityManagerFactory)
-            .pageSize(CHUNK_SIZE)
             .queryString(ORPHAN_QUERY)
-            .saveState(false)
             .build();
     }
 
