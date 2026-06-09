@@ -8,7 +8,7 @@ import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
-public interface PowerUserRankingRepository extends JpaRepository<PowerUserRanking, UUID> {
+public interface PowerUserRankingRepository extends JpaRepository<PowerUserRanking, UUID>, PowerUserQueryRepository {
 
   @Modifying(clearAutomatically = true)
   @Query("DELETE FROM PowerUserRanking p WHERE p.period = :period")
