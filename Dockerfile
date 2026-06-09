@@ -28,7 +28,9 @@ WORKDIR /app
 COPY --from=builder /app/build/libs/*.jar app.jar
 
 # non-root 그룹, 사용자 생성
-RUN addgroup -S appgroup && adduser -S appuser -G appgroup
+RUN addgroup -S appgroup && adduser -S appuser -G appgroup \
+    && mkdir -p /app/logs \
+    && chown -R appuser:appgroup /app/logs
 USER appuser
 
 # 환경변수

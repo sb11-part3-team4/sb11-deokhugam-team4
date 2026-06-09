@@ -20,6 +20,7 @@ import com.part3_team4.deokhoogam.global.exception.ErrorCode;
 import com.part3_team4.deokhoogam.global.exception.InvalidRequestException;
 import com.part3_team4.deokhoogam.global.storage.FileUploader;
 import com.part3_team4.deokhoogam.global.util.CursorUtils;
+import java.math.BigDecimal;
 import java.util.List;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
@@ -103,6 +104,12 @@ public class BookServiceImpl implements BookService {
       }
       throw e;
     }
+  }
+
+  @Transactional
+  @Override
+  public void updateReviewData(UUID bookId, int reviewCount, BigDecimal rating) {
+    bookPersistence.updateReviewData(bookId, reviewCount, rating);
   }
 
 

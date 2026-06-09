@@ -3,6 +3,7 @@ package com.part3_team4.deokhoogam.domain.book.repository;
 import com.part3_team4.deokhoogam.domain.book.dto.BookUpdateRequest;
 import com.part3_team4.deokhoogam.domain.book.entity.Book;
 import com.part3_team4.deokhoogam.domain.book.exception.BookNotFoundException;
+import java.math.BigDecimal;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
@@ -38,5 +39,13 @@ public class BookPersistence {
     }
 
     return book;
+  }
+
+  @Transactional
+  public void updateReviewData(UUID bookId, int reviewCount, BigDecimal rating) {
+    Book book = bookRepository.findById(bookId)
+        .orElseThrow(() -> BookNotFoundException.withId(bookId));
+
+    book.updateReviewData(reviewCount, rating);
   }
 }
