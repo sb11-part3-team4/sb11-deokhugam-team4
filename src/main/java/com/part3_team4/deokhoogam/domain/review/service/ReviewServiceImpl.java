@@ -68,7 +68,7 @@ public class ReviewServiceImpl implements ReviewService {
         }
         long reviewCount = reviewRepository.countByBookId(request.bookId());
         BigDecimal avgRating = reviewRepository.averageRatingByBookId(request.bookId());
-        bookService.updateReviewData(request.bookId(), (int) reviewCount, avgRating);
+        bookService.updateReviewData(request.bookId(), Math.toIntExact(reviewCount), avgRating);
 
         return new ReviewResponse(
                 saved.getId(), saved.getUserId(), saved.getBookId(),
@@ -132,7 +132,7 @@ public class ReviewServiceImpl implements ReviewService {
 
         long reviewCount = reviewRepository.countByBookId(review.getBookId());
         BigDecimal avgRating = reviewRepository.averageRatingByBookId(review.getBookId());
-        bookService.updateReviewData(review.getBookId(), (int) reviewCount, avgRating);
+        bookService.updateReviewData(review.getBookId(), Math.toIntExact(reviewCount), avgRating);
 
     }
 
