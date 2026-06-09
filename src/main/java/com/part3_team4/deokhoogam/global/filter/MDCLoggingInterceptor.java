@@ -15,6 +15,7 @@ public class MDCLoggingInterceptor implements HandlerInterceptor {
   public static final String REQUEST_IP = "requestIp";
   public static final String REQUEST_METHOD = "requestMethod";
   public static final String REQUEST_URI = "requestUri";
+  public static final String START_TIME = "startTime";   // 추가
 
   //요청 아이디 추가
   public static final String REQUEST_ID_HEADER = "Deokhugam-Request-ID";
@@ -31,19 +32,28 @@ public class MDCLoggingInterceptor implements HandlerInterceptor {
     MDC.put(REQUEST_IP, clientIp);
     MDC.put(REQUEST_METHOD, request.getMethod());
     MDC.put(REQUEST_URI, request.getRequestURI());
+    MDC.put(START_TIME, String.valueOf(System.currentTimeMillis()));
 
     // 응답 헤더에 요청 ID 추가
     response.setHeader(REQUEST_ID_HEADER, requestId);
 
-    log.debug("Request started");
+    log.info("Request started: {} {}", request.getMethod(), request.getRequestURI());
     return true;
   }
 
   @Override
   public void afterCompletion(@NonNull HttpServletRequest request,
       @NonNull HttpServletResponse response, @NonNull Object handler, Exception ex) {
+
+    long duration = -1;
+    String startTime = MDC.get(START_TIME);
+    if (startTime != null) {
+      duration = System.currentTimeMillis() - Long.parseLong(startTime);
+    }
+    // 몇초 걸렸는지 출력
+    log.info("Request completed: {} {} - status={} ({}ms)",
+        request.getMethod(), request.getRequestURI(), response.getStatus(), duration);
     // 요청 처리 후 MDC 데이터 정리
-    log.debug("Request completed");
     MDC.clear();
   }
 
