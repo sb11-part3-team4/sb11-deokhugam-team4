@@ -163,7 +163,7 @@ public class S3FileUploader implements FileUploader {
       s3Template.deleteObject(bucketName, key);
       log.info("S3 파일 정리 완료: {}", key);
     } catch (S3Exception e) {
-      log.error("S3 파일 정리 실패: {}", key, e);
+      log.error("S3 파일 정리 실패: " + key, e);
     }
   }
 }
