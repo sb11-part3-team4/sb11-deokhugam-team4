@@ -2,6 +2,8 @@ package com.part3_team4.deokhoogam.domain.user;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import com.part3_team4.deokhoogam.domain.user.entity.PowerUserRanking;
+import com.part3_team4.deokhoogam.domain.user.enums.PowerUserPeriod;
 import com.part3_team4.deokhoogam.domain.user.service.PowerUserRankingService;
 import java.math.BigDecimal;
 import java.util.List;
@@ -43,5 +45,31 @@ public class PowerUserRankingServiceTest {
     assertThat(result).hasSize(1);
     assertThat(result.get(0).userId()).isEqualTo(user1);
     assertThat(result.get(0).score()).isEqualTo(15.0);
+  }
+
+  @Test
+  @DisplayName("랭킹 로직 - 점수를 내림차순으로 정렬하고 1등부터 순위 부여")
+  void assignRankings() {
+    UUID user1 = UUID.randomUUID();
+    UUID user2 = UUID.randomUUID();
+
+    List<PowerUserRankingService.UserScore> unsortedScores = List.of(
+        new PowerUserRankingService.UserScore(user1, 10.0),
+        new PowerUserRankingService.UserScore(user2, 20.0)
+    );
+
+    List<PowerUserRanking> result = powerUserRankingService.assignRankings(unsortedScores, PowerUserPeriod.DAILY);
+
+    assertThat(result).hasSize(2);
+
+    // 1등 검증 (user2, 20.0점)
+    assertThat(result.get(0).getUserId()).isEqualTo(user2);
+    assertThat(result.get(0).getScore()).isEqualTo(20.0);
+    assertThat(result.get(0).getRanking()).isEqualTo(1);
+
+    // 2등 검증 (user1, 10.0점)
+    assertThat(result.get(1).getUserId()).isEqualTo(user1);
+    assertThat(result.get(1).getScore()).isEqualTo(10.0);
+    assertThat(result.get(1).getRanking()).isEqualTo(2);
   }
 }
