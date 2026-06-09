@@ -1,5 +1,6 @@
 package com.part3_team4.deokhoogam.domain.review.service;
 
+import com.part3_team4.deokhoogam.domain.book.entity.Book;
 import com.part3_team4.deokhoogam.domain.book.exception.BookNotFoundException;
 import com.part3_team4.deokhoogam.domain.book.repository.BookRepository;
 import com.part3_team4.deokhoogam.domain.review.dto.*;
@@ -14,10 +15,11 @@ import com.part3_team4.deokhoogam.domain.review.repository.DeletedReviewReposito
 import com.part3_team4.deokhoogam.domain.review.repository.PopularReviewRepository;
 import com.part3_team4.deokhoogam.domain.review.repository.ReviewLikeRepository;
 import com.part3_team4.deokhoogam.domain.review.repository.ReviewRepository;
-import com.part3_team4.deokhoogam.domain.user.exception.UserNotFoundException;
+import com.part3_team4.deokhoogam.domain.user.entity.User;
 import com.part3_team4.deokhoogam.domain.user.repository.UserRepository;
 
 import java.util.*;
+import java.util.stream.Collectors;
 
 import com.part3_team4.deokhoogam.global.common.PageResponse;
 import lombok.RequiredArgsConstructor;
@@ -186,10 +188,28 @@ public class ReviewServiceImpl implements ReviewService {
             popularReviews = popularReviews.subList(0, limit);
         }
 
+        List<UUID> reviewIds =
+        popularReviews.stream().map(PopularReview::getReviewId).toList();
+        Map<UUID, Review> reviewMap = reviewRepository.findAllById(reviewIds)
+                .stream().collect(Collectors.toMap(Review::getId, r -> r));
+        List<UUID> bookIds =
+                reviewMap.values().stream().map(Review::getBookId).distinct().toList();
+        List<UUID> userIds =
+                reviewMap.values().stream().map(Review::getUserId).distinct().toList();
+        Map<UUID, Book> bookMap = bookRepository.findAllById(bookIds)
+                .stream().collect(Collectors.toMap(Book::getId, b -> b));
+        Map<UUID, User> userMap = userRepository.findAllById(userIds)
+                .stream().collect(Collectors.toMap(User::getId, u -> u));
+
         List<PopularReviewResponse> content = popularReviews.stream()
-                .map(pr -> reviewRepository.findById(pr.getReviewId())
-                        .map(review -> toPopularReviewResponse(pr, review))
-                        .orElse(null))
+                .map(pr -> {
+                    Review rev = reviewMap.get(pr.getReviewId());
+                    if (rev == null) return null;
+                    Book book = bookMap.get(rev.getBookId());
+                    User user = userMap.get(rev.getUserId());
+                    if (book == null || user == null) return null;
+                    return toPopularReviewResponse(pr, rev, book, user);
+                })
                 .filter(Objects::nonNull)
                 .toList();
 
@@ -205,11 +225,7 @@ public class ReviewServiceImpl implements ReviewService {
         return new PageResponse<>(content, nextCursor, nextAfter, content.size(), null, hasNext);
     }
 
-    private PopularReviewResponse toPopularReviewResponse(PopularReview pr, Review review) {
-        var book = bookRepository.findById(review.getBookId())
-                .orElseThrow(() -> BookNotFoundException.withId(review.getBookId()));
-        var user = userRepository.findById(review.getUserId())
-                .orElseThrow(() -> UserNotFoundException.withId(review.getUserId()));
+    private PopularReviewResponse toPopularReviewResponse(PopularReview pr, Review review, Book book, User user) {
         return new PopularReviewResponse(
                 pr.getId(), pr.getReviewId(), review.getBookId(),
                 book.getTitle(), book.getThumbnailUrl(),

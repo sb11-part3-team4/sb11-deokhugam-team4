@@ -16,6 +16,7 @@ import com.part3_team4.deokhoogam.domain.review.service.ReviewServiceImpl;
 import com.part3_team4.deokhoogam.domain.user.repository.UserRepository;
 import com.part3_team4.deokhoogam.global.common.PageResponse;
 import net.bytebuddy.asm.Advice;
+import org.aspectj.util.Reflection;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -41,6 +42,8 @@ import static org.mockito.BDDMockito.*;
 
 import com.part3_team4.deokhoogam.domain.review.entity.PopularReview;
 import com.part3_team4.deokhoogam.domain.user.entity.User;
+import org.springframework.test.util.ReflectionTestUtils;
+
 import java.math.BigDecimal;
 
 @ExtendWith(MockitoExtension.class)
@@ -567,20 +570,24 @@ public class ReviewServiceTest {
         PopularReview popularReview = PopularReview.create(reviewId, "DAILY", new BigDecimal("0.7"), 1, LocalDate.now());
 
         Review review = Review.create(userId, bookId, 4, "좋은 책이에요");
+        ReflectionTestUtils.setField(review, "id", reviewId);
 
         Book book = Book.builder()
                 .title("테스트 책").author("저자").description("설명")
                 .publisher("출판사").publishedDate(LocalDate.of(2020, 1, 1))
                 .build();
+        ReflectionTestUtils.setField(book, "id", bookId);
+
         User user = new User("test@test.com", "닉네임", "password");
+        ReflectionTestUtils.setField(user, "id", userId);
 
         given(popularReviewRepository.findByPeriod(eq("DAILY"), any(Pageable.class)))
                 .willReturn(List.of(popularReview));
-        given(reviewRepository.findById(reviewId)).willReturn(Optional.of(review));
+        given(reviewRepository.findAllById(anyList())).willReturn(List.of(review));
 
-        given(bookRepository.findById(bookId)).willReturn(Optional.of(book));
+        given(bookRepository.findAllById(anyList())).willReturn(List.of(book));
 
-        given(userRepository.findById(userId)).willReturn(Optional.of(user));
+        given(userRepository.findAllById(anyList())).willReturn(List.of(user));
 
         PageResponse<PopularReviewResponse> response = reviewService.getPopularReviews("DAILY", "ASC", null, null, 50);
 
@@ -603,25 +610,30 @@ public class ReviewServiceTest {
         PopularReview rank2 = PopularReview.create(reviewId2, "DAILY", new BigDecimal("0.7"), 2, LocalDate.now());
 
         Review review1 = Review.create(userId1, bookId1, 5, "아주 좋아요");
+        ReflectionTestUtils.setField(review1, "id", reviewId1);
+
         Review review2 = Review.create(userId2, bookId2, 4, "좋아요");
+        ReflectionTestUtils.setField(review2, "id", reviewId2);
 
         Book book1 = Book.builder().title("책1").author("저자1").description("설명1").publisher("출판사1").publishedDate(LocalDate.of(2020, 1, 1)).build();
+        ReflectionTestUtils.setField(book1, "id", bookId1);
+
         Book book2 = Book.builder().title("책2").author("저자2").description("설명2").publisher("출판사2").publishedDate(LocalDate.of(2020, 1, 1)).build();
+        ReflectionTestUtils.setField(book2, "id", bookId2);
 
         User user1 = new User("a@a.com", "유저1", "pw");
+        ReflectionTestUtils.setField(user1, "id", userId1);
+
         User user2 = new User("b@b.com", "유저2", "pw");
+        ReflectionTestUtils.setField(user2, "id", userId2);
 
         given(popularReviewRepository.findByPeriod(eq("DAILY"), any(Pageable.class)))
                 .willReturn(List.of(rank1, rank2));
-        given(reviewRepository.findById(reviewId1)).willReturn(Optional.of(review1));
-        given(reviewRepository.findById(reviewId2)).willReturn(Optional.of(review2));
+        given(reviewRepository.findAllById(anyList())).willReturn(List.of(review1, review2));
 
-        given(bookRepository.findById(bookId1)).willReturn(Optional.of(book1));
-        given(bookRepository.findById(bookId2)).willReturn(Optional.of(book2));
+        given(bookRepository.findAllById(anyList())).willReturn(List.of(book1, book2));
 
-        given(userRepository.findById(userId1)).willReturn(Optional.of(user1));
-        given(userRepository.findById(userId2)).willReturn(Optional.of(user2));
-
+        given(userRepository.findAllById(anyList())).willReturn(List.of(user1, user2));
         PageResponse<PopularReviewResponse> response =
                 reviewService.getPopularReviews("DAILY", "ASC", null, null, 50);
 
@@ -640,17 +652,22 @@ public class ReviewServiceTest {
 
         PopularReview popularReview = PopularReview.create(reviewId, "DAILY", score, 1, LocalDate.now());
         Review review = Review.create(userId, bookId, 4, "좋은 책이에요");
+        ReflectionTestUtils.setField(review, "id", reviewId);
+
         Book book = Book.builder()
                 .title("테스트 책").author("저자").description("설명")
                 .publisher("출판사").publishedDate(LocalDate.of(2020,1,1))
                 .build();
+        ReflectionTestUtils.setField(book, "id", bookId);
+
         User user = new User("test@test.com", "닉네임", "password");
+        ReflectionTestUtils.setField(user, "id", userId);
 
         given(popularReviewRepository.findByPeriod(eq("DAILY"), any(Pageable.class)))
                 .willReturn(List.of(popularReview));
-        given(reviewRepository.findById(reviewId)).willReturn(Optional.of(review));
-        given(bookRepository.findById(bookId)).willReturn(Optional.of(book));
-        given(userRepository.findById(userId)).willReturn(Optional.of(user));
+        given(reviewRepository.findAllById(anyList())).willReturn(List.of(review));
+        given(bookRepository.findAllById(anyList())).willReturn(List.of(book));
+        given(userRepository.findAllById(anyList())).willReturn(List.of(user));
 
         PageResponse<PopularReviewResponse> response =
                 reviewService.getPopularReviews("DAILY", "ASC", null, null, 50);
@@ -666,7 +683,6 @@ public class ReviewServiceTest {
         assertThat(result.period()).isEqualTo("DAILY");
         assertThat(result.rank()).isEqualTo(1);
         assertThat(result.score()).isEqualTo(score);
-
     }
 
 }
