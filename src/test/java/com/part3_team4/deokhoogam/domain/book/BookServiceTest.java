@@ -236,6 +236,55 @@ class BookServiceTest {
   }
 
   @Test
+  @DisplayName("도서 생성 중 ISBN 제약조건 위반 예외가 발생하면 업로드된 S3 파일을 삭제하고 IsbnAlreadyExistsException을 던진다")
+  void createBook_DataIntegrityViolation_DeletesFileAndThrowsException() {
+    // given
+    BookCreateRequest request = BookFixtures.validBookCreateRequest();
+    MockMultipartFile file = new MockMultipartFile(
+        "thumbnailImage",
+        "test.png",
+        "image/png",
+        "content".getBytes());
+    String uploadedUrl = "https://s3.com/books/test.png";
+
+    given(fileUploader.upload(any(), any())).willReturn(uploadedUrl);
+
+    DataIntegrityViolationException exception = createDataIntegrityViolation(
+        ISBN_UNIQUE_CONSTRAINT);
+    given(bookPersistence.save(any(Book.class))).willThrow(exception);
+
+    // when & then
+    assertThatThrownBy(() -> bookService.create(request, file)).isInstanceOf(
+        IsbnAlreadyExistsException.class);
+
+    then(fileUploader).should().delete(uploadedUrl);
+  }
+
+  @Test
+  @DisplayName("도서 생성 중 일반 예외가 발생하면 업로드된 S3 파일을 정리하고 예외를 전파한다")
+  void createBook_GeneralException_DeletesFileAndPropagates() {
+    // given
+    BookCreateRequest request = BookFixtures.validBookCreateRequest();
+    MockMultipartFile file = new MockMultipartFile(
+        "thumbnailImage",
+        "test.png",
+        "image/png",
+        "content".getBytes());
+    String uploadedUrl = "https://s3.com/books/test.png";
+
+    given(fileUploader.upload(any(), any())).willReturn(uploadedUrl);
+
+    given(bookPersistence.save(any(Book.class)))
+        .willThrow(new RuntimeException("DB 오류 발생"));
+
+    // when & then
+    assertThatThrownBy(() -> bookService.create(request, file))
+        .isInstanceOf(RuntimeException.class);
+
+    then(fileUploader).should().delete(uploadedUrl);
+  }
+
+  @Test
   @DisplayName("원인이 ConstraintViolationException이 아닌 DataIntegrityViolationException 발생 시 원본 예외를 전파한다")
   void createBook_DataIntegrityViolationWithDifferentCause_Propagates() {
     // given
@@ -332,6 +381,30 @@ class BookServiceTest {
         .hasMessageContaining("S3 업로드 에러 발생");
 
     then(bookPersistence).shouldHaveNoInteractions();
+  }
+
+  @Test
+  @DisplayName("도서 수정 중 예외가 발생하면 새로 업로드된 S3 파일을 삭제하고 예외를 전파한다")
+  void updateBook_Exception_DeletesNewFileAndPropagates() {
+    // given
+    UUID bookId = UUID.randomUUID();
+    BookUpdateRequest request = BookFixtures.validBookUpdateRequest();
+    MockMultipartFile newFile = new MockMultipartFile(
+        "thumbnailImage",
+        "new.png",
+        "image/png",
+        "new-content".getBytes());
+    String newUploadedUrl = "https://s3.com/books/new.png";
+
+    given(fileUploader.upload(any(), any())).willReturn(newUploadedUrl);
+    given(bookPersistence.update(eq(bookId), any(), eq(newUploadedUrl))).willThrow(
+        new RuntimeException("Update Failed"));
+
+    // when & then
+    assertThatThrownBy(() -> bookService.update(bookId, request, newFile))
+        .isInstanceOf(RuntimeException.class);
+
+    then(fileUploader).should().delete(newUploadedUrl);
   }
 
   @Test
