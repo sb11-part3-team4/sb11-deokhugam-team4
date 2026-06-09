@@ -14,7 +14,7 @@ public class PowerUserRankingScheduler {
   private final JobLauncher jobLauncher;
   private final Job powerUserRankingJob;
 
-  @Scheduled(cron = "0/20 * * * * *")
+  @Scheduled(cron = "0 0 0 * * *")
   public void runPowerUserRankingJob() throws Exception {
     JobParameters params = new JobParametersBuilder()
         .addLong("timestamp", System.currentTimeMillis())
