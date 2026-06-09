@@ -80,12 +80,16 @@ public class ReviewServiceTest {
         given(bookRepository.findById(bookId)).willReturn(Optional.of(book));
         given(reviewRepository.existsByUserIdAndBookId(userId, bookId)).willReturn(false);
         given(reviewRepository.save(any(Review.class))).willAnswer(i -> i.getArgument(0));
+        given(reviewRepository.countByBookId(bookId)).willReturn(1L);
+        given(reviewRepository.averageRatingByBookId(bookId)).willReturn(new BigDecimal("4.0"));
 
         ReviewResponse response = reviewService.createReview(userId, request);
 
         assertThat(response.bookId()).isEqualTo(bookId);
         assertThat(response.rating()).isEqualTo(4);
         assertThat(response.content()).isEqualTo("좋은 책이에요");
+
+        then(bookService).should().updateReviewData(bookId, 1, new BigDecimal("4.0"));
     }
 
     @Test
@@ -236,10 +240,13 @@ public class ReviewServiceTest {
         Review review = Review.create(ownerUserId, bookId, 4, "내용");
 
         given(reviewRepository.findById(any(UUID.class))).willReturn(Optional.of(review));
+        given(reviewRepository.countByBookId(any())).willReturn(0L);
+        given(reviewRepository.averageRatingByBookId(any())).willReturn(BigDecimal.ZERO);
 
         reviewService.deleteReview(review.getId(), ownerUserId);
 
         then(reviewRepository).should().delete(review);
+        then(bookService).should().updateReviewData(eq(review.getBookId()), eq(0), eq(BigDecimal.ZERO));
 
     }
 
