@@ -1,18 +1,13 @@
 package com.part3_team4.deokhoogam.domain.review.controller;
 
-import com.part3_team4.deokhoogam.domain.review.dto.ReviewCreateRequest;
-import com.part3_team4.deokhoogam.domain.review.dto.ReviewLikeResponse;
-import com.part3_team4.deokhoogam.domain.review.dto.ReviewListRequest;
-import com.part3_team4.deokhoogam.domain.review.dto.ReviewResponse;
-import com.part3_team4.deokhoogam.domain.review.dto.ReviewUpdateRequest;
+import com.part3_team4.deokhoogam.domain.review.dto.*;
 import com.part3_team4.deokhoogam.domain.review.service.ReviewService;
 import com.part3_team4.deokhoogam.global.common.PageResponse;
+import com.part3_team4.deokhoogam.domain.review.dto.PopularReviewResponse;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.Pattern;
-import java.util.Collections;
-import java.util.Map;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -102,15 +97,17 @@ public class ReviewController {
         return ResponseEntity.ok(response);
     }
 
-    // TODO: 임시 Mock 응답 - 실제 인기 리뷰 페이지네이션 로직 구현 필요
     @GetMapping("/popular")
-    public ResponseEntity<Map<String, Object>> getPopularReviews() {
-        return ResponseEntity.ok(Map.of(
-            "content", Collections.emptyList(),
-            "hasNext", false,
-            "totalElements", 0,
-            "size", 0
-        ));
+    public ResponseEntity<PageResponse<PopularReviewResponse>> getPopularReviews(
+            @Pattern(regexp = "DAILY|WEEKLY|MONTHLY|ALL_TIME") @RequestParam(defaultValue = "DAILY") String period,
+            @Pattern(regexp = "ASC|DESC") @RequestParam(defaultValue = "ASC") String direction,
+            @RequestParam(required = false) String cursor,
+            @RequestParam(required = false) String after,
+            @Min(1) @Max(100) @RequestParam(defaultValue = "50") int limit
+    ) {
+        PageResponse<PopularReviewResponse> response =
+                reviewService.getPopularReviews(period, direction, cursor, after, limit);
+        return ResponseEntity.ok(response);
     }
 
 }
