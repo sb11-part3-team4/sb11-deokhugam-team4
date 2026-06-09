@@ -12,6 +12,7 @@ import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.tika.Tika;
+import org.apache.tika.io.TikaInputStream;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 import org.springframework.web.multipart.MultipartFile;
@@ -96,8 +97,10 @@ public class S3FileUploader implements FileUploader {
           "지원하지 않는 파일 타입(MIME)입니다.");
     }
 
-    try (InputStream inputStream = file.getInputStream()) {
-      String detectedMimeType = TIKA.detect(inputStream);
+    try (InputStream inputStream = file.getInputStream();
+        TikaInputStream tikaInputStream = TikaInputStream.get(inputStream)) {
+
+      String detectedMimeType = TIKA.detect(tikaInputStream);
 
       if (!ALLOWED_MIME.contains(detectedMimeType.toLowerCase())) {
         log.warn("파일 변조 의심: 요청된 MIME={}, 실제 MIME={}", contentType, detectedMimeType);
