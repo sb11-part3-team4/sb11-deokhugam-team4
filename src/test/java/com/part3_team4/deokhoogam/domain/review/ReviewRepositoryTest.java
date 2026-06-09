@@ -38,5 +38,32 @@ class ReviewRepositoryTest extends RepositoryTestSupport {
         //then
         assertThat(result).isTrue();
     }
+
+    @Test
+    @DisplayName("bookId가 다르면 false를 반환한다")
+    void existsByUserIdAndBookId_bookId가_다르면_false() {
+        UUID userId = UUID.randomUUID();
+        UUID bookId = UUID.randomUUID();
+        Review review = Review.create(userId, bookId, 4, "좋은 책");
+        reviewRepository.save(review);
+
+        boolean result = reviewRepository.existsByUserIdAndBookId(userId, UUID.randomUUID());
+
+        assertThat(result).isFalse();
+    }
+
+    @Test
+    @DisplayName("userId가 다르면 false를 반환한다")
+    void existsByUserIdAndBookId_userId가_다르면_false() {
+        UUID userId = UUID.randomUUID();
+        UUID bookId = UUID.randomUUID();
+        Review review = Review.create(userId, bookId, 4, "좋은 책");
+        reviewRepository.save(review);
+
+        boolean result = reviewRepository.existsByUserIdAndBookId(UUID.randomUUID(), bookId);
+
+        assertThat(result).isFalse();
+    }
+
 }
 
