@@ -2,6 +2,7 @@ package com.part3_team4.deokhoogam.domain.review;
 
 import com.part3_team4.deokhoogam.domain.book.entity.Book;
 import com.part3_team4.deokhoogam.domain.book.repository.BookRepository;
+import com.part3_team4.deokhoogam.domain.book.service.BookService;
 import com.part3_team4.deokhoogam.domain.review.dto.*;
 import com.part3_team4.deokhoogam.domain.review.entity.DeletedReview;
 import com.part3_team4.deokhoogam.domain.review.entity.Review;
@@ -60,6 +61,8 @@ public class ReviewServiceTest {
     PopularReviewRepository popularReviewRepository;
     @Mock
     UserRepository userRepository;
+    @Mock
+    BookService bookService;
 
     @Test
     @DisplayName("정상적인 요청으로 리뷰를 등록하면 ReviewResponse를 반환한다")

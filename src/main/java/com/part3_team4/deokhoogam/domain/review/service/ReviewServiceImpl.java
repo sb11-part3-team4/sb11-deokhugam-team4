@@ -3,6 +3,7 @@ package com.part3_team4.deokhoogam.domain.review.service;
 import com.part3_team4.deokhoogam.domain.book.entity.Book;
 import com.part3_team4.deokhoogam.domain.book.exception.BookNotFoundException;
 import com.part3_team4.deokhoogam.domain.book.repository.BookRepository;
+import com.part3_team4.deokhoogam.domain.book.service.BookService;
 import com.part3_team4.deokhoogam.domain.review.dto.*;
 import com.part3_team4.deokhoogam.domain.review.entity.DeletedReview;
 import com.part3_team4.deokhoogam.domain.review.entity.PopularReview;
@@ -19,6 +20,7 @@ import com.part3_team4.deokhoogam.domain.user.entity.User;
 import com.part3_team4.deokhoogam.domain.user.repository.UserRepository;
 import com.part3_team4.deokhoogam.domain.review.dto.ReviewWithLiked;
 
+import java.math.BigDecimal;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -43,6 +45,8 @@ public class ReviewServiceImpl implements ReviewService {
     private final DeletedReviewRepository deletedReviewRepository;
     private final PopularReviewRepository popularReviewRepository;
     private final UserRepository userRepository;
+    private final BookService bookService;
+
 
     @Override
     @Transactional
@@ -62,6 +66,9 @@ public class ReviewServiceImpl implements ReviewService {
         } catch (DataIntegrityViolationException e) {
             throw ReviewAlreadyExistsException.withUserIdAndBookId(userId, request.bookId());
         }
+        long reviewCount = reviewRepository.countByBookId(request.bookId());
+        BigDecimal avgRating = reviewRepository.averageRatingByBookId(request.bookId());
+        bookService.updateReviewData(request.bookId(), (int) reviewCount, avgRating);
 
         return new ReviewResponse(
                 saved.getId(), saved.getUserId(), saved.getBookId(),
@@ -69,6 +76,9 @@ public class ReviewServiceImpl implements ReviewService {
                 saved.getLikeCount(), saved.getCommentCount(),
                 false, saved.getCreatedAt(), saved.getUpdatedAt()
         );
+
+
+
     }
 
     @Override
@@ -85,6 +95,7 @@ public class ReviewServiceImpl implements ReviewService {
                 review.getLikeCount(), review.getCommentCount(),
                 likedByMe, review.getCreatedAt(), review.getUpdatedAt()
         );
+
     }
 
 
@@ -118,6 +129,11 @@ public class ReviewServiceImpl implements ReviewService {
         reviewLikeRepository.deleteAllByReviewId(reviewId);
         deletedReviewRepository.save(DeletedReview.from(review));
         reviewRepository.delete(review);
+
+        long reviewCount = reviewRepository.countByBookId(review.getBookId());
+        BigDecimal avgRating = reviewRepository.averageRatingByBookId(review.getBookId());
+        bookService.updateReviewData(review.getBookId(), (int) reviewCount, avgRating);
+
     }
 
     @Override
