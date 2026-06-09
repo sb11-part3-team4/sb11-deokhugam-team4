@@ -23,7 +23,7 @@ public class LogUploadScheduler {
   @Value("${spring.cloud.aws.s3.bucket}")
   private String bucketName;
 
-  @Scheduled(cron = "0 0 0 * * *")
+  @Scheduled(cron = "0 5 0 * * *", zone = "Asia/Seoul")
   public void uploadYesterdayLog() {
 
     // 전날 날짜로 파일명 생성

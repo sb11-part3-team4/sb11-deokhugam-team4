@@ -1,6 +1,7 @@
 package com.part3_team4.deokhoogam.global.filter;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatCode;
 
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -10,7 +11,7 @@ import org.slf4j.MDC;
 import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.mock.web.MockHttpServletResponse;
 
-class MDCLoggingInterceptorTest {
+public class MDCLoggingInterceptorTest {
 
   private MDCLoggingInterceptor interceptor;
   private MockHttpServletRequest request;
@@ -97,5 +98,38 @@ class MDCLoggingInterceptorTest {
     String startTime = MDC.get(MDCLoggingInterceptor.START_TIME);
     assertThat(startTime).isNotNull();
     assertThat(Long.parseLong(startTime)).isBetween(before, after);
+  }
+
+  @Test
+  @DisplayName("X-Forwarded-For에 비정상 문자열이 오면 remoteAddr로 폴백한다")
+  void preHandle_invalidXForwardedFor_fallsBackToRemoteAddr() throws Exception {
+    request.addHeader("X-Forwarded-For", "이상 값");
+    request.setRemoteAddr("127.0.0.1");
+
+    interceptor.preHandle(request, response, new Object());
+
+    assertThat(MDC.get(MDCLoggingInterceptor.REQUEST_IP)).isEqualTo("127.0.0.1");
+  }
+
+  @Test
+  @DisplayName("startTime이 오염된 경우 afterCompletion이 예외 없이 완료된다")
+  void afterCompletion_corruptedStartTime_doesNotThrow() throws Exception {
+    interceptor.preHandle(request, response, new Object());
+    MDC.put(MDCLoggingInterceptor.START_TIME, "이상 값");
+
+    assertThatCode(() ->
+        interceptor.afterCompletion(request, response, new Object(), null)
+    ).doesNotThrowAnyException();
+  }
+
+  @Test
+  @DisplayName("자정 직후 스케줄러가 실행돼도 MDC가 정상적으로 비워진다")
+  void afterCompletion_alwaysClearsMDC_evenOnParseFailure() throws Exception {
+    interceptor.preHandle(request, response, new Object());
+    MDC.put(MDCLoggingInterceptor.START_TIME, "오염된값");
+
+    interceptor.afterCompletion(request, response, new Object(), null);
+
+    assertThat(MDC.get(MDCLoggingInterceptor.START_TIME)).isNull();
   }
 }
