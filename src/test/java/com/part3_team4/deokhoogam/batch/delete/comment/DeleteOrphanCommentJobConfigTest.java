@@ -171,4 +171,17 @@ class DeleteOrphanCommentJobConfigTest {
         assertThat(result.getStatus()).isEqualTo(BatchStatus.COMPLETED);
         assertThat(deletedCommentRepository.findById(commentId)).isPresent();
     }
+
+    @Test
+    @DisplayName("CHUNK_SIZE(100) 초과 고아 댓글도 모두 삭제된다")
+    void orphanComments_exceedingChunkSize_areAllDeleted() throws Exception {
+        for (int i = 0; i < 150; i++) {
+            insertDeletedComment(UUID.randomUUID(), UUID.randomUUID(), UUID.randomUUID());
+        }
+
+        JobExecution result = jobLauncherTestUtils.launchJob();
+
+        assertThat(result.getStatus()).isEqualTo(BatchStatus.COMPLETED);
+        assertThat(deletedCommentRepository.count()).isZero();
+    }
 }
