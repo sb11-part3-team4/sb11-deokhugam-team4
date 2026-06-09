@@ -10,6 +10,7 @@ import com.part3_team4.deokhoogam.domain.book.dto.BookUpdateRequest;
 import com.part3_team4.deokhoogam.domain.book.entity.Book;
 import com.part3_team4.deokhoogam.domain.book.exception.BookNotFoundException;
 import com.part3_team4.deokhoogam.global.fixture.BookFixtures;
+import java.math.BigDecimal;
 import java.util.Optional;
 import java.util.UUID;
 import org.junit.jupiter.api.DisplayName;
@@ -140,6 +141,47 @@ class BookPersistenceTest {
     // when & then
     assertThatThrownBy(() ->
         bookPersistence.update(nonExistentId, request, null, null))
+        .isInstanceOf(BookNotFoundException.class);
+
+    then(bookRepository).should().findById(nonExistentId);
+    then(bookRepository).shouldHaveNoMoreInteractions();
+  }
+
+  @Test
+  @DisplayName("리뷰 통계가 정상적으로 업데이트된다")
+  void updateReviewData_Success() {
+    // given
+    UUID targetId = UUID.randomUUID();
+    Book existingBook = BookFixtures.validBook("1234567890123");
+
+    int newReviewCount = 5;
+    BigDecimal newRating = new BigDecimal("4.50");
+
+    given(bookRepository.findById(targetId))
+        .willReturn(Optional.of(existingBook));
+
+    // when
+    bookPersistence.updateReviewData(targetId, newReviewCount, newRating);
+
+    // then
+    assertThat(existingBook.getReviewCount()).isEqualTo(newReviewCount);
+    assertThat(existingBook.getRating()).isEqualTo(newRating);
+
+    then(bookRepository).should().findById(targetId);
+    then(bookRepository).shouldHaveNoMoreInteractions();
+  }
+
+  @Test
+  @DisplayName("존재하지 않는 도서 ID로 통계 업데이트 요청 시 BookNotFoundException을 던진다")
+  void updateReviewData_WithNonExistentId_ThrowsException() {
+    // given
+    UUID nonExistentId = UUID.randomUUID();
+    given(bookRepository.findById(nonExistentId))
+        .willReturn(Optional.empty());
+
+    // when & then
+    assertThatThrownBy(() ->
+        bookPersistence.updateReviewData(nonExistentId, 5, new BigDecimal("4.50")))
         .isInstanceOf(BookNotFoundException.class);
 
     then(bookRepository).should().findById(nonExistentId);
