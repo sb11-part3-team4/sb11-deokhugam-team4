@@ -30,6 +30,7 @@ public class PowerUserQueryRepositoryImpl implements PowerUserQueryRepository {
             review.createdAt.between(startDate, endDate),
             popularReview.score.isNotNull()
         )
+        .groupBy(review.userId)
         .transform(groupBy(review.userId).as(popularReview.score.sum()));
   }
 
@@ -39,6 +40,7 @@ public class PowerUserQueryRepositoryImpl implements PowerUserQueryRepository {
     return queryFactory
         .from(reviewLike)
         .where(reviewLike.createdAt.between(startDate, endDate))
+        .groupBy(reviewLike.userId)
         .transform(groupBy(reviewLike.userId).as(reviewLike.count()));
   }
 
@@ -48,6 +50,7 @@ public class PowerUserQueryRepositoryImpl implements PowerUserQueryRepository {
     return queryFactory
         .from(comment)
         .where(comment.createdAt.between(startDate, endDate))
+        .groupBy(comment.user.id)
         .transform(groupBy(comment.user.id).as(comment.count()));
   }
 }
