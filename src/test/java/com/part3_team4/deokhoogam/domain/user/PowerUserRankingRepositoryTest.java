@@ -62,7 +62,7 @@ public class PowerUserRankingRepositoryTest {
     PowerUserRanking ranking1 = PowerUserRanking.builder()
         .userId(UUID.randomUUID())
         .period(PowerUserPeriod.DAILY)
-        .score(10.0)
+        .score(BigDecimal.valueOf(10.0))
         .ranking(1)
         .build();
     powerUserRankingRepository.save(ranking1);

@@ -98,8 +98,8 @@ public class PowerUserRankingServiceTest {
     UUID user2 = UUID.randomUUID();
 
     List<PowerUserRankingService.UserScore> unsortedScores = List.of(
-        new PowerUserRankingService.UserScore(user1, 10.0),
-        new PowerUserRankingService.UserScore(user2, 20.0)
+        new PowerUserRankingService.UserScore(user1, BigDecimal.valueOf(10.0)),
+        new PowerUserRankingService.UserScore(user2, BigDecimal.valueOf(20.0))
     );
 
     List<PowerUserRanking> result = powerUserRankingService.assignRankings(unsortedScores,
@@ -109,12 +109,12 @@ public class PowerUserRankingServiceTest {
 
     // 1등 검증 (user2, 20.0점)
     assertThat(result.get(0).getUserId()).isEqualTo(user2);
-    assertThat(result.get(0).getScore()).isEqualTo(20.0);
+    assertThat(result.get(0).getScore()).isEqualByComparingTo(BigDecimal.valueOf(20.0));
     assertThat(result.get(0).getRanking()).isEqualTo(1);
 
     // 2등 검증 (user1, 10.0점)
     assertThat(result.get(1).getUserId()).isEqualTo(user1);
-    assertThat(result.get(1).getScore()).isEqualTo(10.0);
+    assertThat(result.get(1).getScore()).isEqualByComparingTo(BigDecimal.valueOf(10.0));
     assertThat(result.get(1).getRanking()).isEqualTo(2);
   }
 }
