@@ -1,19 +1,22 @@
 package com.part3_team4.deokhoogam.domain.user.repository;
 
+import static com.part3_team4.deokhoogam.domain.comment.entity.QComment.comment;
+import static com.part3_team4.deokhoogam.domain.review.entity.QReview.review;
+import static com.part3_team4.deokhoogam.domain.review.entity.QReviewLike.reviewLike;
+
+import com.querydsl.core.Tuple;
 import com.querydsl.jpa.impl.JPAQueryFactory;
 import java.math.BigDecimal;
 import java.time.Instant;
+import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Repository;
 
-import static com.part3_team4.deokhoogam.domain.comment.entity.QComment.comment;
-import static com.part3_team4.deokhoogam.domain.review.entity.QPopularReview.popularReview;
-import static com.part3_team4.deokhoogam.domain.review.entity.QReview.review;
-import static com.part3_team4.deokhoogam.domain.review.entity.QReviewLike.reviewLike;
-import static com.querydsl.core.group.GroupBy.groupBy;
-
+@Slf4j
 @Repository
 @RequiredArgsConstructor
 public class PowerUserQueryRepositoryImpl implements PowerUserQueryRepository {
@@ -23,34 +26,64 @@ public class PowerUserQueryRepositoryImpl implements PowerUserQueryRepository {
   @Override
   public Map<UUID, BigDecimal> getReviewPopularScoreSum(Instant startDate, Instant endDate) {
     //해당 기간에 작성된 리뷰와 연결된 인기 점수의 합산을 유저별로 구분
-    return queryFactory
+    log.info("▶ 리뷰 점수 집계 쿼리 실행 시작");
+
+    List<Tuple> results = queryFactory
+        .select(review.userId, review.count())
         .from(review)
-        .leftJoin(popularReview).on(review.id.eq(popularReview.reviewId))
-        .where(
-            review.createdAt.between(startDate, endDate),
-            popularReview.score.isNotNull()
-        )
+        .where(review.createdAt.between(startDate, endDate))
         .groupBy(review.userId)
-        .transform(groupBy(review.userId).as(popularReview.score.sum()));
+        .fetch();
+
+    log.info("▶ 리뷰 점수 집계 쿼리 완료, 결과 개수: {}", results.size());
+
+    return results.stream()
+        .filter(tuple -> tuple.get(review.userId) != null)
+        .collect(Collectors.toMap(
+            tuple -> tuple.get(review.userId),
+            tuple -> {
+              Long count = tuple.get(1, Long.class);
+              return count != null ? BigDecimal.valueOf(count * 0.5) : BigDecimal.ZERO;
+            },
+            (existing, replacement) -> existing
+        ));
   }
 
   @Override
   public Map<UUID, Long> getLikeCount(Instant startDate, Instant endDate) {
     //해당 기간에 유저가 직접 누른 좋아요 개수를 유저별로 구합니다
-    return queryFactory
+    List<Tuple> results = queryFactory
+        .select(reviewLike.userId, reviewLike.count())
         .from(reviewLike)
         .where(reviewLike.createdAt.between(startDate, endDate))
         .groupBy(reviewLike.userId)
-        .transform(groupBy(reviewLike.userId).as(reviewLike.count()));
+        .fetch();
+
+    return results.stream()
+        .filter(tuple -> tuple.get(reviewLike.userId) != null)
+        .collect(Collectors.toMap(
+            tuple -> tuple.get(reviewLike.userId),
+            tuple -> tuple.get(1, Long.class) != null ? tuple.get(1, Long.class) : 0L,
+            (existing, replacement) -> existing
+        ));
   }
 
   @Override
   public Map<UUID, Long> getCommentCount(Instant startDate, Instant endDate) {
     //해당 기간에 유저가 직접 작성한 댓글 개수를 유저별로 구합니다.
-    return queryFactory
+    List<Tuple> results = queryFactory
+        .select(comment.user.id, comment.count())
         .from(comment)
         .where(comment.createdAt.between(startDate, endDate))
         .groupBy(comment.user.id)
-        .transform(groupBy(comment.user.id).as(comment.count()));
+        .fetch();
+
+    return results.stream()
+        .filter(tuple -> tuple.get(comment.user.id) != null)
+        .collect(Collectors.toMap(
+            tuple -> tuple.get(comment.user.id),
+            tuple -> tuple.get(1, Long.class) != null ? tuple.get(1, Long.class) : 0L,
+            (existing, replacement) -> existing
+        ));
   }
 }

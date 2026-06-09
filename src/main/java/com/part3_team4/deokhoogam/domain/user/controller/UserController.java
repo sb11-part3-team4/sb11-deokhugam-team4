@@ -6,10 +6,12 @@ import com.part3_team4.deokhoogam.domain.user.dto.UserDto;
 import com.part3_team4.deokhoogam.domain.user.dto.UserLoginRequestDto;
 import com.part3_team4.deokhoogam.domain.user.dto.UserLoginResultDto;
 import com.part3_team4.deokhoogam.domain.user.dto.UserUpdateRequestDto;
+import com.part3_team4.deokhoogam.domain.user.dto.response.PowerUserRankingResponseDto;
 import com.part3_team4.deokhoogam.domain.user.dto.response.UserResponse;
+import com.part3_team4.deokhoogam.domain.user.service.PowerUserRankingService;
 import com.part3_team4.deokhoogam.domain.user.service.UserService;
 import jakarta.validation.Valid;
-import java.util.Collections;
+import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import org.springframework.http.HttpStatus;
@@ -21,15 +23,19 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 @RestController
 @RequestMapping("/api/users")
 public class UserController {
-  private final UserService userService;
 
-  public UserController(UserService userService) {
+  private final UserService userService;
+  private final PowerUserRankingService powerUserRankingService;
+
+  public UserController(UserService userService, PowerUserRankingService powerUserRankingService) {
     this.userService = userService;
+    this.powerUserRankingService = powerUserRankingService;
   }
 
   @PostMapping
@@ -104,12 +110,13 @@ public class UserController {
   }
 
   @GetMapping("/power")
-  public ResponseEntity<Map<String, Object>> getPowerUsers() {
-    return ResponseEntity.ok(Map.of(
-        "content", Collections.emptyList(),
-        "hasNext", false,
-        "totalElements", 0,
-        "size", 0
-    ));
+  public ResponseEntity<Map<String, Object>> getPowerUsers(
+      @RequestParam(required = false, defaultValue = "ALL_TIME") String period) {
+
+    List<PowerUserRankingResponseDto> rankings = powerUserRankingService.getDailyRankingWithNickname();
+
+    Map<String, Object> response = Map.of("content", rankings);
+
+    return ResponseEntity.ok(response);
   }
 }

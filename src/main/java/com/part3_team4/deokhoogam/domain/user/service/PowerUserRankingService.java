@@ -1,5 +1,7 @@
 package com.part3_team4.deokhoogam.domain.user.service;
 
+import com.part3_team4.deokhoogam.domain.user.dto.response.PowerUserRankingResponseDto;
+import com.part3_team4.deokhoogam.domain.user.dto.response.UserResponse;
 import com.part3_team4.deokhoogam.domain.user.entity.PowerUserRanking;
 import com.part3_team4.deokhoogam.domain.user.enums.PowerUserPeriod;
 import com.part3_team4.deokhoogam.domain.user.repository.PowerUserRankingRepository;
@@ -12,6 +14,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
+import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -20,10 +23,28 @@ import org.springframework.transaction.annotation.Transactional;
 @RequiredArgsConstructor
 public class PowerUserRankingService {
 
+  private final UserService userService;
   private final PowerUserRankingRepository powerUserRankingRepository;
 
   public record UserScore(UUID userId, double score) {
 
+  }
+
+  public List<PowerUserRankingResponseDto> getDailyRankingWithNickname() {
+    List<PowerUserRanking> rankings = powerUserRankingRepository.findByPeriodOrderByRankingAsc(PowerUserPeriod.DAILY);
+
+    return rankings.stream().map(ranking -> {
+      UserResponse user = userService.getUser(ranking.getUserId());
+
+      String nickname = (user != null) ? user.nickname() : "알수없음";
+
+      return new PowerUserRankingResponseDto(
+          ranking.getUserId(),
+          nickname,
+          ranking.getRanking(),
+          ranking.getScore().doubleValue()
+      );
+    }).collect(Collectors.toList());
   }
 
   public List<UserScore> calculateScores(Map<UUID, BigDecimal> reviewScores,
