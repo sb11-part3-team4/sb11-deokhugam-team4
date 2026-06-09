@@ -19,7 +19,7 @@ public class BatchScheduler {
     private final Job deleteOrphanReviewJob;
 
     @Scheduled(cron = "0 0 3 * * *")
-    public void runDeleteOrphanCommentJob() {
+    public void runOrphanDeletionJobs() {
         try {
             JobParameters params = new JobParametersBuilder()
                 .addLong("time", System.currentTimeMillis())
@@ -28,10 +28,7 @@ public class BatchScheduler {
         } catch (Exception e) {
             log.error("고아 댓글 삭제 배치 실행 중 오류 발생", e);
         }
-    }
 
-    @Scheduled(cron = "0 0 3 * * *")
-    public void runDeleteOrphanReviewJob() {
         try {
             JobParameters params = new JobParametersBuilder()
                 .addLong("time", System.currentTimeMillis())
