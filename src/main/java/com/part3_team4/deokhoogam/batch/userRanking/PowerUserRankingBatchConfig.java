@@ -1,4 +1,4 @@
-package com.part3_team4.deokhoogam.batch.delete.user;
+package com.part3_team4.deokhoogam.batch.userRanking;
 
 import com.part3_team4.deokhoogam.domain.user.service.PowerUserRankingService;
 import lombok.RequiredArgsConstructor;

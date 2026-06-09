@@ -1,4 +1,4 @@
-package com.part3_team4.deokhoogam.batch.delete.user;
+package com.part3_team4.deokhoogam.batch.userRanking;
 
 import lombok.RequiredArgsConstructor;
 import org.springframework.batch.core.Job;
