@@ -22,7 +22,9 @@ import com.part3_team4.deokhoogam.domain.user.dto.UserUpdateRequestDto;
 import com.part3_team4.deokhoogam.domain.user.dto.response.UserResponse;
 import com.part3_team4.deokhoogam.domain.user.exception.PasswordMismatchException;
 import com.part3_team4.deokhoogam.domain.user.exception.UserNotFoundException;
+import com.part3_team4.deokhoogam.domain.user.service.PowerUserRankingService;
 import com.part3_team4.deokhoogam.domain.user.service.UserService;
+import java.util.List;
 import java.util.UUID;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -45,6 +47,9 @@ public class UserControllerTest {
 
   @MockitoBean
   private UserService userService;
+
+  @MockitoBean
+  private PowerUserRankingService powerUserRankingService;
 
   @Test
   @DisplayName("회원가입 API 성공 - 201 반환")
@@ -230,13 +235,13 @@ public class UserControllerTest {
   }
 
   @Test
-  @DisplayName("파워 유저 조회 (임시 API) 성공 - 빈 맵 반환")
+  @DisplayName("파워 유저 조회 성공 - 200 반환")
   void getPowerUsers_success() throws Exception {
+    given(powerUserRankingService.getDailyRankingWithNickname()).willReturn(List.of());
+
     mockMvc.perform(get("/api/users/power"))
         .andExpect(status().isOk())
-        .andExpect(jsonPath("$.content").isEmpty())
-        .andExpect(jsonPath("$.hasNext").value(false))
-        .andExpect(jsonPath("$.totalElements").value(0))
-        .andExpect(jsonPath("$.size").value(0));
+        .andExpect(jsonPath("$.content").isArray())
+        .andExpect(jsonPath("$.content").isEmpty());
   }
 }
