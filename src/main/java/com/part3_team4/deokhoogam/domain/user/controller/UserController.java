@@ -110,8 +110,7 @@ public class UserController {
   }
 
   @GetMapping("/power")
-  public ResponseEntity<Map<String, Object>> getPowerUsers(
-      @RequestParam(required = false, defaultValue = "ALL_TIME") String period) {
+  public ResponseEntity<Map<String, Object>> getPowerUsers() {
 
     List<PowerUserRankingResponseDto> rankings = powerUserRankingService.getDailyRankingWithNickname();
 
