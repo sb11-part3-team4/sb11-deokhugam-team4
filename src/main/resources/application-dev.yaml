@@ -23,11 +23,10 @@ spring:
     console:
       enabled: true
 
+
   batch:
     jdbc:
       initialize-schema: always
-    job:
-      enabled: false
 
 logging:
   level:
@@ -41,4 +40,6 @@ springdoc:
     enabled: true
   swagger-ui:
     enabled: true
+
+
 

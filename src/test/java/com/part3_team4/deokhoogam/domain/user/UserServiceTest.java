@@ -16,6 +16,7 @@ import com.part3_team4.deokhoogam.domain.user.dto.response.UserResponse;
 import com.part3_team4.deokhoogam.domain.user.entity.DeletedUser;
 import com.part3_team4.deokhoogam.domain.user.entity.User;
 import com.part3_team4.deokhoogam.domain.user.entity.UserDeletedEvent;
+import com.part3_team4.deokhoogam.domain.user.exception.ActiveUserHardDeleteException;
 import com.part3_team4.deokhoogam.domain.user.exception.InvalidCredentialsException;
 import com.part3_team4.deokhoogam.domain.user.exception.PasswordMismatchException;
 import com.part3_team4.deokhoogam.domain.user.exception.UserAlreadyExistsException;
@@ -286,33 +287,49 @@ public class UserServiceTest {
   }
 
   @Test
-  @DisplayName("회원 물리 삭제 성공 - DB 삭제 및 이벤트 발생")
+  @DisplayName("회원 물리 삭제 성공 - 삭제 및 이벤트 발생")
   void hardDeleteUser_success() {
     UUID userId = UUID.randomUUID();
-    User user = new User(
-        "test@deokhugam.com", "testUser", "password123!");
+    User user = new User("test@deokhugam.com", "testUser", "password123!");
+    DeletedUser deletedUser = DeletedUser.from(user);
 
-    given(userRepository.findById(userId)).willReturn(Optional.of(user));
+    given(userRepository.existsById(userId)).willReturn(false);
+    given(deleteUserRepository.findById(userId)).willReturn(Optional.of(deletedUser));
 
     userService.hardDeleteUser(userId);
 
-    then(userRepository).should().delete(user);
+    then(deleteUserRepository).should().delete(deletedUser);
     then(eventPublisher).should().publishEvent(any(UserDeletedEvent.class));
-    then(deleteUserRepository).should(never()).save(any(DeletedUser.class));
   }
 
   @Test
-  @DisplayName("회원 물리 삭제 실패 - 존재하지 않는 유저는 예외 발생")
+  @DisplayName("회원 물리 삭제 실패 - 활동 중인 유저는 하드 삭제 불가 예외 발생")
+  void hardDeleteUser_fail_activeUser() {
+    UUID userId = UUID.randomUUID();
+
+    given(userRepository.existsById(userId)).willReturn(true);
+
+    assertThrows(ActiveUserHardDeleteException.class, () -> {
+      userService.hardDeleteUser(userId);
+    });
+
+    then(deleteUserRepository).should(never()).findById(any());
+    then(deleteUserRepository).should(never()).delete(any());
+    then(eventPublisher).should(never()).publishEvent(any());
+  }
+
+  @Test
+  @DisplayName("회원 물리 삭제 실패 - 양쪽 어디에도 존재하지 않는 유저는 예외 발생")
   void hardDeleteUser_fail_userNotFound() {
     UUID userId = UUID.randomUUID();
 
-    given(userRepository.findById(userId)).willReturn(Optional.empty());
+    given(userRepository.existsById(userId)).willReturn(false);
+    given(deleteUserRepository.findById(userId)).willReturn(Optional.empty());
 
     assertThrows(UserNotFoundException.class, () -> {
       userService.hardDeleteUser(userId);
     });
 
-    then(userRepository).should(never()).delete(any());
     then(deleteUserRepository).should(never()).delete(any());
     then(eventPublisher).should(never()).publishEvent(any());
   }

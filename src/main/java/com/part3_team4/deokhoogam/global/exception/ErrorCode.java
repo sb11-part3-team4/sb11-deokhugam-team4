@@ -13,6 +13,7 @@ public enum ErrorCode {
   USER_ALREADY_EXISTS(HttpStatus.CONFLICT, "USER-002", "이미 존재하는 사용자입니다."),
   PASSWORD_MISMATCH(HttpStatus.BAD_REQUEST, "USER-003", "비밀번호가 일치하지 않습니다."),
   INVALID_CREDENTIALS(HttpStatus.UNAUTHORIZED, "USER-004", "이메일 또는 비밀번호가 일치하지 않습니다."),
+  USER_NOT_DELETED_YET(HttpStatus.BAD_REQUEST, "USER-005", "활동 중인 유저는 바로 영구 삭제할 수 없습니다"),
 
   // 2. 도서 예외
   BOOK_NOT_FOUND(HttpStatus.NOT_FOUND, "BOOK-001", "존재하지 않는 도서입니다."),

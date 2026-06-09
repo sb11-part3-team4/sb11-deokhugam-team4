@@ -5,21 +5,21 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import com.part3_team4.deokhoogam.domain.book.dto.BookCursor;
+import com.part3_team4.deokhoogam.domain.book.dto.ranking.RankingCursor;
 import com.part3_team4.deokhoogam.global.exception.Base64Exception;
 import java.nio.charset.StandardCharsets;
 import java.util.Base64;
 
 public class CursorUtils {
 
-  private static ObjectMapper objectMapper = new ObjectMapper();
+  private static final  ObjectMapper objectMapper = new ObjectMapper();
 
   static {
     objectMapper.registerModule(new JavaTimeModule());
     objectMapper.disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS); // 디코딩 오류 방지
   }
 
-  // 인코딩 메서드
-  public static String encodeCursor(BookCursor cursor) {
+  private static <T> String encode(T cursor) {
     if (cursor == null) {
       return null;
     }
@@ -31,17 +31,33 @@ public class CursorUtils {
     }
   }
 
-  // 디코딩 메서드
-  public static BookCursor decodeCursor(String base64Cursor) {
+  private static <T> T decode(String base64Cursor, Class<T> type) {
     if (base64Cursor == null || base64Cursor.isBlank()) {
       return null;
     }
     try {
-      byte[] decodedBytes = Base64.getDecoder().decode(base64Cursor);
-      String json = new String(decodedBytes, StandardCharsets.UTF_8);
-      return objectMapper.readValue(json, BookCursor.class);
+      byte[] decoded = Base64.getDecoder().decode(base64Cursor);
+      String json = new String(decoded, StandardCharsets.UTF_8);
+      return objectMapper.readValue(json, type);
     } catch (Exception e) {
       throw Base64Exception.DecodingError();
     }
   }
+
+  public static String encodeCursor(BookCursor cursor) {
+    return encode(cursor);
+  }
+
+  public static BookCursor decodeCursor(String base64Cursor) {
+    return decode(base64Cursor, BookCursor.class);
+  }
+
+  public static String encodeRankingCursor(RankingCursor cursor) {
+    return encode(cursor);
+  }
+
+  public static RankingCursor decodeRankingCursor(String base64Cursor) {
+    return decode(base64Cursor, RankingCursor.class);
+  }
+
 }

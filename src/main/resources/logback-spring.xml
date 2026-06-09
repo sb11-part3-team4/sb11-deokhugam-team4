@@ -5,7 +5,11 @@
     conversionWord="clr"/>
 
   <property name="DEV_PATTERN"
-    value="%d{yy-MM-dd HH:mm:ss.SSS} [%thread] %clr(%-5level) %-36logger{36} [%X{requestId:-NO_ID}] - %msg%n"/>
+    value="%d{yy-MM-dd HH:mm:ss.SSS} [%thread] %clr(%-5level) %-36logger{36} [%X{requestId:-NO_ID}] [%X{requestIp:-NO_IP}] - %msg%n"/>
+
+  <property name="FILE_PATTERN"
+    value="%d{yy-MM-dd HH:mm:ss.SSS} [%thread] %-5level %-36logger{36} [%X{requestId:-NO_ID}] [%X{requestIp:-NO_IP}] - %msg%n"/>
+
 
   <appender class="ch.qos.logback.core.ConsoleAppender" name="CONSOLE">
     <encoder>
@@ -16,8 +20,23 @@
   <appender class="ch.qos.logback.core.ConsoleAppender" name="JSON">
     <encoder class="net.logstash.logback.encoder.LogstashEncoder">
       <includeMdcKeyName>requestId</includeMdcKeyName>
+      <includeMdcKeyName>requestIp</includeMdcKeyName>
+      <includeMdcKeyName>requestMethod</includeMdcKeyName>
+      <includeMdcKeyName>requestUri</includeMdcKeyName>
     </encoder>
   </appender>
+
+  <appender class="ch.qos.logback.core.rolling.RollingFileAppender" name="FILE">
+    <file>logs/deokhugam.log</file>
+    <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
+      <fileNamePattern>logs/deokhugam.%d{yyyy-MM-dd}.log</fileNamePattern>
+      <maxHistory>7</maxHistory>
+    </rollingPolicy>
+    <encoder>
+      <pattern>${FILE_PATTERN}</pattern>
+    </encoder>
+  </appender>
+
 
   <springProfile name="local,dev">
     <root level="INFO">
@@ -28,7 +47,10 @@
   <springProfile name="prod">
     <root level="INFO">
       <appender-ref ref="JSON"/>
+      <appender-ref ref="FILE"/>
     </root>
   </springProfile>
+
+
 
 </configuration>

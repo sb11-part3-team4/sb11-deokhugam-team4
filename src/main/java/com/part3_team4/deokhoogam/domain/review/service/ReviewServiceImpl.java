@@ -1,22 +1,25 @@
 package com.part3_team4.deokhoogam.domain.review.service;
 
+import com.part3_team4.deokhoogam.domain.book.entity.Book;
 import com.part3_team4.deokhoogam.domain.book.exception.BookNotFoundException;
 import com.part3_team4.deokhoogam.domain.book.repository.BookRepository;
 import com.part3_team4.deokhoogam.domain.review.dto.*;
 import com.part3_team4.deokhoogam.domain.review.entity.DeletedReview;
+import com.part3_team4.deokhoogam.domain.review.entity.PopularReview;
 import com.part3_team4.deokhoogam.domain.review.entity.Review;
 import com.part3_team4.deokhoogam.domain.review.entity.ReviewLike;
 import com.part3_team4.deokhoogam.domain.review.exception.ReviewAlreadyExistsException;
 import com.part3_team4.deokhoogam.domain.review.exception.ReviewNotFoundException;
 import com.part3_team4.deokhoogam.domain.review.exception.ReviewNotOwnerException;
 import com.part3_team4.deokhoogam.domain.review.repository.DeletedReviewRepository;
+import com.part3_team4.deokhoogam.domain.review.repository.PopularReviewRepository;
 import com.part3_team4.deokhoogam.domain.review.repository.ReviewLikeRepository;
 import com.part3_team4.deokhoogam.domain.review.repository.ReviewRepository;
+import com.part3_team4.deokhoogam.domain.user.entity.User;
+import com.part3_team4.deokhoogam.domain.user.repository.UserRepository;
 
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
-import java.util.UUID;
+import java.util.*;
+import java.util.stream.Collectors;
 
 import com.part3_team4.deokhoogam.global.common.PageResponse;
 import lombok.RequiredArgsConstructor;
@@ -27,6 +30,8 @@ import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import static com.part3_team4.deokhoogam.domain.review.entity.QReview.review;
+
 @Service
 @RequiredArgsConstructor
 public class ReviewServiceImpl implements ReviewService {
@@ -35,6 +40,8 @@ public class ReviewServiceImpl implements ReviewService {
     private final BookRepository bookRepository;
     private final ReviewLikeRepository reviewLikeRepository;
     private final DeletedReviewRepository deletedReviewRepository;
+    private final PopularReviewRepository popularReviewRepository;
+    private final UserRepository userRepository;
 
     @Override
     @Transactional
@@ -168,6 +175,66 @@ public class ReviewServiceImpl implements ReviewService {
         }
 
         return new PageResponse<>(content, nextCursor, nextAfter, content.size(), null, hasNext);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public PageResponse<PopularReviewResponse> getPopularReviews(String period, String direction, String cursor, String after, int limit) {
+        Pageable pageable = PageRequest.of(0, limit + 1, Sort.by(Sort.Direction.fromString(direction), "rank"));
+        List<PopularReview> popularReviews = popularReviewRepository.findByPeriod(period, pageable);
+
+        boolean hasNext = popularReviews.size() > limit;
+        if (hasNext) {
+            popularReviews = popularReviews.subList(0, limit);
+        }
+
+        List<UUID> reviewIds =
+        popularReviews.stream().map(PopularReview::getReviewId).toList();
+        Map<UUID, Review> reviewMap = reviewRepository.findAllById(reviewIds)
+                .stream().collect(Collectors.toMap(Review::getId, r -> r));
+        List<UUID> bookIds =
+                reviewMap.values().stream().map(Review::getBookId).distinct().toList();
+        List<UUID> userIds =
+                reviewMap.values().stream().map(Review::getUserId).distinct().toList();
+        Map<UUID, Book> bookMap = bookRepository.findAllById(bookIds)
+                .stream().collect(Collectors.toMap(Book::getId, b -> b));
+        Map<UUID, User> userMap = userRepository.findAllById(userIds)
+                .stream().collect(Collectors.toMap(User::getId, u -> u));
+
+        List<PopularReviewResponse> content = popularReviews.stream()
+                .map(pr -> {
+                    Review rev = reviewMap.get(pr.getReviewId());
+                    if (rev == null) return null;
+                    Book book = bookMap.get(rev.getBookId());
+                    User user = userMap.get(rev.getUserId());
+                    if (book == null || user == null) return null;
+                    return toPopularReviewResponse(pr, rev, book, user);
+                })
+                .filter(Objects::nonNull)
+                .toList();
+
+
+        String nextCursor = null;
+        String nextAfter = null;
+        if (hasNext && !content.isEmpty()) {
+            PopularReviewResponse last = content.get(content.size() - 1);
+            nextCursor = String.valueOf(last.rank());
+            nextAfter = last.createdAt().toString();
+        }
+
+        return new PageResponse<>(content, nextCursor, nextAfter, content.size(), null, hasNext);
+    }
+
+    private PopularReviewResponse toPopularReviewResponse(PopularReview pr, Review review, Book book, User user) {
+        return new PopularReviewResponse(
+                pr.getId(), pr.getReviewId(), review.getBookId(),
+                book.getTitle(), book.getThumbnailUrl(),
+                review.getUserId(), user.getName(),
+                review.getContent(), review.getRating(),
+                pr.getPeriod(), pr.getCreatedAt(),
+                pr.getRank(), pr.getScore(),
+                review.getLikeCount(), review.getCommentCount()
+        );
     }
 
 }

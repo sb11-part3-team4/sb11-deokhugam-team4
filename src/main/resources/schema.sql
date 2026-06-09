@@ -1,20 +1,22 @@
-CREATE EXTENSION IF NOT EXISTS pg_trgm;
+CREATE
+    EXTENSION IF NOT EXISTS pg_trgm;
 
 -- Book
 CREATE TABLE book
 (
-    id             UUID PRIMARY KEY,
-    title          VARCHAR(255)  NOT NULL,
-    author         VARCHAR(100)  NOT NULL,
-    description    TEXT          NOT NULL,
-    publisher      VARCHAR(100)  NOT NULL,
-    published_date DATE          NOT NULL,
-    isbn           TEXT,
-    thumbnail_url  VARCHAR(512),
-    review_count   INTEGER       NOT NULL,
-    rating         DECIMAL(3, 2) NOT NULL,
-    created_at     TIMESTAMPTZ   NOT NULL,
-    updated_at     TIMESTAMPTZ   NOT NULL,
+    id                UUID PRIMARY KEY,
+    title             VARCHAR(255)  NOT NULL,
+    author            VARCHAR(100)  NOT NULL,
+    description       TEXT          NOT NULL,
+    publisher         VARCHAR(100)  NOT NULL,
+    published_date    DATE          NOT NULL,
+    isbn              TEXT,
+    thumbnail_url     VARCHAR(512),
+    original_filename VARCHAR(255),
+    review_count      INTEGER       NOT NULL,
+    rating            DECIMAL(3, 2) NOT NULL,
+    created_at        TIMESTAMPTZ   NOT NULL,
+    updated_at        TIMESTAMPTZ   NOT NULL,
 
     -- 제약
     CONSTRAINT uk_book_isbn UNIQUE (isbn)
@@ -36,19 +38,20 @@ CREATE INDEX idx_book_cursor_review_count ON book (review_count DESC, created_at
 -- DeletedBook
 CREATE TABLE deleted_book
 (
-    id             UUID PRIMARY KEY,
-    title          VARCHAR(255)  NOT NULL,
-    author         VARCHAR(100)  NOT NULL,
-    description    TEXT          NOT NULL,
-    publisher      VARCHAR(100)  NOT NULL,
-    published_date DATE          NOT NULL,
-    isbn           VARCHAR(20),
-    thumbnail_url  VARCHAR(512),
-    review_count   INTEGER       NOT NULL,
-    rating         DECIMAL(3, 2) NOT NULL,
-    created_at     TIMESTAMPTZ   NOT NULL,
-    updated_at     TIMESTAMPTZ   NOT NULL,
-    deleted_at     TIMESTAMPTZ   NOT NULL
+    id                UUID PRIMARY KEY,
+    title             VARCHAR(255)  NOT NULL,
+    author            VARCHAR(100)  NOT NULL,
+    description       TEXT          NOT NULL,
+    publisher         VARCHAR(100)  NOT NULL,
+    published_date    DATE          NOT NULL,
+    isbn              VARCHAR(20),
+    thumbnail_url     VARCHAR(512),
+    original_filename VARCHAR(255),
+    review_count      INTEGER       NOT NULL,
+    rating            DECIMAL(3, 2) NOT NULL,
+    created_at        TIMESTAMPTZ   NOT NULL,
+    updated_at        TIMESTAMPTZ   NOT NULL,
+    deleted_at        TIMESTAMPTZ   NOT NULL
 );
 
 -- User
@@ -198,3 +201,107 @@ CREATE TABLE deleted_notification
     updated_at     TIMESTAMPTZ  NOT NULL,
     deleted_at     TIMESTAMPTZ  NOT NULL
 );
+
+-- Book Ranking
+CREATE TABLE book_ranking
+(
+    id                  UUID           NOT NULL,
+    book_id             UUID           NOT NULL,
+    period              VARCHAR(20)    NOT NULL,
+    score               DECIMAL(10, 4) NOT NULL,
+    ranking             INTEGER        NOT NULL,
+    period_review_count BIGINT         NOT NULL,
+    period_rating       DECIMAL(3, 2)  NOT NULL,
+    created_at          TIMESTAMPTZ    NOT NULL,
+    updated_at          TIMESTAMPTZ    NOT NULL,
+    PRIMARY KEY (id),
+    CONSTRAINT uk_book_ranking_book_period UNIQUE (book_id, period)
+);
+
+--Book Ranking Index
+CREATE INDEX idx_book_ranking_period_ranking ON book_ranking (period, ranking);
+
+
+-- 배치 메타 테이블
+CREATE TABLE BATCH_JOB_INSTANCE
+(
+    JOB_INSTANCE_ID BIGINT       NOT NULL PRIMARY KEY,
+    VERSION         BIGINT,
+    JOB_NAME        VARCHAR(100) NOT NULL,
+    JOB_KEY         VARCHAR(32)  NOT NULL,
+    constraint JOB_INST_UN unique (JOB_NAME, JOB_KEY)
+);
+
+CREATE TABLE BATCH_JOB_EXECUTION
+(
+    JOB_EXECUTION_ID BIGINT    NOT NULL PRIMARY KEY,
+    VERSION          BIGINT,
+    JOB_INSTANCE_ID  BIGINT    NOT NULL,
+    CREATE_TIME      TIMESTAMP NOT NULL,
+    START_TIME       TIMESTAMP DEFAULT NULL,
+    END_TIME         TIMESTAMP DEFAULT NULL,
+    STATUS           VARCHAR(10),
+    EXIT_CODE        VARCHAR(2500),
+    EXIT_MESSAGE     VARCHAR(2500),
+    LAST_UPDATED     TIMESTAMP,
+    constraint JOB_INST_EXEC_FK foreign key (JOB_INSTANCE_ID)
+        references BATCH_JOB_INSTANCE (JOB_INSTANCE_ID)
+);
+
+CREATE TABLE BATCH_JOB_EXECUTION_PARAMS
+(
+    JOB_EXECUTION_ID BIGINT       NOT NULL,
+    PARAMETER_NAME   VARCHAR(100) NOT NULL,
+    PARAMETER_TYPE   VARCHAR(100) NOT NULL,
+    PARAMETER_VALUE  VARCHAR(2500),
+    IDENTIFYING      CHAR(1)      NOT NULL,
+    constraint JOB_EXEC_PARAMS_FK foreign key (JOB_EXECUTION_ID)
+        references BATCH_JOB_EXECUTION (JOB_EXECUTION_ID)
+);
+
+CREATE TABLE BATCH_STEP_EXECUTION
+(
+    STEP_EXECUTION_ID  BIGINT       NOT NULL PRIMARY KEY,
+    VERSION            BIGINT       NOT NULL,
+    STEP_NAME          VARCHAR(100) NOT NULL,
+    JOB_EXECUTION_ID   BIGINT       NOT NULL,
+    CREATE_TIME        TIMESTAMP    NOT NULL,
+    START_TIME         TIMESTAMP DEFAULT NULL,
+    END_TIME           TIMESTAMP DEFAULT NULL,
+    STATUS             VARCHAR(10),
+    COMMIT_COUNT       BIGINT,
+    READ_COUNT         BIGINT,
+    FILTER_COUNT       BIGINT,
+    WRITE_COUNT        BIGINT,
+    READ_SKIP_COUNT    BIGINT,
+    WRITE_SKIP_COUNT   BIGINT,
+    PROCESS_SKIP_COUNT BIGINT,
+    ROLLBACK_COUNT     BIGINT,
+    EXIT_CODE          VARCHAR(2500),
+    EXIT_MESSAGE       VARCHAR(2500),
+    LAST_UPDATED       TIMESTAMP,
+    constraint JOB_EXEC_STEP_FK foreign key (JOB_EXECUTION_ID)
+        references BATCH_JOB_EXECUTION (JOB_EXECUTION_ID)
+);
+
+CREATE TABLE BATCH_STEP_EXECUTION_CONTEXT
+(
+    STEP_EXECUTION_ID  BIGINT        NOT NULL PRIMARY KEY,
+    SHORT_CONTEXT      VARCHAR(2500) NOT NULL,
+    SERIALIZED_CONTEXT TEXT,
+    constraint STEP_EXEC_CTX_FK foreign key (STEP_EXECUTION_ID)
+        references BATCH_STEP_EXECUTION (STEP_EXECUTION_ID)
+);
+
+CREATE TABLE BATCH_JOB_EXECUTION_CONTEXT
+(
+    JOB_EXECUTION_ID   BIGINT        NOT NULL PRIMARY KEY,
+    SHORT_CONTEXT      VARCHAR(2500) NOT NULL,
+    SERIALIZED_CONTEXT TEXT,
+    constraint JOB_EXEC_CTX_FK foreign key (JOB_EXECUTION_ID)
+        references BATCH_JOB_EXECUTION (JOB_EXECUTION_ID)
+);
+
+CREATE SEQUENCE BATCH_STEP_EXECUTION_SEQ MAXVALUE 9223372036854775807 NO CYCLE;
+CREATE SEQUENCE BATCH_JOB_EXECUTION_SEQ MAXVALUE 9223372036854775807 NO CYCLE;
+CREATE SEQUENCE BATCH_JOB_SEQ MAXVALUE 9223372036854775807 NO CYCLE;
