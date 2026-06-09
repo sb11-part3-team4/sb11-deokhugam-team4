@@ -31,10 +31,10 @@ public class DeleteOrphanCommentJobConfig {
 
     private static final String ORPHAN_QUERY =
         "SELECT dc FROM DeletedComment dc " +
-        "WHERE (dc.reviewId NOT IN (SELECT r.id FROM Review r) " +
-        "  AND dc.reviewId NOT IN (SELECT dr.id FROM DeletedReview dr)) " +
-        "  OR (dc.userId NOT IN (SELECT u.id FROM User u) " +
-        "  AND dc.userId NOT IN (SELECT du.id FROM DeletedUser du))";
+        "WHERE (NOT EXISTS (SELECT 1 FROM Review r WHERE r.id = dc.reviewId) " +
+        "  AND NOT EXISTS (SELECT 1 FROM DeletedReview dr WHERE dr.id = dc.reviewId)) " +
+        "  OR (NOT EXISTS (SELECT 1 FROM User u WHERE u.id = dc.userId) " +
+        "  AND NOT EXISTS (SELECT 1 FROM DeletedUser du WHERE du.id = dc.userId))";
 
     @Bean
     public Job deleteOrphanCommentJob() {
