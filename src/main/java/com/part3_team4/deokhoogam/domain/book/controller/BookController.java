@@ -6,6 +6,9 @@ import com.part3_team4.deokhoogam.domain.book.dto.BookDto;
 import com.part3_team4.deokhoogam.domain.book.dto.BookGetListRequest;
 import com.part3_team4.deokhoogam.domain.book.dto.BookUpdateRequest;
 import com.part3_team4.deokhoogam.domain.book.dto.NaverBookDto;
+import com.part3_team4.deokhoogam.domain.book.dto.ranking.BookRankingDto;
+import com.part3_team4.deokhoogam.domain.book.dto.ranking.RankingGetListRequest;
+import com.part3_team4.deokhoogam.domain.book.service.BookRankingService;
 import com.part3_team4.deokhoogam.domain.book.service.BookService;
 import com.part3_team4.deokhoogam.domain.book.service.OcrService;
 import com.part3_team4.deokhoogam.global.common.PageResponse;
@@ -17,8 +20,6 @@ import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
-import java.util.Collections;
-import java.util.Map;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -26,6 +27,7 @@ import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.ModelAttribute;
 import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -43,6 +45,7 @@ public class BookController implements BookAPI {
 
   private final BookService bookService;
   private final OcrService ocrService;
+  private final BookRankingService bookRankingService;
 
   @Operation(summary = "도서 등록", description = "새로운 도서를 등록합니다.")
   @ApiResponses({
@@ -128,16 +131,6 @@ public class BookController implements BookAPI {
     return ResponseEntity.noContent().build();
   }
 
-  // TODO: 임시 Mock 응답 - 실제 인기 도서 페이지네이션 로직 구현 필요
-  @GetMapping("/popular")
-  public ResponseEntity<Map<String, Object>> getPopularBooks() {
-    return ResponseEntity.ok(Map.of(
-        "content", Collections.emptyList(),
-        "hasNext", false,
-        "totalElements", 0,
-        "size", 0
-    ));
-  }
 
   @Operation(summary = "OCR 기반 ISBN 인식", description = "OCR을 통해 ISBN을 인식합니다.")
   @ApiResponses({
@@ -152,4 +145,17 @@ public class BookController implements BookAPI {
 
     return ResponseEntity.ok(extractedIsbn);
   }
+
+
+  @GetMapping(value = "/popular")
+  public ResponseEntity<PageResponse<BookRankingDto>> getRankings(
+      @Valid @ModelAttribute RankingGetListRequest request) {
+
+    PageResponse<BookRankingDto> response = bookRankingService.getRankings(
+        request.period(), request.direction(), request.cursor(), request.limit());
+
+    return ResponseEntity.ok().body(response);
+  }
+
+
 }
