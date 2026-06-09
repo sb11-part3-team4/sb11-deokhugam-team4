@@ -15,34 +15,31 @@ import com.part3_team4.deokhoogam.domain.review.repository.ReviewRepository;
 import com.part3_team4.deokhoogam.domain.review.service.ReviewServiceImpl;
 import com.part3_team4.deokhoogam.domain.user.repository.UserRepository;
 import com.part3_team4.deokhoogam.global.common.PageResponse;
-import net.bytebuddy.asm.Advice;
-import org.aspectj.util.Reflection;
+import com.part3_team4.deokhoogam.domain.book.exception.BookNotFoundException;
+import com.part3_team4.deokhoogam.domain.review.exception.ReviewAlreadyExistsException;
+import com.part3_team4.deokhoogam.domain.review.entity.PopularReview;
+import com.part3_team4.deokhoogam.domain.user.entity.User;
+import com.part3_team4.deokhoogam.domain.review.dto.ReviewWithLiked;
+
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-
 import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
-import com.part3_team4.deokhoogam.domain.book.exception.BookNotFoundException;
-import com.part3_team4.deokhoogam.domain.review.exception.ReviewAlreadyExistsException;
 import org.springframework.data.domain.Pageable;
-
-import static ch.qos.logback.classic.spi.ThrowableProxyVO.build;
+import org.springframework.test.util.ReflectionTestUtils;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.*;
 
-import com.part3_team4.deokhoogam.domain.review.entity.PopularReview;
-import com.part3_team4.deokhoogam.domain.user.entity.User;
-import org.springframework.test.util.ReflectionTestUtils;
 
 import java.math.BigDecimal;
 
@@ -129,8 +126,8 @@ public class ReviewServiceTest {
         UUID bookId = UUID.randomUUID();
         Review review = Review.create(userId, bookId, 4, "좋은 책이에요");
 
-        given(reviewRepository.findById(any(UUID.class))).willReturn(Optional.of(review));
-        given(reviewLikeRepository.existsByReviewIdAndUserId(any(UUID.class), eq(userId))).willReturn(false);
+        given(reviewRepository.findByIdWithLiked(any(UUID.class), eq(userId)))
+                .willReturn(Optional.of(new ReviewWithLiked(review, false)));
 
         ReviewResponse response = reviewService.getReview(review.getId(), userId);
 
@@ -146,7 +143,8 @@ public class ReviewServiceTest {
         UUID userId = UUID.randomUUID();
         UUID reviewId = UUID.randomUUID();
 
-        given(reviewRepository.findById(reviewId)).willReturn(Optional.empty());
+        given(reviewRepository.findByIdWithLiked(eq(reviewId), any(UUID.class)))
+                .willReturn(Optional.empty());
 
         assertThatThrownBy(() -> reviewService.getReview(reviewId, userId)).isInstanceOf(ReviewNotFoundException.class);
     }

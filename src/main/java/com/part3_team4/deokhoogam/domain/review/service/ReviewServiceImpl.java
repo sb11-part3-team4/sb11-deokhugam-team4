@@ -17,6 +17,7 @@ import com.part3_team4.deokhoogam.domain.review.repository.ReviewLikeRepository;
 import com.part3_team4.deokhoogam.domain.review.repository.ReviewRepository;
 import com.part3_team4.deokhoogam.domain.user.entity.User;
 import com.part3_team4.deokhoogam.domain.user.repository.UserRepository;
+import com.part3_team4.deokhoogam.domain.review.dto.ReviewWithLiked;
 
 import java.util.*;
 import java.util.stream.Collectors;
@@ -73,9 +74,10 @@ public class ReviewServiceImpl implements ReviewService {
     @Override
     @Transactional(readOnly = true)
     public ReviewResponse getReview(UUID reviewId, UUID userId) {
-        Review review = reviewRepository.findById(reviewId).orElseThrow(() -> ReviewNotFoundException.withId(reviewId));
-
-        boolean likedByMe = reviewLikeRepository.existsByReviewIdAndUserId(reviewId, userId);
+        ReviewWithLiked result = reviewRepository.findByIdWithLiked(reviewId, userId)
+                .orElseThrow(() -> ReviewNotFoundException.withId(reviewId));
+        Review review = result.review();
+        boolean likedByMe = result.likedByMe();
 
         return new ReviewResponse(
                 review.getId(), review.getUserId(), review.getBookId(),
