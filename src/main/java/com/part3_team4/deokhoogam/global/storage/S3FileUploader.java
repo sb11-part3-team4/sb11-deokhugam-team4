@@ -105,10 +105,12 @@ public class S3FileUploader implements FileUploader {
             ErrorKey.FILE, detectedMimeType, "실제 파일 타입과 불일치합니다.");
       }
     } catch (IOException e) {
-      throw InvalidFileException.withField(ErrorKey.FILE, "파일 검증 중 오류가 발생했습니다.");
+      log.error("파일 검증 중 시스템 I/O 오류 발생: {}", originalFilename, e);
+      throw StorageOperationException.uploadFailed(originalFilename, e);
     }
     return originalFilename;
   }
+
 
   private void validateDomainPath(String domainPath) {
     if (domainPath == null || domainPath.isBlank()) {

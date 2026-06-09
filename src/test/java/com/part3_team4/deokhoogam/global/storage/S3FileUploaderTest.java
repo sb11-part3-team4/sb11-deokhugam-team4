@@ -16,6 +16,7 @@ import com.part3_team4.deokhoogam.global.exception.storage.InvalidFileException;
 import com.part3_team4.deokhoogam.global.exception.storage.StorageOperationException;
 import io.awspring.cloud.s3.S3Resource;
 import io.awspring.cloud.s3.S3Template;
+import java.io.IOException;
 import java.io.InputStream;
 import java.net.URL;
 import org.junit.jupiter.api.BeforeEach;
@@ -28,6 +29,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.mock.web.MockMultipartFile;
 import org.springframework.test.util.ReflectionTestUtils;
+import org.springframework.web.multipart.MultipartFile;
 import software.amazon.awssdk.services.s3.model.S3Exception;
 
 @ExtendWith(MockitoExtension.class)
@@ -286,6 +288,25 @@ class S3FileUploaderTest {
               .containsEntry(ErrorKey.FIELD.getValue(), ErrorKey.FILE.getValue())
               .containsEntry(ErrorKey.REASON.getValue(), "실제 파일 타입과 불일치합니다.");
         });
+
+    then(s3Template).shouldHaveNoInteractions();
+  }
+
+  @Test
+  @DisplayName("파일 검증 중 Tika의 IOException이 발생하면 StorageOperationException을 던진다")
+  void upload_TikaIOException_ThrowsStorageOperationException() throws Exception {
+    // given
+    MultipartFile mockFile = mock(MultipartFile.class);
+
+    given(mockFile.getOriginalFilename()).willReturn("test.png");
+    given(mockFile.isEmpty()).willReturn(false);
+    given(mockFile.getContentType()).willReturn("image/png");
+
+    given(mockFile.getInputStream()).willThrow(new IOException("Tika I/O 에러"));
+
+    // when & then
+    assertThatThrownBy(() -> s3FileUploader.upload(mockFile, DOMAIN_PATH))
+        .isInstanceOf(StorageOperationException.class);
 
     then(s3Template).shouldHaveNoInteractions();
   }
