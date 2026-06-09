@@ -35,10 +35,10 @@ public class S3FileUploader implements FileUploader {
 
   @Override
   public String upload(MultipartFile file, String domainPath) {
-    validateFile(file);
+    String originalFilename = validateFile(file);
     validateDomainPath(domainPath);
 
-    String key = createKey(domainPath, file.getOriginalFilename());
+    String key = createKey(domainPath, originalFilename);
 
     try {
       S3Resource s3Resource = s3Template.upload(
@@ -74,7 +74,7 @@ public class S3FileUploader implements FileUploader {
     cleanup(key);
   }
 
-  private void validateFile(MultipartFile file) {
+  private String validateFile(MultipartFile file) {
     if (file == null) {
       throw InvalidFileException.withField(ErrorKey.FILE, "파일이 존재하지 않습니다.");
     }
@@ -107,6 +107,7 @@ public class S3FileUploader implements FileUploader {
     } catch (IOException e) {
       throw InvalidFileException.withField(ErrorKey.FILE, "파일 검증 중 오류가 발생했습니다.");
     }
+    return originalFilename;
   }
 
   private void validateDomainPath(String domainPath) {
@@ -133,16 +134,10 @@ public class S3FileUploader implements FileUploader {
   }
 
   private String createKey(String domainPath, String originalFilename) {
-    return domainPath + "/" + UUID.randomUUID() + "_" + originalFilename;
-  }
+    int lastDotIndex = originalFilename.lastIndexOf(".");
+    String extension = originalFilename.substring(lastDotIndex + 1).toLowerCase();
 
-  private void cleanup(String key) {
-    try {
-      s3Template.deleteObject(bucketName, key);
-      log.info("S3 파일 정리 완료: {}", key);
-    } catch (S3Exception e) {
-      log.error("S3 파일 정리 실패: {}", key, e);
-    }
+    return domainPath + "/" + UUID.randomUUID() + "." + extension;
   }
 
   private String extractKey(String fileUrl) {
@@ -158,6 +153,15 @@ public class S3FileUploader implements FileUploader {
     } catch (java.net.URISyntaxException e) {
       log.error("잘못된 파일 URL 형식입니다: {}", fileUrl);
       throw InvalidFileException.withFieldAndValue(ErrorKey.FILE, fileUrl, "유효하지 않은 파일 URL입니다.");
+    }
+  }
+
+  private void cleanup(String key) {
+    try {
+      s3Template.deleteObject(bucketName, key);
+      log.info("S3 파일 정리 완료: {}", key);
+    } catch (S3Exception e) {
+      log.error("S3 파일 정리 실패: {}", key, e);
     }
   }
 }
