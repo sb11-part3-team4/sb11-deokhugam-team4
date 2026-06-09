@@ -21,6 +21,8 @@
     <encoder class="net.logstash.logback.encoder.LogstashEncoder">
       <includeMdcKeyName>requestId</includeMdcKeyName>
       <includeMdcKeyName>requestIp</includeMdcKeyName>
+      <includeMdcKeyName>requestMethod</includeMdcKeyName>
+      <includeMdcKeyName>requestUri</includeMdcKeyName>
     </encoder>
   </appender>
 
