@@ -7,6 +7,10 @@
   <property name="DEV_PATTERN"
     value="%d{yy-MM-dd HH:mm:ss.SSS} [%thread] %clr(%-5level) %-36logger{36} [%X{requestId:-NO_ID}] [%X{requestIp:-NO_IP}] - %msg%n"/>
 
+  <property name="FILE_PATTERN"
+    value="%d{yy-MM-dd HH:mm:ss.SSS} [%thread] %-5level %-36logger{36} [%X{requestId:-NO_ID}] [%X{requestIp:-NO_IP}] - %msg%n"/>
+
+
   <appender class="ch.qos.logback.core.ConsoleAppender" name="CONSOLE">
     <encoder>
       <pattern>${DEV_PATTERN}</pattern>
@@ -20,6 +24,17 @@
     </encoder>
   </appender>
 
+  <appender class="ch.qos.logback.core.rolling.RollingFileAppender" name="FILE">
+    <file>logs/deokhugam.log</file>
+    <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
+      <fileNamePattern>logs/deokhugam.%d{yyyy-MM-dd}.log</fileNamePattern>
+      <maxHistory>7</maxHistory>
+    </rollingPolicy>
+    <encoder>
+      <pattern>${FILE_PATTERN}</pattern>
+    </encoder>
+  </appender>
+
 
   <springProfile name="local,dev">
     <root level="INFO">
@@ -30,6 +45,7 @@
   <springProfile name="prod">
     <root level="INFO">
       <appender-ref ref="JSON"/>
+      <appender-ref ref="FILE"/>
     </root>
   </springProfile>
 
