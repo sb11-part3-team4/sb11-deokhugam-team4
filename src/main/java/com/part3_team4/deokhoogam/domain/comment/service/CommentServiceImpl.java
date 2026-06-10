@@ -22,12 +22,10 @@ import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-@Slf4j
 @Service
 @RequiredArgsConstructor
 @Transactional(readOnly = true)
@@ -48,22 +46,14 @@ public class CommentServiceImpl implements CommentService {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> UserNotFoundException.withId(userId));
         Comment saved = commentRepository.save(Comment.create(review, user, content));
-        try {
-            notificationService.createNotification(
-                    review.getUserId(),
-                    review.getId(),
-                    review.getContent(),
-                    user.getName(),
-                    user.getId()
-            );
-        } catch (Exception e) {
-            log.warn("알림 생성 실패 - reviewId: {}, actorId: {}", review.getId(), user.getId(), e);
-        }
-        try {
-            reviewService.incrementCommentCount(reviewId);
-        } catch (Exception e) {
-            log.warn("commentCount 증가 실패 - reviewId: {}", reviewId, e);
-        }
+        notificationService.createNotification(
+                review.getUserId(),
+                review.getId(),
+                review.getContent(),
+                user.getName(),
+                user.getId()
+        );
+        reviewService.incrementCommentCount(reviewId);
         return CommentDto.CommentResponse.from(saved, user.getName());
     }
 
