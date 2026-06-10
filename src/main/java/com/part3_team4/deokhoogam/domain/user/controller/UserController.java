@@ -14,6 +14,7 @@ import jakarta.validation.Valid;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.DeleteMapping;
@@ -26,6 +27,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
+@Slf4j
 @RestController
 @RequestMapping("/api/users")
 public class UserController {
@@ -43,6 +45,8 @@ public class UserController {
       @Valid @RequestBody UserCreateRequestDto request) {
 
     UserDto responseDto = userService.createUser(request);
+
+    log.info("회원가입 완료. ID: {}", responseDto.id());
 
     return ResponseEntity.status(HttpStatus.CREATED).body(responseDto);
   }
@@ -63,6 +67,8 @@ public class UserController {
 
     userService.updateUser(userId, request);
 
+    log.info("회원 정보 수정 완료. ID: {}", userId);
+
     return ResponseEntity.ok().build();
   }
 
@@ -71,6 +77,9 @@ public class UserController {
       @Valid @RequestBody PasswordUpdateRequestDto request) {
 
     userService.updatePassword(userId, request);
+
+    log.info("비밀번호 수정 완료. ID: {}", userId);
+
     return ResponseEntity.ok().build();
   }
 
@@ -80,6 +89,8 @@ public class UserController {
 
     userService.deleteUser(userId);
 
+    log.info("회원 탈퇴 완료. ID: {}", userId);
+
     return ResponseEntity.noContent().build();
   }
 
@@ -87,6 +98,8 @@ public class UserController {
   public ResponseEntity<Void> hardDeleteUser(@PathVariable UUID userId) {
 
     userService.hardDeleteUser(userId);
+
+    log.info("회원 물리 삭제 완료. ID: {}", userId);
 
     return ResponseEntity.noContent().build();
   }
@@ -105,6 +118,8 @@ public class UserController {
         "nickname", result.nickname(),
         "createdAt", result.createdAt()
     );
+
+    log.info("로그인 완료. ID: {}", result.id());
 
     return ResponseEntity.ok(responseBody);
   }
