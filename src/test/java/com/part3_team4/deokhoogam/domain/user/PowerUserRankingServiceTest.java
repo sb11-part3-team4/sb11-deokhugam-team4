@@ -2,13 +2,17 @@ package com.part3_team4.deokhoogam.domain.user;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import com.part3_team4.deokhoogam.domain.user.dto.response.PowerUserRankingResponseDto;
+import com.part3_team4.deokhoogam.domain.user.dto.response.UserResponse;
 import com.part3_team4.deokhoogam.domain.user.entity.PowerUserRanking;
 import com.part3_team4.deokhoogam.domain.user.enums.PowerUserPeriod;
 import com.part3_team4.deokhoogam.domain.user.repository.PowerUserRankingRepository;
 import com.part3_team4.deokhoogam.domain.user.service.PowerUserRankingService;
+import com.part3_team4.deokhoogam.domain.user.service.UserService;
 import java.math.BigDecimal;
 import java.util.List;
 import java.util.Map;
@@ -33,6 +37,9 @@ public class PowerUserRankingServiceTest {
 
   @Captor
   private ArgumentCaptor<List<PowerUserRanking>> rankingListCaptor;
+
+  @Mock
+  private UserService userService;
 
   @Test
   @DisplayName("메인 로직: 기존 데이터를 지우고, 계산과 정렬을 거쳐 랭킹을 DB에 일괄 저장한다")
@@ -66,7 +73,7 @@ public class PowerUserRankingServiceTest {
   }
 
   @Test
-  @DisplayName("계산 로직")
+  @DisplayName("점수 계산 로직")
   void calculateScores() {
 
     UUID user1 = UUID.randomUUID(); // 활동 있음 (15.0점 예상)
@@ -92,7 +99,7 @@ public class PowerUserRankingServiceTest {
   }
 
   @Test
-  @DisplayName("랭킹 로직 - 점수를 내림차순으로 정렬하고 1등부터 순위 부여")
+  @DisplayName("랭킹 부여 로직 - 점수를 내림차순으로 정렬하고 1등부터 순위 부여")
   void assignRankings() {
     UUID user1 = UUID.randomUUID();
     UUID user2 = UUID.randomUUID();
@@ -116,5 +123,45 @@ public class PowerUserRankingServiceTest {
     assertThat(result.get(1).getUserId()).isEqualTo(user1);
     assertThat(result.get(1).getScore()).isEqualByComparingTo(BigDecimal.valueOf(10.0));
     assertThat(result.get(1).getRanking()).isEqualTo(2);
+  }
+
+  @Test
+  @DisplayName("랭킹 조회 - 유저 정보가 존재하면 닉네임을, 없으면 '알수없음' 반환")
+  void getDailyRankingWithNickname() {
+    UUID user1 = UUID.randomUUID();
+    UUID user2 = UUID.randomUUID();
+
+    PowerUserRanking ranking1 = PowerUserRanking.builder().userId(user1)
+        .period(PowerUserPeriod.DAILY).score(BigDecimal.valueOf(20.0)).ranking(1).build();
+    PowerUserRanking ranking2 = PowerUserRanking.builder().userId(user2)
+        .period(PowerUserPeriod.DAILY).score(BigDecimal.valueOf(10.0)).ranking(2).build();
+
+    when(powerUserRankingRepository.findByPeriodOrderByRankingAsc(PowerUserPeriod.DAILY))
+        .thenReturn(List.of(ranking1, ranking2));
+    //user1은 정상 유저, user2는 탈퇴 등으로 null을 반환한다고 가정
+    when(userService.getUser(user1)).thenReturn(new UserResponse("test@email.com", "정상유저"));
+    when(userService.getUser(user2)).thenReturn(null);
+
+    List<PowerUserRankingResponseDto> result = powerUserRankingService.getDailyRankingWithNickname();
+
+    assertThat(result).hasSize(2);
+    assertThat(result.get(0).nickname()).isEqualTo("정상유저");
+    assertThat(result.get(1).nickname()).isEqualTo("알수없음");
+  }
+
+  @Test
+  @DisplayName("랭킹 집계 예외 - 당일 활용 데이터가 하나도 없으면 랭킹을 부여하지 않고 종료")
+  void calculateAndSaveDailyRanking_empty() {
+    //모든 쿼리가 빈 데이터를 반환한다고 가정
+    when(powerUserRankingRepository.getReviewPopularScoreSum(any(), any())).thenReturn(Map.of());
+    when(powerUserRankingRepository.getLikeCount(any(), any())).thenReturn(Map.of());
+    when(powerUserRankingRepository.getCommentCount(any(), any())).thenReturn(Map.of());
+
+    powerUserRankingService.calculateAndSaveDailyRanking();
+
+    // 기존 데이터 삭제는 무조건 1회 실행
+    verify(powerUserRankingRepository).deleteByPeriod(PowerUserPeriod.DAILY);
+    // 데이터가 없으므로 DB 저장은 한 번도 실행되지 않아야 함
+    verify(powerUserRankingRepository, never()).saveAll(any());
   }
 }
