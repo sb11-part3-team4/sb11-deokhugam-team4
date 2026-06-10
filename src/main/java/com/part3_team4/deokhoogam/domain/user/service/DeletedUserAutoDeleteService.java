@@ -7,11 +7,13 @@ import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class DeletedUserAutoDeleteService {
@@ -20,26 +22,39 @@ public class DeletedUserAutoDeleteService {
 
   @Transactional
   public void deleteExpiredUsers() {
+    long startTime = System.currentTimeMillis();
     Instant oneDayAgo = Instant.now(clock).minus(1, ChronoUnit.DAYS);
+
+    log.info("유저 물리 삭제 배치 작업 시작. 기준 시각: {}", oneDayAgo);
+
     int pageSize = 100;
+    long totalDeletedCount = 0;
 
-    while (true) {
-      Pageable pageable = PageRequest.of(0, pageSize);
-      List<DeletedUser> oldUsers = deletedUserRepository.findByDeletedAtBefore(oneDayAgo, pageable);
+    try {
+      while (true) {
+        Pageable pageable = PageRequest.of(0, pageSize);
+        List<DeletedUser> oldUsers = deletedUserRepository.findByDeletedAtBefore(oneDayAgo, pageable);
 
-      if (oldUsers.isEmpty()) {
-        break;
-      }
+        if (oldUsers.isEmpty()) {
+          break;
+        }
 
-      for (DeletedUser oldUser : oldUsers) {
-        try {
-          deletedUserRepository.delete(oldUser);
-        } catch (Exception e) {
-          // 의도적인 빈 블록:
-          // 특정 유저의 데이터 삭제 실패(FK 제약조건 등)가 발생하더라도,
-          // 예외를 던지지 않고 무시하여 나머지 유저들의 삭제 배치가 중단되지 않도록합니다.
+        for (DeletedUser oldUser : oldUsers) {
+          try {
+            deletedUserRepository.delete(oldUser);
+            totalDeletedCount++;
+          } catch (Exception e) {
+            log.warn("유저 삭제 중 예외 발생으로 항목 스킵. userId: {}, 사유: {}", oldUser.getId(), e.getMessage());
+          }
         }
       }
+
+      long duration = System.currentTimeMillis() - startTime;
+      log.info("유저 물리 삭제 배치 작업 완료. 총 처리 건수: {}건, 소요시간: {}ms", totalDeletedCount, duration);
+
+    } catch (Exception e) {
+      log.error("유저 물리 삭제 배치 작업 실패", e);
+      throw e;
     }
   }
 }

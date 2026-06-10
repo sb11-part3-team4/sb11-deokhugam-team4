@@ -47,8 +47,6 @@ public class UserController {
 
     UserDto responseDto = userService.createUser(request);
 
-    log.info("회원가입 완료. ID: {}", responseDto.id());
-
     return ResponseEntity.status(HttpStatus.CREATED).body(responseDto);
   }
 
@@ -68,8 +66,6 @@ public class UserController {
 
     userService.updateUser(userId, request);
 
-    log.info("회원 정보 수정 완료. ID: {}", userId);
-
     return ResponseEntity.ok().build();
   }
 
@@ -78,8 +74,6 @@ public class UserController {
       @Valid @RequestBody PasswordUpdateRequestDto request) {
 
     userService.updatePassword(userId, request);
-
-    log.info("비밀번호 수정 완료. ID: {}", userId);
 
     return ResponseEntity.ok().build();
   }
@@ -90,8 +84,6 @@ public class UserController {
 
     userService.deleteUser(userId);
 
-    log.info("회원 탈퇴 완료. ID: {}", userId);
-
     return ResponseEntity.noContent().build();
   }
 
@@ -99,8 +91,6 @@ public class UserController {
   public ResponseEntity<Void> hardDeleteUser(@PathVariable UUID userId) {
 
     userService.hardDeleteUser(userId);
-
-    log.info("회원 물리 삭제 완료. ID: {}", userId);
 
     return ResponseEntity.noContent().build();
   }
@@ -110,8 +100,6 @@ public class UserController {
       @Valid @RequestBody UserLoginRequestDto request) {
 
     UserLoginResultDto result = userService.login(request.email(), request.password());
-
-    log.info("로그인 완료. ID: {}", result.id());
 
     return ResponseEntity.ok(result);
   }

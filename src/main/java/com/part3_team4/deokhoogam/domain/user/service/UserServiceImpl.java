@@ -18,11 +18,13 @@ import com.part3_team4.deokhoogam.domain.user.mapper.UserMapper;
 import com.part3_team4.deokhoogam.domain.user.repository.DeletedUserRepository;
 import com.part3_team4.deokhoogam.domain.user.repository.UserRepository;
 import java.util.UUID;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+@Slf4j
 @Service
 public class UserServiceImpl implements UserService{
 
@@ -58,6 +60,10 @@ public class UserServiceImpl implements UserService{
 
     userRepository.save(user);
 
+    UserDto responseDto = userMapper.toDto(user);
+
+    log.info("회원가입 성공. userId: {}", responseDto.id());
+
     return userMapper.toDto(user);
   }
 
@@ -88,6 +94,8 @@ public class UserServiceImpl implements UserService{
       }
       user.updateEmail(request.email());
     }
+
+    log.info("회원 정보 수정 성공. userId: {}", userId);
   }
 
   @Override
@@ -102,6 +110,8 @@ public class UserServiceImpl implements UserService{
 
     String encodedNewPassword = passwordEncoder.encode(request.newPassword());
     user.updatePassword(encodedNewPassword);
+
+    log.info("비밀번호 수정 성공. userId: {}", userId);
   }
 
   @Override
@@ -116,6 +126,8 @@ public class UserServiceImpl implements UserService{
     eventPublisher.publishEvent(new UserDeletedEvent(userId, false));
 
     userRepository.delete(user);
+
+    log.info("회원 탈퇴(논리 삭제) 성공. userId: {}", userId);
   }
 
   @Override
@@ -131,6 +143,8 @@ public class UserServiceImpl implements UserService{
     eventPublisher.publishEvent(new UserDeletedEvent(userId, true));
 
     deleteUserRepository.delete(deletedUser);
+
+    log.info("회원 물리 삭제 성공. userId: {}", userId);
   }
 
   @Override
