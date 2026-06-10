@@ -698,4 +698,30 @@ public class ReviewServiceTest {
         assertThat(result.score()).isEqualTo(score);
     }
 
+    @Test
+    @DisplayName("incrementCommentCount 호출 시 commentCount가 1 증가한다")
+    void incrementCommentCount_success() {
+        UUID reviewId = UUID.randomUUID();
+        Review review = Review.create(UUID.randomUUID(), UUID.randomUUID(), 4, "내용");
+
+        given(reviewRepository.findById(reviewId)).willReturn(Optional.of(review));
+
+            reviewService.incrementCommentCount(reviewId);
+
+            assertThat(review.getCommentCount()).isEqualTo(1);
+    }
+
+    @Test
+    @DisplayName("decrementCommentCount 호출 시 commentCount가 1 감소한다")
+    void decrementCommentCount_success() {
+        UUID reviewId = UUID.randomUUID();
+        Review review = Review.create(UUID.randomUUID(), UUID.randomUUID(), 4, "내용");
+        review.incrementCommentCount();
+
+        given(reviewRepository.findById(reviewId)).willReturn(Optional.of(review));
+
+        reviewService.decrementCommentCount(reviewId);
+
+        assertThat(review.getCommentCount()).isEqualTo(0);
+    }
 }
