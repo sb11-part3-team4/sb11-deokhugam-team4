@@ -36,8 +36,9 @@ import java.util.UUID;
 
 import org.springframework.data.domain.Pageable;
 import org.springframework.test.util.ReflectionTestUtils;
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
+
+
+import static org.assertj.core.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.*;
@@ -628,10 +629,22 @@ public class ReviewServiceTest {
         Review review2 = Review.create(userId2, bookId2, 4, "좋아요");
         ReflectionTestUtils.setField(review2, "id", reviewId2);
 
-        Book book1 = Book.builder().title("책1").author("저자1").description("설명1").publisher("출판사1").publishedDate(LocalDate.of(2020, 1, 1)).build();
+        Book book1 = Book.builder()
+                .title("책1")
+                .author("저자1")
+                .description("설명1")
+                .publisher("출판사1")
+                .publishedDate(LocalDate.of(2020, 1, 1))
+                .build();
         ReflectionTestUtils.setField(book1, "id", bookId1);
 
-        Book book2 = Book.builder().title("책2").author("저자2").description("설명2").publisher("출판사2").publishedDate(LocalDate.of(2020, 1, 1)).build();
+        Book book2 = Book.builder()
+                .title("책2")
+                .author("저자2")
+                .description("설명2")
+                .publisher("출판사2")
+                .publishedDate(LocalDate.of(2020, 1, 1))
+                .build();
         ReflectionTestUtils.setField(book2, "id", bookId2);
 
         User user1 = new User("a@a.com", "유저1", "pw");
@@ -697,6 +710,77 @@ public class ReviewServiceTest {
         assertThat(result.rank()).isEqualTo(1);
         assertThat(result.score()).isEqualTo(score);
     }
+
+    @Test
+    @DisplayName("cursor가 있으면 ASC 방향으로 해당 rank 이후 인기 리뷰를 조회한다")
+    void getPopularReviews_withCursor_asc() {
+        UUID reviewId = UUID.randomUUID();
+        UUID userId = UUID.randomUUID();
+        UUID bookId = UUID.randomUUID();
+        BigDecimal score = new BigDecimal("0.7");
+
+        PopularReview popularReview = PopularReview.create(reviewId, "DAILY", score, 2, LocalDate.now());
+        Review review = Review.create(userId, bookId, 4, "내용");
+        ReflectionTestUtils.setField(review, "id", reviewId);
+        Book book = Book.builder()
+                .title("책")
+                .author("저자")
+                .description("설명")
+                .publisher("출판사")
+                .publishedDate(LocalDate.of(2020, 1, 1))
+                .build();
+        ReflectionTestUtils.setField(book, "id", bookId);
+        User user = new User("test@test.com", "닉네임", "password");
+        ReflectionTestUtils.setField(user, "id", userId);
+
+        given(popularReviewRepository.findByPeriodAndRankGreaterThan(eq("DAILY"), eq(1), any(Pageable.class)))
+                .willReturn(List.of(popularReview));
+        given(reviewRepository.findAllById(anyList())).willReturn(List.of(review));
+        given(bookRepository.findAllById(anyList())).willReturn(List.of(book));
+        given(userRepository.findAllById(anyList())).willReturn(List.of(user));
+
+        PageResponse<PopularReviewResponse> response =
+                reviewService.getPopularReviews("DAILY", "ASC", "1", null, 50);
+
+        assertThat(response.content()).hasSize(1);
+        assertThat(response.content().get(0).rank()).isEqualTo(2);
+    }
+
+    @Test
+    @DisplayName("cursor가 있으면 DESC 방향으로 해당 rank 이전 인기 리뷰를 조회한다")
+    void getPopularReviews_withCursor_desc() {
+        UUID reviewId = UUID.randomUUID();
+        UUID userId = UUID.randomUUID();
+        UUID bookId = UUID.randomUUID();
+        BigDecimal score = new BigDecimal("0.5");
+
+        PopularReview popularReview = PopularReview.create(reviewId, "DAILY", score, 1, LocalDate.now());
+        Review review = Review.create(userId, bookId, 3, "내용");
+        ReflectionTestUtils.setField(review, "id", reviewId);
+        Book book = Book.builder()
+                .title("책")
+                .author("저자")
+                .description("설명")
+                .publisher("출판사")
+                .publishedDate(LocalDate.of(2020,1,1))
+                .build();
+        ReflectionTestUtils.setField(book, "id", bookId);
+        User user = new User("test@test.com", "닉네임", "password");
+        ReflectionTestUtils.setField(user, "id", userId);
+
+        given(popularReviewRepository.findByPeriodAndRankLessThan(eq("DAILY"), eq(3), any(Pageable.class)))
+                .willReturn(List.of(popularReview));
+        given(reviewRepository.findAllById(anyList())).willReturn(List.of(review));
+        given(bookRepository.findAllById(anyList())).willReturn(List.of(book));
+        given(userRepository.findAllById(anyList())).willReturn(List.of(user));
+
+        PageResponse<PopularReviewResponse> response =
+                reviewService.getPopularReviews("DAILY", "DESC", "3", null, 50);
+
+        assertThat(response.content()).hasSize(1);
+        assertThat(response.content().get(0).rank()).isEqualTo(1);
+    }
+
 
     @Test
     @DisplayName("incrementCommentCount 호출 시 commentCount가 1 증가한다")
