@@ -111,10 +111,9 @@ public class UserServiceImpl implements UserService{
         .orElseThrow(() -> UserNotFoundException.withId(userId));
 
     DeletedUser deletedUser = DeletedUser.from(user);
-
     deleteUserRepository.save(deletedUser);
 
-    eventPublisher.publishEvent(new UserDeletedEvent(userId));
+    eventPublisher.publishEvent(new UserDeletedEvent(userId, false));
 
     userRepository.delete(user);
   }
@@ -129,7 +128,7 @@ public class UserServiceImpl implements UserService{
     DeletedUser deletedUser = deleteUserRepository.findById(userId)
         .orElseThrow(() -> UserNotFoundException.withId(userId));
 
-    eventPublisher.publishEvent(new UserDeletedEvent(userId));
+    eventPublisher.publishEvent(new UserDeletedEvent(userId, true));
 
     deleteUserRepository.delete(deletedUser);
   }

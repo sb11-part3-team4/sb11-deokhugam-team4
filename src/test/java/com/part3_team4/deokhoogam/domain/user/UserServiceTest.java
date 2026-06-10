@@ -267,7 +267,7 @@ public class UserServiceTest {
     userService.deleteUser(userId);
 
     then(deleteUserRepository).should().save(any(DeletedUser.class));
-    then(eventPublisher).should().publishEvent(any(UserDeletedEvent.class));
+    then(eventPublisher).should().publishEvent(new UserDeletedEvent(userId, false));
     then(userRepository).should().delete(user);
   }
 
@@ -299,7 +299,7 @@ public class UserServiceTest {
     userService.hardDeleteUser(userId);
 
     then(deleteUserRepository).should().delete(deletedUser);
-    then(eventPublisher).should().publishEvent(any(UserDeletedEvent.class));
+    then(eventPublisher).should().publishEvent(new UserDeletedEvent(userId, true));
   }
 
   @Test
