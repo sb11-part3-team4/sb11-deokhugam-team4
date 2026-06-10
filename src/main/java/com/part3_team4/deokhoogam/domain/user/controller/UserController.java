@@ -8,6 +8,7 @@ import com.part3_team4.deokhoogam.domain.user.dto.UserLoginResultDto;
 import com.part3_team4.deokhoogam.domain.user.dto.UserUpdateRequestDto;
 import com.part3_team4.deokhoogam.domain.user.dto.response.PowerUserRankingResponseDto;
 import com.part3_team4.deokhoogam.domain.user.dto.response.UserResponse;
+import com.part3_team4.deokhoogam.domain.user.enums.PowerUserPeriod;
 import com.part3_team4.deokhoogam.domain.user.service.PowerUserRankingService;
 import com.part3_team4.deokhoogam.domain.user.service.UserService;
 import jakarta.validation.Valid;
@@ -116,9 +117,10 @@ public class UserController {
   }
 
   @GetMapping("/power")
-  public ResponseEntity<Map<String, Object>> getPowerUsers() {
+  public ResponseEntity<Map<String, Object>> getPowerUsers(
+      @RequestParam(defaultValue = "DAILY") PowerUserPeriod period) {
 
-    List<PowerUserRankingResponseDto> rankings = powerUserRankingService.getDailyRankingWithNickname();
+    List<PowerUserRankingResponseDto> rankings = powerUserRankingService.getRankingWithNickname(period);
 
     Map<String, Object> response = Map.of("content", rankings);
 

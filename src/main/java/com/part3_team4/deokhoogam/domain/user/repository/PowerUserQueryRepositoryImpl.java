@@ -25,9 +25,8 @@ public class PowerUserQueryRepositoryImpl implements PowerUserQueryRepository {
 
   @Override
   public Map<UUID, BigDecimal> getReviewPopularScoreSum(Instant startDate, Instant endDate) {
-    //해당 기간에 작성된 리뷰와 연결된 인기 점수의 합산을 유저별로 구분
     List<Tuple> results = queryFactory
-        .select(review.userId, review.count())
+        .select(review.userId, review.likeCount.sum())
         .from(review)
         .where(review.createdAt.between(startDate, endDate))
         .groupBy(review.userId)
@@ -38,8 +37,8 @@ public class PowerUserQueryRepositoryImpl implements PowerUserQueryRepository {
         .collect(Collectors.toMap(
             tuple -> tuple.get(review.userId),
             tuple -> {
-              Long count = tuple.get(1, Long.class);
-              return count != null ? BigDecimal.valueOf(count) : BigDecimal.ZERO;
+              Number sum = tuple.get(1, Number.class);
+              return sum != null ? BigDecimal.valueOf(sum.longValue()) : BigDecimal.ZERO;
             },
             (existing, replacement) -> existing
         ));
@@ -47,7 +46,6 @@ public class PowerUserQueryRepositoryImpl implements PowerUserQueryRepository {
 
   @Override
   public Map<UUID, Long> getLikeCount(Instant startDate, Instant endDate) {
-    //해당 기간에 유저가 직접 누른 좋아요 개수를 유저별로 구합니다
     List<Tuple> results = queryFactory
         .select(reviewLike.userId, reviewLike.count())
         .from(reviewLike)
@@ -59,14 +57,16 @@ public class PowerUserQueryRepositoryImpl implements PowerUserQueryRepository {
         .filter(tuple -> tuple.get(reviewLike.userId) != null)
         .collect(Collectors.toMap(
             tuple -> tuple.get(reviewLike.userId),
-            tuple -> tuple.get(1, Long.class) != null ? tuple.get(1, Long.class) : 0L,
+            tuple -> {
+              Number count = tuple.get(1, Number.class);
+              return count != null ? count.longValue() : 0L;
+            },
             (existing, replacement) -> existing
         ));
   }
 
   @Override
   public Map<UUID, Long> getCommentCount(Instant startDate, Instant endDate) {
-    //해당 기간에 유저가 직접 작성한 댓글 개수를 유저별로 구합니다.
     List<Tuple> results = queryFactory
         .select(comment.user.id, comment.count())
         .from(comment)
@@ -78,7 +78,10 @@ public class PowerUserQueryRepositoryImpl implements PowerUserQueryRepository {
         .filter(tuple -> tuple.get(comment.user.id) != null)
         .collect(Collectors.toMap(
             tuple -> tuple.get(comment.user.id),
-            tuple -> tuple.get(1, Long.class) != null ? tuple.get(1, Long.class) : 0L,
+            tuple -> {
+              Number count = tuple.get(1, Number.class);
+              return count != null ? count.longValue() : 0L;
+            },
             (existing, replacement) -> existing
         ));
   }

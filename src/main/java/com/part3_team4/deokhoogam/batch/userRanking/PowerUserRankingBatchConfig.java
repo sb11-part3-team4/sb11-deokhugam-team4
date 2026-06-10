@@ -39,7 +39,7 @@ public class PowerUserRankingBatchConfig {
   @Bean
   public Tasklet powerUserRankingTasklet() {
     return (contribution, chunkContext) -> {
-      powerUserRankingService.calculateAndSaveDailyRanking();
+      powerUserRankingService.calculateAndSaveAllRankings();
 
       return RepeatStatus.FINISHED;
     };
