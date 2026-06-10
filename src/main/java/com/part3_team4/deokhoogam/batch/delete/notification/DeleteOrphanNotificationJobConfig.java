@@ -16,7 +16,7 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.transaction.PlatformTransactionManager;
 
-import java.util.ArrayList;
+import java.util.List;
 
 @Configuration
 @RequiredArgsConstructor
@@ -61,6 +61,6 @@ public class DeleteOrphanNotificationJobConfig {
 
     @Bean
     public ItemWriter<Notification> orphanNotificationWriter() {
-        return chunk -> notificationRepository.deleteAllInBatch(new ArrayList<>(chunk.getItems()));
+        return chunk -> notificationRepository.deleteAllInBatch(List.copyOf(chunk.getItems()));
     }
 }

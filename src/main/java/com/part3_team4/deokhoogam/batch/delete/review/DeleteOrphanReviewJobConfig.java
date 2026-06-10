@@ -16,7 +16,7 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.transaction.PlatformTransactionManager;
 
-import java.util.ArrayList;
+import java.util.List;
 
 @Configuration
 @RequiredArgsConstructor
@@ -63,6 +63,6 @@ public class DeleteOrphanReviewJobConfig {
 
     @Bean
     public ItemWriter<DeletedReview> orphanDeletedReviewWriter() {
-        return chunk -> deletedReviewRepository.deleteAllInBatch(new ArrayList<>(chunk.getItems()));
+        return chunk -> deletedReviewRepository.deleteAllInBatch(List.copyOf(chunk.getItems()));
     }
 }
