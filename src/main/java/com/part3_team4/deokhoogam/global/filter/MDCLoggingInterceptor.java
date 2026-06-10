@@ -29,8 +29,10 @@ public class MDCLoggingInterceptor implements HandlerInterceptor {
     // 알림 폴링 요청은 스킵
     if ("GET".equals(request.getMethod())
         && "/api/notifications".equals(request.getRequestURI())) {
+      request.setAttribute("skipLogging", true);  // 플래그 저장
       return true;
     }
+
 
     // 요청 ID 생성 (UUID)
     String requestId = UUID.randomUUID().toString().replaceAll("-", "");
@@ -54,6 +56,10 @@ public class MDCLoggingInterceptor implements HandlerInterceptor {
   @Override
   public void afterCompletion(@NonNull HttpServletRequest request,
       @NonNull HttpServletResponse response, @NonNull Object handler, Exception ex) {
+
+    if (Boolean.TRUE.equals(request.getAttribute("skipLogging"))) {
+      return;  // 플래그 있으면 스킵
+    }
 
     long duration = -1;
     String startTime = MDC.get(START_TIME);
