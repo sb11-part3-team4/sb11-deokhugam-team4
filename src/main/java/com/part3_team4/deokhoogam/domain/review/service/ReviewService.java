@@ -14,4 +14,6 @@ public interface ReviewService {
     ReviewLikeResponse toggleLike(UUID reviewId, UUID userId);
     PageResponse<ReviewResponse> getReviews(UUID userId, ReviewListRequest request);
     PageResponse<PopularReviewResponse> getPopularReviews(String period, String direction, String cursor, String after, int limit);
+    void incrementCommentCount(UUID reviewId);
+    void decrementCommentCount(UUID reviewId);
 }
