@@ -207,7 +207,17 @@ public class ReviewServiceImpl implements ReviewService {
     @Transactional(readOnly = true)
     public PageResponse<PopularReviewResponse> getPopularReviews(String period, String direction, String cursor, String after, int limit) {
         Pageable pageable = PageRequest.of(0, limit + 1, Sort.by(Sort.Direction.fromString(direction), "rank"));
-        List<PopularReview> popularReviews = popularReviewRepository.findByPeriod(period, pageable);
+        List<PopularReview> popularReviews;
+        if (cursor != null) {
+            int cursorRank = Integer.parseInt(cursor);
+            if ("ASC".equalsIgnoreCase(direction)) {
+                popularReviews = popularReviewRepository.findByPeriodAndRankGreaterThan(period, cursorRank, pageable);
+            } else {
+                popularReviews = popularReviewRepository.findByPeriodAndRankLessThan(period, cursorRank, pageable);
+            }
+        } else {
+            popularReviews = popularReviewRepository.findByPeriod(period, pageable);
+        }
 
         boolean hasNext = popularReviews.size() > limit;
         if (hasNext) {
