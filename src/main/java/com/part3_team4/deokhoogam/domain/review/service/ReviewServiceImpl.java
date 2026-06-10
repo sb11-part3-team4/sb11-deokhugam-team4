@@ -209,7 +209,12 @@ public class ReviewServiceImpl implements ReviewService {
         Pageable pageable = PageRequest.of(0, limit + 1, Sort.by(Sort.Direction.fromString(direction), "rank"));
         List<PopularReview> popularReviews;
         if (cursor != null) {
-            int cursorRank = Integer.parseInt(cursor);
+            int cursorRank;
+            try {
+                cursorRank = Integer.parseInt(cursor);
+            } catch (NumberFormatException e) {
+                throw new IllegalArgumentException("cursor 값이 올바르지 않습니다: " + cursor);
+            }
             if ("ASC".equalsIgnoreCase(direction)) {
                 popularReviews = popularReviewRepository.findByPeriodAndRankGreaterThan(period, cursorRank, pageable);
             } else {

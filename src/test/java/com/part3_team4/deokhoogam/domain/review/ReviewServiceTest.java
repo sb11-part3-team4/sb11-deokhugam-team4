@@ -37,7 +37,7 @@ import java.util.UUID;
 import org.springframework.data.domain.Pageable;
 import org.springframework.test.util.ReflectionTestUtils;
 
-import static com.part3_team4.deokhoogam.domain.user.entity.QUser.user;
+
 import static org.assertj.core.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
