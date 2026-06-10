@@ -25,6 +25,13 @@ public class MDCLoggingInterceptor implements HandlerInterceptor {
   @Override
   public boolean preHandle(HttpServletRequest request, HttpServletResponse response,
       @NonNull Object handler) {
+
+    // 알림 폴링 요청은 스킵
+    if ("GET".equals(request.getMethod())
+        && "/api/notifications".equals(request.getRequestURI())) {
+      return true;
+    }
+
     // 요청 ID 생성 (UUID)
     String requestId = UUID.randomUUID().toString().replaceAll("-", "");
     String clientIp = extractClientIp(request);
