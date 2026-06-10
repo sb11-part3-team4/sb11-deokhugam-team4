@@ -166,17 +166,10 @@ public class NotificationController {
      * 따라서 Controller에서 문자열로 받은 뒤 Sort.Direction.fromString(...)으로 변환합니다.
      * fromString은 "DESC", "desc" 모두 처리할 수 있습니다.
      */
-    Sort.Direction sortDirection;
 
-    try {
-      // direction은 Swagger에서는 ASC/DESC로 안내하지만,
-      // 사용자가 desc처럼 소문자로 요청해도 정상 처리되도록 fromString으로 변환합니다.
-      sortDirection = Sort.Direction.fromString(direction);
-    } catch (IllegalArgumentException e) {
-      // direction=abc처럼 ASC/DESC로 해석할 수 없는 값은
-      // 서비스까지 내려보내지 않고 400 Bad Request로 응답합니다.
-      throw NotificationInvalidInputException.withDirection(direction);
-    }
+    // 클라이언트가 소문자 asc/desc를 전달해도 처리할 수 있도록
+    // 별도의 변환 메서드를 통해 Sort.Direction으로 변환합니다.
+    Sort.Direction sortDirection = parseDirection(direction);
 
     PageResponse<NotificationDto> response = notificationService.findAll(
         requesterId,
@@ -188,5 +181,25 @@ public class NotificationController {
     );
 
     return ResponseEntity.ok(response);
+  }
+
+  /**
+   * HTTP query parameter로 전달된 정렬 방향을 변환합니다.
+   *
+   * Sort.Direction.fromString()은 "ASC", "DESC"뿐만 아니라
+   * "asc", "desc"와 같은 소문자 입력도 처리할 수 있습니다.
+   *
+   * 지원하지 않는 값이 전달되면 Spring의 내부 예외를 그대로 노출하지 않고,
+   * 알림 도메인의 입력값 예외로 변환하여 400 Bad Request를 반환합니다.
+   *
+   * @param direction 사용자가 전달한 정렬 방향 문자열
+   * @return 변환된 Spring Data 정렬 방향
+   */
+  private Sort.Direction parseDirection(String direction) {
+    try {
+      return Sort.Direction.fromString(direction);
+    } catch (IllegalArgumentException exception) {
+      throw NotificationInvalidInputException.withDirection(direction);
+    }
   }
 }
