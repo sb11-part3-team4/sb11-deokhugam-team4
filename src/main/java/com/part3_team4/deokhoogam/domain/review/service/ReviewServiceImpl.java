@@ -263,4 +263,20 @@ public class ReviewServiceImpl implements ReviewService {
         );
     }
 
+    @Override
+    @Transactional
+    public void incrementCommentCount (UUID reviewId) {
+        Review review = reviewRepository.findById(reviewId)
+                .orElseThrow(() -> ReviewNotFoundException.withId(reviewId));
+        review.incrementCommentCount();
+    }
+
+    @Override
+    @Transactional
+    public void decrementCommentCount(UUID reviewId) {
+        Review review = reviewRepository.findById(reviewId)
+                .orElseThrow(() -> ReviewNotFoundException.withId(reviewId));
+        review.decrementCommentCount();
+    }
+
 }
