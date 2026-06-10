@@ -17,6 +17,7 @@ public class BatchScheduler {
     private final JobLauncher jobLauncher;
     private final Job deleteOrphanCommentJob;
     private final Job deleteOrphanReviewJob;
+    private final Job deleteOrphanNotificationJob;
 
     @Scheduled(cron = "0 0 3 * * *")
     public void runOrphanDeletionJobs() {
@@ -36,6 +37,15 @@ public class BatchScheduler {
             jobLauncher.run(deleteOrphanReviewJob, params);
         } catch (Exception e) {
             log.error("고아 리뷰 삭제 배치 실행 중 오류 발생", e);
+        }
+
+        try {
+            JobParameters params = new JobParametersBuilder()
+                .addLong("time", System.currentTimeMillis())
+                .toJobParameters();
+            jobLauncher.run(deleteOrphanNotificationJob, params);
+        } catch (Exception e) {
+            log.error("고아 알림 삭제 배치 실행 중 오류 발생", e);
         }
     }
 }
