@@ -10,6 +10,7 @@ import com.part3_team4.deokhoogam.domain.review.entity.DeletedReview;
 import com.part3_team4.deokhoogam.domain.review.entity.PopularReview;
 import com.part3_team4.deokhoogam.domain.review.entity.Review;
 import com.part3_team4.deokhoogam.domain.review.entity.ReviewLike;
+import com.part3_team4.deokhoogam.domain.review.exception.InvalidReviewException;
 import com.part3_team4.deokhoogam.domain.review.exception.ReviewAlreadyExistsException;
 import com.part3_team4.deokhoogam.domain.review.exception.ReviewNotFoundException;
 import com.part3_team4.deokhoogam.domain.review.exception.ReviewNotOwnerException;
@@ -27,6 +28,7 @@ import java.util.*;
 import java.util.stream.Collectors;
 
 import com.part3_team4.deokhoogam.global.common.PageResponse;
+import com.part3_team4.deokhoogam.global.exception.ErrorKey;
 import lombok.RequiredArgsConstructor;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.data.domain.PageRequest;
@@ -213,7 +215,7 @@ public class ReviewServiceImpl implements ReviewService {
             try {
                 cursorRank = Integer.parseInt(cursor);
             } catch (NumberFormatException e) {
-                throw new IllegalArgumentException("cursor 값이 올바르지 않습니다: " + cursor);
+                throw InvalidReviewException.withFieldAndValue(ErrorKey.WRONG_CURSOR, cursor, "cursor는 정수여야 합니다.");
             }
             if ("ASC".equalsIgnoreCase(direction)) {
                 popularReviews = popularReviewRepository.findByPeriodAndRankGreaterThan(period, cursorRank, pageable);
