@@ -4,6 +4,7 @@ import com.part3_team4.deokhoogam.domain.book.entity.Book;
 import com.part3_team4.deokhoogam.domain.book.exception.BookNotFoundException;
 import com.part3_team4.deokhoogam.domain.book.repository.BookRepository;
 import com.part3_team4.deokhoogam.domain.book.service.BookService;
+import com.part3_team4.deokhoogam.domain.notification.service.NotificationService;
 import com.part3_team4.deokhoogam.domain.review.dto.*;
 import com.part3_team4.deokhoogam.domain.review.entity.DeletedReview;
 import com.part3_team4.deokhoogam.domain.review.entity.PopularReview;
@@ -17,6 +18,7 @@ import com.part3_team4.deokhoogam.domain.review.repository.PopularReviewReposito
 import com.part3_team4.deokhoogam.domain.review.repository.ReviewLikeRepository;
 import com.part3_team4.deokhoogam.domain.review.repository.ReviewRepository;
 import com.part3_team4.deokhoogam.domain.user.entity.User;
+import com.part3_team4.deokhoogam.domain.user.exception.UserNotFoundException;
 import com.part3_team4.deokhoogam.domain.user.repository.UserRepository;
 import com.part3_team4.deokhoogam.domain.review.dto.ReviewWithLiked;
 
@@ -33,7 +35,7 @@ import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import static com.part3_team4.deokhoogam.domain.review.entity.QReview.review;
+
 
 @Service
 @RequiredArgsConstructor
@@ -46,6 +48,7 @@ public class ReviewServiceImpl implements ReviewService {
     private final PopularReviewRepository popularReviewRepository;
     private final UserRepository userRepository;
     private final BookService bookService;
+    private final NotificationService notificationService;
 
 
     @Override
@@ -149,6 +152,11 @@ public class ReviewServiceImpl implements ReviewService {
         } else {
             reviewLikeRepository.save(ReviewLike.create(reviewId, userId));
             review.incrementLikeCount();
+            User actor = userRepository.findById(userId)
+                    .orElseThrow(() -> UserNotFoundException.withId(userId));
+            notificationService.createLikeNotification(
+                    review.getUserId(), reviewId, review.getContent(), actor.getName(), userId
+            );
         }
         return new ReviewLikeResponse(reviewId, !alreadyLiked, review.getLikeCount());
     }

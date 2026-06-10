@@ -21,6 +21,7 @@ import com.part3_team4.deokhoogam.domain.review.exception.ReviewAlreadyExistsExc
 import com.part3_team4.deokhoogam.domain.review.entity.PopularReview;
 import com.part3_team4.deokhoogam.domain.user.entity.User;
 import com.part3_team4.deokhoogam.domain.review.dto.ReviewWithLiked;
+import com.part3_team4.deokhoogam.domain.notification.service.NotificationService;
 
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -63,6 +64,8 @@ public class ReviewServiceTest {
     UserRepository userRepository;
     @Mock
     BookService bookService;
+    @Mock
+    NotificationService notificationService;
 
     @Test
     @DisplayName("정상적인 요청으로 리뷰를 등록하면 ReviewResponse를 반환한다")
@@ -297,7 +300,9 @@ public class ReviewServiceTest {
         UUID userId = UUID.randomUUID();
         UUID bookId = UUID.randomUUID();
         Review review = Review.create(userId, bookId, 4, "내용");
+        User actor = new User("test@test.com", "닉네임", "password");
 
+        given(userRepository.findById(userId)).willReturn(Optional.of(actor));
         given(reviewRepository.findById(any(UUID.class))).willReturn(Optional.of(review));
         given(reviewLikeRepository.existsByReviewIdAndUserId(any(UUID.class),eq(userId))).willReturn(false);
 

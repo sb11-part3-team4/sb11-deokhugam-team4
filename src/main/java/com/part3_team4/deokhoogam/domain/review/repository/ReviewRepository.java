@@ -10,6 +10,7 @@ import org.springframework.data.repository.query.Param;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
+import java.math.BigDecimal;
 
 
 public interface ReviewRepository extends JpaRepository<Review, UUID>{
@@ -27,18 +28,23 @@ public interface ReviewRepository extends JpaRepository<Review, UUID>{
             );
     boolean existsByUserIdAndBookId(UUID userId, UUID bookId);
 
+    long countByBookId(UUID bookId);
+
+    @Query("SELECT COALESCE(AVG(r.rating), 0) FROM Review r WHERE r.bookId = :bookId")
+    BigDecimal averageRatingByBookId(@Param("bookId") UUID bookId);
 
     @Query("""
-        SELECT new com.part3_team4.deokhoogam.domain.review.dto.ReviewWithLiked(
-        r, CASE WHEN rl.id IS NOT NULL THEN true ELSE false END
-        )
-        FROM Review r
-        LEFT JOIN ReviewLike rl ON rl.reviewId = r.id AND rl.userId = :userId
-        WHERE r.id = :reviewId
-""")
+          SELECT new com.part3_team4.deokhoogam.domain.review.dto.ReviewWithLiked(
+          r, CASE WHEN rl.id IS NOT NULL THEN true ELSE false END
+          )
+          FROM Review r
+          LEFT JOIN ReviewLike rl ON rl.reviewId = r.id AND rl.userId = :userId
+          WHERE r.id = :reviewId
+  """)
     Optional<ReviewWithLiked> findByIdWithLiked(
             @Param("reviewId") UUID reviewId,
             @Param("userId") UUID userId
     );
+
 
 }
