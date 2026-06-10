@@ -58,6 +58,7 @@ public class MDCLoggingInterceptor implements HandlerInterceptor {
       @NonNull HttpServletResponse response, @NonNull Object handler, Exception ex) {
 
     if (Boolean.TRUE.equals(request.getAttribute("skipLogging"))) {
+      MDC.clear();  // 스킵해도 MDC는 반드시 정리!
       return;  // 플래그 있으면 스킵
     }
 
