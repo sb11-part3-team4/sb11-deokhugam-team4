@@ -105,23 +105,14 @@ public class UserController {
   }
 
   @PostMapping("/login")
-  public ResponseEntity<Map<String, Object>> login(
+  public ResponseEntity<UserLoginResultDto> login(
       @Valid @RequestBody UserLoginRequestDto request) {
 
     UserLoginResultDto result = userService.login(request.email(), request.password());
 
-    Map<String, Object> responseBody = Map.of(
-        "token", "",
-        "accessToken", "",
-        "id", result.id(),
-        "email", result.email(),
-        "nickname", result.nickname(),
-        "createdAt", result.createdAt()
-    );
-
     log.info("로그인 완료. ID: {}", result.id());
 
-    return ResponseEntity.ok(responseBody);
+    return ResponseEntity.ok(result);
   }
 
   @GetMapping("/power")

@@ -346,7 +346,6 @@ public class UserServiceTest {
 
     UserLoginResultDto result = userService.login(email, rawPassword);
 
-    assertThat(result.token()).isEqualTo(""); // 빈 문자열로 변경
     assertThat(result.nickname()).isEqualTo("testUser");
   }
 

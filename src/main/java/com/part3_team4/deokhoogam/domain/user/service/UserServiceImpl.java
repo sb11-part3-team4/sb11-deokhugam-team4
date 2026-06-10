@@ -145,7 +145,7 @@ public class UserServiceImpl implements UserService{
     }
 
     return new UserLoginResultDto(
-        "", user.getId(), user.getEmail(), user.getName(), user.getCreatedAt()
+        user.getId(), user.getEmail(), user.getName(), user.getCreatedAt()
     );
   }
 }

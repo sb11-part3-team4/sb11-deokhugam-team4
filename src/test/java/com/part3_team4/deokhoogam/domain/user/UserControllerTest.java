@@ -209,7 +209,7 @@ public class UserControllerTest {
         "test@deokhugam.com", "password123!");
 
     UserLoginResultDto mockResult = new UserLoginResultDto(
-        "", UUID.randomUUID(), "test@deokhugam.com", "testUser", java.time.Instant.now());
+        UUID.randomUUID(), "test@deokhugam.com", "testUser", java.time.Instant.now());
 
     given(userService.login(request.email(), request.password()))
         .willReturn(mockResult);
