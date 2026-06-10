@@ -2,6 +2,8 @@ package com.part3_team4.deokhoogam.domain.notification;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.BDDMockito.given;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.Mockito.verifyNoInteractions;
 
 import com.part3_team4.deokhoogam.domain.notification.dto.NotificationDto;
 import com.part3_team4.deokhoogam.domain.notification.entity.Notification;
@@ -22,9 +24,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
 import org.springframework.test.util.ReflectionTestUtils;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.mockito.BDDMockito.then;
-import static org.mockito.Mockito.verifyNoInteractions;
+
 
 /**
  * 알림 목록 조회 Service 로직을 검증하는 테스트입니다.
