@@ -3,6 +3,9 @@ spring:
     name: deokhugam
   profiles:
     active: ${SPRING_PROFILES_ACTIVE:dev}
+  batch:
+    job:
+      enabled: false
 
   servlet:
     multipart:
@@ -37,6 +40,6 @@ naver:
 
 ocr:
   space:
-    api-key: ${OCR_SPACE_API_KEY}
+    api-key: ${OCR_SPACE_API_KEY:dummy_key}
     connect-timeout: 5000
     read-timeout: 15000

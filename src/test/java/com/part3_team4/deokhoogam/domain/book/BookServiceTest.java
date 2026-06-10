@@ -35,6 +35,7 @@ import com.part3_team4.deokhoogam.global.fixture.BookFixtures;
 import com.part3_team4.deokhoogam.global.fixture.NaverBookFixture;
 import com.part3_team4.deokhoogam.global.storage.FileUploader;
 import com.part3_team4.deokhoogam.global.util.CursorUtils;
+import java.math.BigDecimal;
 import java.sql.SQLException;
 import java.time.Instant;
 import java.time.LocalDate;
@@ -423,7 +424,7 @@ class BookServiceTest {
     // given
     UUID nonExistentId = UUID.randomUUID();
     BookUpdateRequest request = BookFixtures.validBookUpdateRequest();
-    
+
     given(bookPersistence.update(eq(nonExistentId), eq(request), eq(null), eq(null)))
         .willThrow(BookNotFoundException.withId(nonExistentId));
 
@@ -432,6 +433,21 @@ class BookServiceTest {
         .isInstanceOf(BookNotFoundException.class);
 
     then(bookPersistence).should().update(eq(nonExistentId), eq(request), eq(null), eq(null));
+  }
+
+  @Test
+  @DisplayName("정상적인 데이터가 들어오면 Persistence에 수정을 위임한다")
+  void updateReviewData_Success() {
+    // given
+    UUID mockId = UUID.randomUUID();
+    int newCount = 10;
+    BigDecimal newRating = new BigDecimal("4.50");
+
+    // when
+    bookService.updateReviewData(mockId, newCount, newRating);
+
+    // then
+    then(bookPersistence).should().updateReviewData(mockId, newCount, newRating);
   }
 
   @Nested
