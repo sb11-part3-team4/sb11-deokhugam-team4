@@ -1,8 +1,11 @@
 package com.part3_team4.deokhoogam.batch.delete.notification;
 
+import com.part3_team4.deokhoogam.batch.listener.BatchJobMetricListener;
+import com.part3_team4.deokhoogam.batch.listener.BatchStepMetricListener;
 import com.part3_team4.deokhoogam.domain.notification.entity.Notification;
 import com.part3_team4.deokhoogam.domain.notification.repository.NotificationRepository;
 import jakarta.persistence.EntityManagerFactory;
+import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.springframework.batch.core.Job;
 import org.springframework.batch.core.Step;
@@ -16,8 +19,6 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.transaction.PlatformTransactionManager;
 
-import java.util.List;
-
 @Configuration
 @RequiredArgsConstructor
 public class DeleteOrphanNotificationJobConfig {
@@ -26,6 +27,9 @@ public class DeleteOrphanNotificationJobConfig {
     private final PlatformTransactionManager transactionManager;
     private final EntityManagerFactory entityManagerFactory;
     private final NotificationRepository notificationRepository;
+
+    private final BatchJobMetricListener batchJobMetricListener;
+    private final BatchStepMetricListener batchStepMetricListener;
 
     private static final int CHUNK_SIZE = 100;
 
@@ -37,6 +41,7 @@ public class DeleteOrphanNotificationJobConfig {
     @Bean
     public Job deleteOrphanNotificationJob() {
         return new JobBuilder("deleteOrphanNotificationJob", jobRepository)
+            .listener(batchJobMetricListener)
             .start(deleteOrphanNotificationStep())
             .build();
     }
@@ -47,6 +52,7 @@ public class DeleteOrphanNotificationJobConfig {
             .<Notification, Notification>chunk(CHUNK_SIZE, transactionManager)
             .reader(orphanNotificationReader())
             .writer(orphanNotificationWriter())
+            .listener(batchStepMetricListener)
             .build();
     }
 

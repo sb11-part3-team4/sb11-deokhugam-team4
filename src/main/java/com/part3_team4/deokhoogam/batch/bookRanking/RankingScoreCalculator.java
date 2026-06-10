@@ -1,4 +1,4 @@
-package com.part3_team4.deokhoogam.batch.BookRanking;
+package com.part3_team4.deokhoogam.batch.bookRanking;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;

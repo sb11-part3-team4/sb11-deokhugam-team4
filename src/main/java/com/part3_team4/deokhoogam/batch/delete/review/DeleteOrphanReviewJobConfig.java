@@ -1,8 +1,11 @@
 package com.part3_team4.deokhoogam.batch.delete.review;
 
+import com.part3_team4.deokhoogam.batch.listener.BatchJobMetricListener;
+import com.part3_team4.deokhoogam.batch.listener.BatchStepMetricListener;
 import com.part3_team4.deokhoogam.domain.review.entity.DeletedReview;
 import com.part3_team4.deokhoogam.domain.review.repository.DeletedReviewRepository;
 import jakarta.persistence.EntityManagerFactory;
+import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.springframework.batch.core.Job;
 import org.springframework.batch.core.Step;
@@ -16,8 +19,6 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.transaction.PlatformTransactionManager;
 
-import java.util.List;
-
 @Configuration
 @RequiredArgsConstructor
 public class DeleteOrphanReviewJobConfig {
@@ -26,6 +27,9 @@ public class DeleteOrphanReviewJobConfig {
     private final PlatformTransactionManager transactionManager;
     private final EntityManagerFactory entityManagerFactory;
     private final DeletedReviewRepository deletedReviewRepository;
+
+    private final BatchJobMetricListener batchJobMetricListener;
+    private final BatchStepMetricListener batchStepMetricListener;
 
     private static final int CHUNK_SIZE = 100;
 
@@ -39,6 +43,7 @@ public class DeleteOrphanReviewJobConfig {
     @Bean
     public Job deleteOrphanReviewJob() {
         return new JobBuilder("deleteOrphanReviewJob", jobRepository)
+            .listener(batchJobMetricListener)
             .start(deleteOrphanReviewStep())
             .build();
     }
@@ -49,6 +54,7 @@ public class DeleteOrphanReviewJobConfig {
             .<DeletedReview, DeletedReview>chunk(CHUNK_SIZE, transactionManager)
             .reader(orphanDeletedReviewReader())
             .writer(orphanDeletedReviewWriter())
+            .listener(batchStepMetricListener)
             .build();
     }
 

@@ -1,5 +1,6 @@
 package com.part3_team4.deokhoogam.batch.userRanking;
 
+import com.part3_team4.deokhoogam.batch.listener.BatchJobMetricListener;
 import com.part3_team4.deokhoogam.domain.user.service.PowerUserRankingService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -21,10 +22,14 @@ public class PowerUserRankingBatchConfig {
   private final JobRepository jobRepository;
   private final PlatformTransactionManager transactionManager;
   private final PowerUserRankingService powerUserRankingService;
+  private final BatchJobMetricListener batchJobMetricListener;
+
+
 
   @Bean
   public Job powerUserRankingJob() {
     return new JobBuilder("powerUserRankingJob", jobRepository)
+        .listener(batchJobMetricListener)
         .start(powerUserRankingStep())
         .build();
   }

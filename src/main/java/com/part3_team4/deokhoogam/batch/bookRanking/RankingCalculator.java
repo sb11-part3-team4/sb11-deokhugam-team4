@@ -1,4 +1,4 @@
-package com.part3_team4.deokhoogam.batch.BookRanking;
+package com.part3_team4.deokhoogam.batch.bookRanking;
 
 
 import com.part3_team4.deokhoogam.domain.book.dto.ranking.BookScoreProjection;
@@ -7,6 +7,7 @@ import com.part3_team4.deokhoogam.domain.book.entity.BookRanking;
 import com.part3_team4.deokhoogam.domain.book.entity.PeriodType;
 import com.part3_team4.deokhoogam.domain.book.repository.BookRepository;
 import com.part3_team4.deokhoogam.domain.book.repository.ranking.BookRankingRepository;
+import com.part3_team4.deokhoogam.global.metric.CustomMetrics;
 import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.ArrayList;
@@ -27,6 +28,8 @@ public class RankingCalculator {
   private final BookRepository bookRepository;
 
   private final RankingScoreCalculator scoreCalculator;
+
+  private final CustomMetrics customMetrics;
 
   @Transactional
   public void calculateAndSave(PeriodType period) {
@@ -74,6 +77,11 @@ public class RankingCalculator {
     bookRankingRepository.deleteByPeriod(period);
     bookRankingRepository.flush();
     bookRankingRepository.saveAll(rankings);
+
+    // 6. 메트릭 기록
+    customMetrics.recordCount("RankingBookJob", period.name(), rankings.size());
+    customMetrics.recordLastSuccess("RankingBookJob", period.name());
+
   }
 
   // 점수 계산 중간 결과를 잠깐 담는 용도

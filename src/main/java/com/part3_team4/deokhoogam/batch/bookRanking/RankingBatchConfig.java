@@ -1,6 +1,7 @@
-package com.part3_team4.deokhoogam.batch.BookRanking;
+package com.part3_team4.deokhoogam.batch.bookRanking;
 
 
+import com.part3_team4.deokhoogam.batch.listener.BatchJobMetricListener;
 import com.part3_team4.deokhoogam.domain.book.entity.PeriodType;
 import lombok.RequiredArgsConstructor;
 import org.springframework.batch.core.Job;
@@ -18,6 +19,7 @@ import org.springframework.transaction.PlatformTransactionManager;
 @RequiredArgsConstructor
 public class RankingBatchConfig {
 
+  private final BatchJobMetricListener batchJobMetricListener;
   private final JobRepository jobRepository;
   private final PlatformTransactionManager transactionManager;
   private final RankingCalculator rankingCalculator;
@@ -26,6 +28,7 @@ public class RankingBatchConfig {
   @Bean
   public Job rankingJob() {
     return new JobBuilder("rankingJob", jobRepository)
+        .listener(batchJobMetricListener)
         .start(rankingStep())
         .build();
   }
