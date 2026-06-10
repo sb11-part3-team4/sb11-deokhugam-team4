@@ -29,7 +29,10 @@ import java.util.stream.Collectors;
 
 import com.part3_team4.deokhoogam.global.common.PageResponse;
 import com.part3_team4.deokhoogam.global.exception.ErrorKey;
+
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -38,7 +41,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 
-
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class ReviewServiceImpl implements ReviewService {
@@ -56,6 +59,8 @@ public class ReviewServiceImpl implements ReviewService {
     @Override
     @Transactional
     public ReviewResponse createReview(UUID userId, ReviewCreateRequest request) {
+
+        log.info("[ReviewService] createReview 시작 - userId: {}, bookId: {}", userId, request.bookId());
 
         bookRepository.findById(request.bookId())
                 .orElseThrow(() -> BookNotFoundException.withId(request.bookId()));
@@ -75,6 +80,8 @@ public class ReviewServiceImpl implements ReviewService {
         BigDecimal avgRating = reviewRepository.averageRatingByBookId(request.bookId());
         bookService.updateReviewData(request.bookId(), Math.toIntExact(reviewCount), avgRating);
 
+        log.info("[ReviewService] createReview 완료 - reviewId: {}", saved.getId());
+
         return new ReviewResponse(
                 saved.getId(), saved.getUserId(), saved.getBookId(),
                 saved.getRating(), saved.getContent(),
@@ -84,15 +91,20 @@ public class ReviewServiceImpl implements ReviewService {
 
 
 
+
+
     }
 
     @Override
     @Transactional(readOnly = true)
     public ReviewResponse getReview(UUID reviewId, UUID userId) {
+
         ReviewWithLiked result = reviewRepository.findByIdWithLiked(reviewId, userId)
                 .orElseThrow(() -> ReviewNotFoundException.withId(reviewId));
         Review review = result.review();
         boolean likedByMe = result.likedByMe();
+
+        log.info("[ReviewService] getReview 완료 - reviewId: {}", reviewId);
 
         return new ReviewResponse(
                 review.getId(), review.getUserId(), review.getBookId(),
@@ -107,6 +119,9 @@ public class ReviewServiceImpl implements ReviewService {
     @Override
     @Transactional
     public ReviewResponse updateReview(UUID reviewId, UUID userId, ReviewUpdateRequest request) {
+
+        log.info("[ReviewService] updateReview 시작 - reviewId: {}, userId: {}", reviewId, userId);
+
         Review review = reviewRepository.findById(reviewId)
                 .orElseThrow(() -> ReviewNotFoundException.withId(reviewId));
 
@@ -118,6 +133,8 @@ public class ReviewServiceImpl implements ReviewService {
 
         boolean likedByMe = reviewLikeRepository.existsByReviewIdAndUserId(reviewId, userId);
 
+        log.info("[ReviewService] updateReview 완료 - reviewId: {}", reviewId);
+
         return new ReviewResponse(
                 review.getId(), review.getUserId(), review.getBookId(), review.getRating(), review.getContent(),
                 review.getLikeCount(), review.getCommentCount(), likedByMe, review.getCreatedAt(), review.getUpdatedAt()
@@ -127,6 +144,9 @@ public class ReviewServiceImpl implements ReviewService {
     @Override
     @Transactional
     public void deleteReview(UUID reviewId, UUID userId) {
+
+        log.info("[ReviewService] deleteReview 시작 - reviewId: {}, userId: {}", reviewId, userId);
+
         Review review = reviewRepository.findById(reviewId)
                 .orElseThrow(() -> ReviewNotFoundException.withId(reviewId));
         if (!review.getUserId().equals(userId))
@@ -139,11 +159,16 @@ public class ReviewServiceImpl implements ReviewService {
         BigDecimal avgRating = reviewRepository.averageRatingByBookId(review.getBookId());
         bookService.updateReviewData(review.getBookId(), Math.toIntExact(reviewCount), avgRating);
 
+        log.info("[ReviewService] deleteReview 완료 - reviewId: {}", reviewId);
+
     }
 
     @Override
     @Transactional
     public ReviewLikeResponse toggleLike(UUID reviewId, UUID userId) {
+
+        log.info("[ReviewService] toggleLike 시작 - reviewId: {}, userId: {}", reviewId, userId);
+
         Review review = reviewRepository.findById(reviewId)
                 .orElseThrow(() -> ReviewNotFoundException.withId(reviewId));
 
@@ -160,6 +185,9 @@ public class ReviewServiceImpl implements ReviewService {
                     review.getUserId(), reviewId, review.getContent(), actor.getName(), userId
             );
         }
+
+        log.info("[ReviewService] toggleLike 완료 - reviewId: {}, liked: {}", reviewId, !alreadyLiked);
+
         return new ReviewLikeResponse(reviewId, !alreadyLiked, review.getLikeCount());
     }
 
@@ -201,6 +229,8 @@ public class ReviewServiceImpl implements ReviewService {
                     : last.createdAt() != null ? last.createdAt().toString() : null;
             nextAfter = last.id().toString();
         }
+
+        log.info("[ReviewService] getReviews 완료 - count: {}", content.size());
 
         return new PageResponse<>(content, nextCursor, nextAfter, content.size(), null, hasNext);
     }
@@ -265,6 +295,8 @@ public class ReviewServiceImpl implements ReviewService {
             nextAfter = last.createdAt().toString();
         }
 
+        log.info("[ReviewService] getPopularReviews 완료 - period: {}, count: {}", period, content.size());
+
         return new PageResponse<>(content, nextCursor, nextAfter, content.size(), null, hasNext);
     }
 
@@ -283,17 +315,27 @@ public class ReviewServiceImpl implements ReviewService {
     @Override
     @Transactional
     public void incrementCommentCount (UUID reviewId) {
+
+        log.info("[ReviewService] incrementCommentCount 시작 - reviewId: {}", reviewId);
+
         Review review = reviewRepository.findById(reviewId)
                 .orElseThrow(() -> ReviewNotFoundException.withId(reviewId));
         review.incrementCommentCount();
+
+        log.info("[ReviewService] incrementCommentCount 완료 - reviewId: {}", reviewId);
     }
 
     @Override
     @Transactional
     public void decrementCommentCount(UUID reviewId) {
+
+        log.info("[ReviewService] decrementCommentCount 시작 - reviewId: {}", reviewId);
+
         Review review = reviewRepository.findById(reviewId)
                 .orElseThrow(() -> ReviewNotFoundException.withId(reviewId));
         review.decrementCommentCount();
+
+        log.info("[ReviewService] decrementCommentCount 완료 - reviewId: {}", reviewId);
     }
 
 }
