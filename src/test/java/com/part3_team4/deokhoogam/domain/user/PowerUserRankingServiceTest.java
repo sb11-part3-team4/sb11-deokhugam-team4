@@ -155,7 +155,7 @@ public class PowerUserRankingServiceTest {
     when(powerUserRankingRepository.findByPeriodOrderByRankingAsc(PowerUserPeriod.DAILY))
         .thenReturn(List.of(ranking1, ranking2));
 
-    //user1은 정상 유저, user2는 탈퇴 등으로 null을 반환한다고 가정
+    //user1은 정상 유저, user2는 물리 삭제되어 예외가 발생한다고 가정
     when(userService.getUser(user1)).thenReturn(new UserResponse("test@email.com", "정상유저"));
     when(userService.getUser(user2)).thenThrow(UserNotFoundException.withId(user2));
 
