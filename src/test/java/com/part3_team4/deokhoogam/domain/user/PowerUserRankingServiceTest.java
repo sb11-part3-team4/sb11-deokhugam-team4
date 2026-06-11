@@ -11,6 +11,7 @@ import com.part3_team4.deokhoogam.domain.user.dto.response.PowerUserRankingRespo
 import com.part3_team4.deokhoogam.domain.user.dto.response.UserResponse;
 import com.part3_team4.deokhoogam.domain.user.entity.PowerUserRanking;
 import com.part3_team4.deokhoogam.domain.user.enums.PowerUserPeriod;
+import com.part3_team4.deokhoogam.domain.user.exception.UserNotFoundException;
 import com.part3_team4.deokhoogam.domain.user.repository.PowerUserRankingRepository;
 import com.part3_team4.deokhoogam.domain.user.service.PowerUserRankingService;
 import com.part3_team4.deokhoogam.domain.user.service.UserService;
@@ -156,7 +157,7 @@ public class PowerUserRankingServiceTest {
 
     //user1은 정상 유저, user2는 탈퇴 등으로 null을 반환한다고 가정
     when(userService.getUser(user1)).thenReturn(new UserResponse("test@email.com", "정상유저"));
-    when(userService.getUser(user2)).thenReturn(null);
+    when(userService.getUser(user2)).thenThrow(UserNotFoundException.withId(user2));
 
     List<PowerUserRankingResponseDto> result = powerUserRankingService
         .getRankingWithNickname(PowerUserPeriod.DAILY);
