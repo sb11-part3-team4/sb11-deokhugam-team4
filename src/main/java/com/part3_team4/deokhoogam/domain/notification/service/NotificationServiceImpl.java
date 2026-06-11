@@ -6,6 +6,7 @@ import com.part3_team4.deokhoogam.domain.notification.entity.Notification;
 import com.part3_team4.deokhoogam.domain.notification.exception.NotificationAccessDeniedException;
 import com.part3_team4.deokhoogam.domain.notification.exception.NotificationNotFoundException;
 import com.part3_team4.deokhoogam.domain.notification.repository.NotificationRepository;
+import com.part3_team4.deokhoogam.domain.notification.exception.NotificationInvalidInputException;
 import com.part3_team4.deokhoogam.global.common.PageResponse;
 import java.time.Instant;
 import java.util.List;
@@ -318,30 +319,125 @@ public class NotificationServiceImpl implements NotificationService {
       Instant after,
       int limit
   ) {
+    // 알림은 본인만 조회할 수 있으므로 요청자와 조회 대상 사용자를 먼저 비교합니다.
+    // 권한 검증을 가장 먼저 수행하면 권한이 없는 요청에 대해
+    // PageRequest 생성이나 Repository 조회가 실행되는 것을 방지할 수 있습니다.
+    validateReadPermission(requesterId, userId);
+
+    // cursor와 after는 하나의 커서 위치를 구성하는 값입니다.
+    // 하나만 전달되면 잘못된 요청으로 처리합니다.
+    validateCursorPair(cursor, after);
+
+    // 다음 페이지 존재 여부를 확인하기 위해 요청한 limit보다 1개 더 조회합니다.
+    // 예를 들어 limit이 20이면 최대 21개를 조회합니다.
+    PageRequest pageRequest = PageRequest.of(0, limit + 1);
+
+    // 커서 존재 여부에 따라 첫 페이지 또는 다음 페이지를 조회합니다.
+    List<Notification> notifications = cursor == null
+        ? findFirstPage(userId, direction, pageRequest)
+        : findNextPage(userId, direction, cursor, after, pageRequest);
+
+    // 조회 결과를 Swagger 응답 형식인 PageResponse로 변환합니다.
+    return createPageResponse(userId, notifications, limit);
+  }
+
+  /**
+   * 요청자가 조회 대상 사용자의 알림을 조회할 권한이 있는지 검증합니다.
+   *
+   * 현재 알림 목록 API는 본인의 알림만 조회할 수 있습니다.
+   * 따라서 요청 헤더의 사용자 ID와 query parameter의 userId가 같아야 합니다.
+   */
+  private void validateReadPermission(UUID requesterId, UUID userId) {
     if (!requesterId.equals(userId)) {
       throw NotificationAccessDeniedException.withUserId(userId);
     }
-    // hasNext 판단을 위해 요청 limit보다 1개 더 조회합니다.
-    PageRequest pageRequest = PageRequest.of(0, limit + 1);
+  }
 
-    List<Notification> notifications;
+  /**
+   * 커서 페이지네이션 파라미터 조합을 검증합니다.
+   *
+   * 정상적인 조합:
+   * - cursor == null, after == null: 첫 페이지 조회
+   * - cursor != null, after != null: 다음 페이지 조회
+   *
+   * 잘못된 조합:
+   * - cursor만 존재
+   * - after만 존재
+   */
+  private void validateCursorPair(UUID cursor, Instant after) {
+    // 두 null 여부가 서로 다르면 하나만 전달된 상태입니다.
+    // XOR와 같은 의미지만 가독성을 위해 명시적인 비교식을 사용합니다.
+    boolean onlyOneProvided = (cursor == null) != (after == null);
 
-    // cursor와 after가 없으면 첫 페이지 조회입니다.
-    if (cursor == null || after == null) {
-      notifications = direction == Sort.Direction.ASC
-          ? notificationRepository.findByUserIdOrderByCreatedAtAscIdAsc(userId, pageRequest)
-          : notificationRepository.findByUserIdOrderByCreatedAtDescIdDesc(userId, pageRequest);
-    } else {
-      // cursor와 after가 있으면 다음 페이지 조회입니다.
-      notifications = direction == Sort.Direction.ASC
-          ? notificationRepository.findNextPageAsc(userId, after, cursor, pageRequest)
-          : notificationRepository.findNextPageDesc(userId, after, cursor, pageRequest);
+    if (onlyOneProvided) {
+      throw NotificationInvalidInputException.withCursorPair(cursor, after);
+    }
+  }
+
+  /**
+   * 커서가 없는 첫 페이지를 조회합니다.
+   *
+   * ASC는 오래된 알림부터, DESC는 최신 알림부터 조회합니다.
+   */
+  private List<Notification> findFirstPage(
+      UUID userId,
+      Sort.Direction direction,
+      PageRequest pageRequest
+  ) {
+    if (direction == Sort.Direction.ASC) {
+      return notificationRepository
+          .findByUserIdOrderByCreatedAtAscIdAsc(userId, pageRequest);
     }
 
-    // limit + 1개가 조회되었다면 다음 페이지가 존재합니다.
+    return notificationRepository
+        .findByUserIdOrderByCreatedAtDescIdDesc(userId, pageRequest);
+  }
+
+  /**
+   * cursor와 after를 기준으로 다음 페이지를 조회합니다.
+   *
+   * createdAt만으로 커서를 구성하면 동일한 시각에 생성된 알림 사이에서
+   * 중복 또는 누락이 발생할 수 있습니다. 따라서 ID를 보조 정렬 조건으로 사용합니다.
+   */
+  private List<Notification> findNextPage(
+      UUID userId,
+      Sort.Direction direction,
+      UUID cursor,
+      Instant after,
+      PageRequest pageRequest
+  ) {
+    if (direction == Sort.Direction.ASC) {
+      return notificationRepository.findNextPageAsc(
+          userId,
+          after,
+          cursor,
+          pageRequest
+      );
+    }
+
+    return notificationRepository.findNextPageDesc(
+        userId,
+        after,
+        cursor,
+        pageRequest
+    );
+  }
+
+  /**
+   * 조회된 알림 목록을 PageResponse로 변환합니다.
+   *
+   * Repository에서는 hasNext 판단을 위해 limit + 1개를 조회하지만,
+   * 실제 응답에는 사용자가 요청한 limit 개수까지만 포함합니다.
+   */
+  private PageResponse<NotificationDto> createPageResponse(
+      UUID userId,
+      List<Notification> notifications,
+      int limit
+  ) {
+    // limit보다 많이 조회됐다면 다음 페이지가 존재합니다.
     boolean hasNext = notifications.size() > limit;
 
-    // 응답 content에는 실제 요청 limit 개수만 포함합니다.
+    // 응답에는 최대 limit개의 알림만 포함합니다.
     List<Notification> pageContent = hasNext
         ? notifications.subList(0, limit)
         : notifications;
@@ -353,11 +449,14 @@ public class NotificationServiceImpl implements NotificationService {
     String nextCursor = null;
     String nextAfter = null;
 
-    // 다음 페이지가 있을 때만 다음 커서 값을 내려줍니다.
+    // 다음 페이지가 있을 때만 현재 응답의 마지막 알림으로
+    // 다음 요청에 사용할 cursor와 after를 생성합니다.
     if (hasNext && !pageContent.isEmpty()) {
-      Notification last = pageContent.get(pageContent.size() - 1);
-      nextCursor = last.getId().toString();
-      nextAfter = last.getCreatedAt().toString();
+      Notification lastNotification =
+          pageContent.get(pageContent.size() - 1);
+
+      nextCursor = lastNotification.getId().toString();
+      nextAfter = lastNotification.getCreatedAt().toString();
     }
 
     return new PageResponse<>(
