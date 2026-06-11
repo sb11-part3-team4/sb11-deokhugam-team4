@@ -10,6 +10,7 @@ import com.part3_team4.deokhoogam.domain.comment.repository.DeletedCommentReposi
 import com.part3_team4.deokhoogam.domain.review.entity.Review;
 import com.part3_team4.deokhoogam.domain.review.exception.ReviewNotFoundException;
 import com.part3_team4.deokhoogam.domain.review.repository.ReviewRepository;
+import com.part3_team4.deokhoogam.domain.review.service.ReviewService;
 import com.part3_team4.deokhoogam.domain.user.entity.User;
 import com.part3_team4.deokhoogam.domain.notification.service.NotificationService;
 import com.part3_team4.deokhoogam.domain.user.exception.UserNotFoundException;
@@ -21,12 +22,10 @@ import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-@Slf4j
 @Service
 @RequiredArgsConstructor
 @Transactional(readOnly = true)
@@ -37,6 +36,7 @@ public class CommentServiceImpl implements CommentService {
     private final UserRepository userRepository;
     private final ReviewRepository reviewRepository;
     private final NotificationService notificationService;
+    private final ReviewService reviewService;
 
     @Override
     @Transactional
@@ -46,17 +46,14 @@ public class CommentServiceImpl implements CommentService {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> UserNotFoundException.withId(userId));
         Comment saved = commentRepository.save(Comment.create(review, user, content));
-        try {
-            notificationService.createNotification(
-                    review.getUserId(),
-                    review.getId(),
-                    review.getContent(),
-                    user.getName(),
-                    user.getId()
-            );
-        } catch (Exception e) {
-            log.warn("알림 생성 실패 - reviewId: {}, actorId: {}", review.getId(), user.getId(), e);
-        }
+        notificationService.createNotification(
+                review.getUserId(),
+                review.getId(),
+                review.getContent(),
+                user.getName(),
+                user.getId()
+        );
+        reviewService.incrementCommentCount(reviewId);
         return CommentDto.CommentResponse.from(saved, user.getName());
     }
 
@@ -80,9 +77,11 @@ public class CommentServiceImpl implements CommentService {
         if (!comment.getUserId().equals(userId)) {
             throw CommentNotOwnerException.forUser(userId);
         }
+        UUID reviewId = comment.getReviewId();
         // deleted_comment 먼저 저장 후 원본 삭제 (반대 순서면 참조 무결성 문제)
         deletedCommentRepository.save(DeletedComment.from(comment));
         commentRepository.delete(comment);
+        reviewService.decrementCommentCount(reviewId);
     }
 
     @Override

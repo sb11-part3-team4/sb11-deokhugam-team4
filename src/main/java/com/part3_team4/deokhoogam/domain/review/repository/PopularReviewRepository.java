@@ -10,5 +10,7 @@ import org.springframework.data.jpa.repository.JpaRepository;
 
 public interface PopularReviewRepository extends JpaRepository<PopularReview, UUID> {
     List<PopularReview> findByPeriod(String period, Pageable pageable);
+    List<PopularReview> findByPeriodAndRankGreaterThan(String period, int rank, Pageable pageable);
+    List<PopularReview> findByPeriodAndRankLessThan(String period, int rank, Pageable pageable);
 
 }
