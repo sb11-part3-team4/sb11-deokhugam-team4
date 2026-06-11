@@ -69,7 +69,7 @@ public class NotificationServiceImpl implements NotificationService {
         userId,
         reviewId,
         reviewContent,
-        sender + "님이 내 리뷰에 반응했습니다."
+        sender + "님이 내 리뷰에 반응했습니다.",
         NotificationLogType.REACTION
     );
   }
@@ -200,7 +200,7 @@ public class NotificationServiceImpl implements NotificationService {
         receiverId,
         reviewId,
         reviewContent,
-        sender + "님이 내 리뷰에 좋아요를 눌렀습니다."
+        sender + "님이 내 리뷰에 좋아요를 눌렀습니다.",
         NotificationLogType.LIKE
     );
   }
@@ -229,7 +229,7 @@ public class NotificationServiceImpl implements NotificationService {
         receiverId,
         reviewId,
         reviewContent,
-        sender + "님이 내 리뷰에 댓글을 남겼습니다."
+        sender + "님이 내 리뷰에 댓글을 남겼습니다.",
         NotificationLogType.COMMENT
     );
   }
