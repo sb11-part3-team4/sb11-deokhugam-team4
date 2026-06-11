@@ -155,20 +155,22 @@ public class PowerUserRankingServiceTest {
     when(powerUserRankingRepository.findByPeriodOrderByRankingAsc(PowerUserPeriod.DAILY))
         .thenReturn(List.of(ranking1, ranking2));
 
-    //user1은 정상 유저, user2는 물리 삭제되어 예외가 발생한다고 가정
-    when(userService.getUser(user1)).thenReturn(new UserResponse("test@email.com", "정상유저"));
-    when(userService.getUser(user2)).thenThrow(UserNotFoundException.withId(user2));
+    // user1은 닉네임이 정상 매핑되고, user2는 DB에 없어 Map에 담기지 않는다고 가정
+    when(userService.getUserNicknames(List.of(user1, user2)))
+        .thenReturn(Map.of(user1, "정상유저"));
 
     List<PowerUserRankingResponseDto> result = powerUserRankingService
         .getRankingWithNickname(PowerUserPeriod.DAILY);
 
     assertThat(result).hasSize(2);
 
-    // 유저1: 닉네임 반환 및 20.8 -> 20.0 소수점 버림 확인
+    // 유저1: Map에서 찾았으므로 정상 닉네임
+    // 닉네임 반환 및 20.8 -> 20.0 소수점 버림 확인
     assertThat(result.get(0).nickname()).isEqualTo("정상유저");
     assertThat(result.get(0).score()).isEqualTo(20.0);
 
-    // 유저2: 닉네임 반환 및 10.4 -> 10.0 소수점 버림 확인
+    // 유저2: Map에 없으므로 기본값 "알수없음" 적용
+    // 닉네임 반환 및 10.4 -> 10.0 소수점 버림 확인
     assertThat(result.get(1).nickname()).isEqualTo("알수없음");
     assertThat(result.get(1).score()).isEqualTo(10.0);
   }

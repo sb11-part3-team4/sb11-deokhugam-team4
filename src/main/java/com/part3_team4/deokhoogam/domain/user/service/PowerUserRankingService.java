@@ -32,18 +32,21 @@ public class PowerUserRankingService {
   public List<PowerUserRankingResponseDto> getRankingWithNickname(PowerUserPeriod period) {
     List<PowerUserRanking> rankings = powerUserRankingRepository.findByPeriodOrderByRankingAsc(period);
 
+    if (rankings.isEmpty()) {
+      return List.of();
+    }
+
+    // 랭킹에 등록된 유저 ID 일괄 추출
+    List<UUID> userIds = rankings.stream()
+        .map(PowerUserRanking::getUserId)
+        .collect(Collectors.toList());
+
+    // IN 절 쿼리 단 1번으로 닉네임 일괄 매핑 (N+1 최적화)
+    Map<UUID, String> nicknameMap = userService.getUserNicknames(userIds);
+
     return rankings.stream().map(ranking -> {
-      String nickname = "알수없음"; // 기본값
-
-      try {
-        UserResponse user = userService.getUser(ranking.getUserId());
-        if (user != null) nickname = user.nickname();
-      } catch (UserNotFoundException e) {
-        // 의도적인 빈 블록:
-        // 물리 삭제된 유저의 랭킹 데이터가 남아있을 때 서버 에러 방지를 위해 예외만 잡고 기본값("알수없음") 유지.
-      }
-
-      // 1.4 -> 1.0, 0.6 -> 0.0 으로 변환되어 프론트에서 1점, 0점으로 표시됨
+      // Map에 없으면 삭제된 유저이므로 "알수없음" fallback
+      String nickname = nicknameMap.getOrDefault(ranking.getUserId(), "알수없음");
       double flooredScore = Math.floor(ranking.getScore().doubleValue());
 
       return new PowerUserRankingResponseDto(

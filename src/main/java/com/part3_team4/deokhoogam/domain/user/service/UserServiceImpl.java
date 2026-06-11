@@ -17,6 +17,8 @@ import com.part3_team4.deokhoogam.domain.user.exception.UserNotFoundException;
 import com.part3_team4.deokhoogam.domain.user.mapper.UserMapper;
 import com.part3_team4.deokhoogam.domain.user.repository.DeletedUserRepository;
 import com.part3_team4.deokhoogam.domain.user.repository.UserRepository;
+import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.ApplicationEventPublisher;
@@ -160,5 +162,13 @@ public class UserServiceImpl implements UserService{
     return new UserLoginResultDto(
         user.getId(), user.getEmail(), user.getName(), user.getCreatedAt()
     );
+  }
+
+  @Override
+  @Transactional(readOnly = true)
+  public Map<UUID, String> getUserNicknames(List<UUID> userIds) {
+    // IN 절 쿼리 최적화 적용
+    return userRepository.findAllById(userIds).stream()
+        .collect(java.util.stream.Collectors.toMap(User::getId, User::getName));
   }
 }
