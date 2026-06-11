@@ -22,10 +22,12 @@ import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 @Transactional(readOnly = true)
@@ -54,6 +56,7 @@ public class CommentServiceImpl implements CommentService {
                 user.getId()
         );
         reviewService.incrementCommentCount(reviewId);
+        log.info("댓글 생성 완료 - commentId: {}, reviewId: {}, userId: {}", saved.getId(), reviewId, userId);
         return CommentDto.CommentResponse.from(saved, user.getName());
     }
 
@@ -66,6 +69,7 @@ public class CommentServiceImpl implements CommentService {
             throw CommentNotOwnerException.forUser(userId);
         }
         comment.updateContent(content);
+        log.info("댓글 수정 완료 - commentId: {}", commentId);
         return CommentDto.CommentResponse.from(comment, comment.getUser().getName());
     }
 
@@ -82,6 +86,7 @@ public class CommentServiceImpl implements CommentService {
         deletedCommentRepository.save(DeletedComment.from(comment));
         commentRepository.delete(comment);
         reviewService.decrementCommentCount(reviewId);
+        log.info("댓글 삭제(soft) 완료 - commentId: {}, reviewId: {}", commentId, reviewId);
     }
 
     @Override
@@ -90,6 +95,7 @@ public class CommentServiceImpl implements CommentService {
         DeletedComment deletedComment = deletedCommentRepository.findById(commentId)
                 .orElseThrow(() -> CommentNotFoundException.withId(commentId));
         deletedCommentRepository.delete(deletedComment);
+        log.info("댓글 영구 삭제 완료 - commentId: {}", commentId);
     }
 
     @Override
