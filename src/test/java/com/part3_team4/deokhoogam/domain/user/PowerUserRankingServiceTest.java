@@ -60,14 +60,26 @@ public class PowerUserRankingServiceTest {
 
     powerUserRankingService.calculateAndSaveAllRankings();
 
-    // 일/주/월/역대 총 4번의 삭제와 저장이 호출되었는지 검증
-    verify(powerUserRankingRepository, times(4))
-        .deleteByPeriod(any(PowerUserPeriod.class));
+    // 4가지 기간에 대해 각각 기존 데이터를 지웠는지 명시적으로 검증
+    verify(powerUserRankingRepository).deleteByPeriod(PowerUserPeriod.DAILY);
+    verify(powerUserRankingRepository).deleteByPeriod(PowerUserPeriod.WEEKLY);
+    verify(powerUserRankingRepository).deleteByPeriod(PowerUserPeriod.MONTHLY);
+    verify(powerUserRankingRepository).deleteByPeriod(PowerUserPeriod.ALL_TIME);
+
     verify(powerUserRankingRepository, times(4))
         .saveAll(rankingListCaptor.capture());
 
-    // 가장 마지막에 캡처된(ALL_TIME) 저장 리스트 검증
-    List<PowerUserRanking> savedRankings = rankingListCaptor.getValue();
+    List<List<PowerUserRanking>> allCapturedRankings = rankingListCaptor.getAllValues();
+    assertThat(allCapturedRankings).hasSize(4);
+
+    // 각 호출마다 저장된 랭킹 데이터의 기간(period) 값이 올바른지 검증
+    assertThat(allCapturedRankings.get(0).get(0).getPeriod()).isEqualTo(PowerUserPeriod.DAILY);
+    assertThat(allCapturedRankings.get(1).get(0).getPeriod()).isEqualTo(PowerUserPeriod.WEEKLY);
+    assertThat(allCapturedRankings.get(2).get(0).getPeriod()).isEqualTo(PowerUserPeriod.MONTHLY);
+    assertThat(allCapturedRankings.get(3).get(0).getPeriod()).isEqualTo(PowerUserPeriod.ALL_TIME);
+
+    // 가장 마지막에 캡처된(ALL_TIME) 저장 리스트로 점수/등수 검증
+    List<PowerUserRanking> savedRankings = allCapturedRankings.get(3);
 
     assertThat(savedRankings).hasSize(2);
     assertThat(savedRankings.get(0).getUserId()).isEqualTo(user1); // 15점 유저가 1등
