@@ -70,6 +70,7 @@ public class NotificationServiceImpl implements NotificationService {
         reviewId,
         reviewContent,
         sender + "님이 내 리뷰에 반응했습니다."
+        NotificationLogType.REACTION
     );
   }
 
@@ -184,6 +185,7 @@ public class NotificationServiceImpl implements NotificationService {
         reviewId,
         reviewContent,
         sender + "님이 내 리뷰에 좋아요를 눌렀습니다."
+        NotificationLogType.LIKE
     );
   }
 
@@ -212,6 +214,7 @@ public class NotificationServiceImpl implements NotificationService {
         reviewId,
         reviewContent,
         sender + "님이 내 리뷰에 댓글을 남겼습니다."
+        NotificationLogType.COMMENT
     );
   }
 
@@ -247,7 +250,8 @@ public class NotificationServiceImpl implements NotificationService {
         receiverId,
         reviewId,
         reviewContent,
-        buildPopularReviewMessage(period, rank)
+        buildPopularReviewMessage(period, rank),
+        NotificationLogType.POPULAR_REVIEW
     );
   }
 
@@ -303,14 +307,21 @@ public class NotificationServiceImpl implements NotificationService {
   /**
    * 알림 유형별 메서드에서 공통으로 사용하는 저장 메서드입니다.
    *
-   * 좋아요와 댓글 알림은 메시지만 다르고 Notification 생성 과정은 같으므로,
-   * 중복되는 엔티티 생성 및 Repository 저장 코드를 이 메서드로 분리합니다.
+   * Repository 저장이 예외 없이 완료된 이후에만 INFO 로그를 남깁니다.
+   * 리뷰 내용과 메시지 전문은 로그 크기 및 개인정보 노출을 고려하여 기록하지 않습니다.
+   *
+   * @param receiverId 알림 수신자 ID
+   * @param reviewId 알림과 연결된 리뷰 ID
+   * @param reviewContent 알림 생성 당시 리뷰 내용
+   * @param message 사용자에게 표시할 알림 메시지
+   * @param notificationType 알림이 생성된 원인
    */
   private void saveNotification(
       UUID receiverId,
       UUID reviewId,
       String reviewContent,
-      String message
+      String message,
+      NotificationLogType notificationType
   ) {
     Notification notification = Notification.builder()
         .userId(receiverId)
@@ -321,7 +332,16 @@ public class NotificationServiceImpl implements NotificationService {
         .confirmed(false)
         .build();
 
+    // save()가 예외 없이 반환된 시점에만 성공 로그를 기록합니다.
     notificationRepository.save(notification);
+
+    log.info(
+        "알림 생성 완료: notificationId={}, receiverId={}, reviewId={}, type={}",
+        notification.getId(),
+        receiverId,
+        reviewId,
+        notificationType
+    );
   }
 
   @Override
