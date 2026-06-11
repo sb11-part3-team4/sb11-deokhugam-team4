@@ -139,6 +139,14 @@ public class NotificationServiceImpl implements NotificationService {
 
     notification.updateConfirmed(request.confirmed());
 
+    // 알림 상태 변경이 정상적으로 완료된 마지막 시점에 한 번만 기록합니다.
+    log.info(
+        "알림 확인 상태 변경 완료: notificationId={}, userId={}, confirmed={}",
+        notificationId,
+        requesterId,
+        request.confirmed()
+    );
+
     return NotificationDto.from(notification);
   }
 
