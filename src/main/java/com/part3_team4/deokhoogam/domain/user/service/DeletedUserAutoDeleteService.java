@@ -1,6 +1,7 @@
 package com.part3_team4.deokhoogam.domain.user.service;
 
 import com.part3_team4.deokhoogam.domain.user.entity.DeletedUser;
+import com.part3_team4.deokhoogam.domain.user.exception.BatchInfiniteLoopException;
 import com.part3_team4.deokhoogam.domain.user.repository.DeletedUserRepository;
 import java.time.Clock;
 import java.time.Instant;
@@ -39,13 +40,20 @@ public class DeletedUserAutoDeleteService {
           break;
         }
 
+        long deletedInThisRound = 0;
+
         for (DeletedUser oldUser : oldUsers) {
           try {
             deletedUserRepository.delete(oldUser);
             totalDeletedCount++;
+            deletedInThisRound++;
           } catch (Exception e) {
             log.warn("유저 삭제 중 예외 발생으로 항목 스킵. userId: {}, 사유: {}", oldUser.getId(), e.getMessage());
           }
+        }
+
+        if (deletedInThisRound == 0) {
+          throw new BatchInfiniteLoopException();
         }
       }
 
