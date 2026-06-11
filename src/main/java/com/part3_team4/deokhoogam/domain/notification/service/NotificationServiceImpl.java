@@ -166,6 +166,14 @@ public class NotificationServiceImpl implements NotificationService {
         notificationRepository.findAllByUserIdAndConfirmedFalse(requesterId);
 
     notifications.forEach(notification -> notification.updateConfirmed(true));
+
+    // 몇 개의 알림이 실제로 변경됐는지 운영에서 확인할 수 있도록 기록합니다.
+    // 개별 알림마다 로그를 남기지 않고 전체 요청을 하나의 사건으로 기록합니다.
+    log.info(
+        "전체 알림 읽음 처리 완료: userId={}, updatedCount={}",
+        requesterId,
+        notifications.size()
+    );
   }
 
   /**
