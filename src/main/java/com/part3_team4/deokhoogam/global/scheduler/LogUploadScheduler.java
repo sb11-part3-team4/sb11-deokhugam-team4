@@ -47,11 +47,11 @@ public class LogUploadScheduler {
           .build();
 
       s3Client.putObject(request, logFile.toPath());
-      log.info("로그 파일 S3 업로드 완료: {}", fileName);
+      log.info("로그 파일 S3 업로드 완료: {}, size={} bytes", fileName, logFile.length());
 
       // 로컬 파일 삭제
       if (logFile.delete()) {
-        log.info("로그 파일 S3 업로드 완료: {}, size={} bytes", fileName, logFile.length());
+        log.warn("로컬 로그 파일 삭제 성공: {}", fileName);
       } else {
         log.warn("로컬 로그 파일 삭제 실패: {}", fileName);
       }

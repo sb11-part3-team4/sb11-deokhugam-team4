@@ -23,14 +23,13 @@ public class OcrService {
   public String extractIsbnFromImage(MultipartFile file) {
     validateFile(file);
 
-    log.info("OCR ISBN 추출 요청: filename={}, size={}",
-        file.getOriginalFilename(), file.getSize());
+    log.info("OCR ISBN 추출 요청: size={}", file.getSize());
 
     String rawText = ocrSpaceApiClient.extractTextFromImage(file);
 
     String isbn = parseIsbnFromText(rawText);
 
-    log.info("OCR ISBN 추출 성공: filename={}, isbn={}", file.getOriginalFilename(), isbn);
+    log.info("OCR ISBN 추출 성공: isbn={}", isbn);
     return isbn;
   }
 

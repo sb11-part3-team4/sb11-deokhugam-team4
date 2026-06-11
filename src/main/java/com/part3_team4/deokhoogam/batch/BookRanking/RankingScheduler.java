@@ -29,6 +29,7 @@ public class RankingScheduler {
 
     } catch (Exception e) {
       log.error("랭킹 배치 실행 요청 실패", e);
+      throw e;
     }
   }
 }

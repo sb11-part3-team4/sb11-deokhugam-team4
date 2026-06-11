@@ -43,8 +43,8 @@ public class RankingBatchConfig {
   // Tasklet: 4개 기간에 대해 calculateAndSave 실행
   @Bean
   public Tasklet rankingTasklet() {
-    log.info("인기 도서 랭킹 산출 시작");
     return (contribution, chunkContext) -> {
+      log.info("인기 도서 랭킹 산출 시작");
       for (PeriodType period : PeriodType.values()) {
         rankingCalculator.calculateAndSave(period);
       }
