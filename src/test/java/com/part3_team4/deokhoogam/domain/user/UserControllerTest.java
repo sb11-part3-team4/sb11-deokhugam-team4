@@ -20,6 +20,7 @@ import com.part3_team4.deokhoogam.domain.user.dto.UserLoginRequestDto;
 import com.part3_team4.deokhoogam.domain.user.dto.UserLoginResultDto;
 import com.part3_team4.deokhoogam.domain.user.dto.UserUpdateRequestDto;
 import com.part3_team4.deokhoogam.domain.user.dto.response.UserResponse;
+import com.part3_team4.deokhoogam.domain.user.enums.PowerUserPeriod;
 import com.part3_team4.deokhoogam.domain.user.exception.PasswordMismatchException;
 import com.part3_team4.deokhoogam.domain.user.exception.UserNotFoundException;
 import com.part3_team4.deokhoogam.domain.user.service.PowerUserRankingService;
@@ -237,9 +238,9 @@ public class UserControllerTest {
   @Test
   @DisplayName("파워 유저 조회 성공 - 200 반환")
   void getPowerUsers_success() throws Exception {
-    given(powerUserRankingService.getDailyRankingWithNickname()).willReturn(List.of());
+    given(powerUserRankingService.getRankingWithNickname(any(PowerUserPeriod.class))).willReturn(List.of());
 
-    mockMvc.perform(get("/api/users/power"))
+    mockMvc.perform(get("/api/users/power?period=DAILY"))
         .andExpect(status().isOk())
         .andExpect(jsonPath("$.content").isArray())
         .andExpect(jsonPath("$.content").isEmpty());

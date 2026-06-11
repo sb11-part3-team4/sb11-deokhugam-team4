@@ -3,6 +3,7 @@ package com.part3_team4.deokhoogam.domain.user;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -42,8 +43,8 @@ public class PowerUserRankingServiceTest {
   private UserService userService;
 
   @Test
-  @DisplayName("메인 로직: 기존 데이터를 지우고, 계산과 정렬을 거쳐 랭킹을 DB에 일괄 저장한다")
-  void calculateAndSaveDailyRanking() {
+  @DisplayName("메인 로직: 4가지 기간에 대해 각각 기존 데이터를 지우고, 계산된 랭킹을 DB에 일괄 저장")
+  void calculateAndSaveAllRanking() {
 
     UUID user1 = UUID.randomUUID();
     UUID user2 = UUID.randomUUID();
@@ -53,18 +54,19 @@ public class PowerUserRankingServiceTest {
     Map<UUID, Long> likeCounts = Map.of(user1, 10L, user2, 5L);
     Map<UUID, Long> commentCounts = Map.of(user1, 10L);
 
-    when(powerUserRankingRepository.getReviewPopularScoreSum(any(), any())).thenReturn(
-        reviewScores);
+    when(powerUserRankingRepository.getReviewPopularScoreSum(any(), any())).thenReturn(reviewScores);
     when(powerUserRankingRepository.getLikeCount(any(), any())).thenReturn(likeCounts);
     when(powerUserRankingRepository.getCommentCount(any(), any())).thenReturn(commentCounts);
 
-    powerUserRankingService.calculateAndSaveDailyRanking();
+    powerUserRankingService.calculateAndSaveAllRankings();
 
-    // 기존 데이터 삭제 메서드가 불렸는지 확인
-    verify(powerUserRankingRepository).deleteByPeriod(PowerUserPeriod.DAILY);
+    // 일/주/월/역대 총 4번의 삭제와 저장이 호출되었는지 검증
+    verify(powerUserRankingRepository, times(4))
+        .deleteByPeriod(any(PowerUserPeriod.class));
+    verify(powerUserRankingRepository, times(4))
+        .saveAll(rankingListCaptor.capture());
 
-    //  DB에 저장하려던 List에서 올바르게 2명이 저장되었는지, 1등과 2등이 맞는지 확인
-    verify(powerUserRankingRepository).saveAll(rankingListCaptor.capture());
+    // 가장 마지막에 캡처된(ALL_TIME) 저장 리스트 검증
     List<PowerUserRanking> savedRankings = rankingListCaptor.getValue();
 
     assertThat(savedRankings).hasSize(2);
@@ -126,41 +128,51 @@ public class PowerUserRankingServiceTest {
   }
 
   @Test
-  @DisplayName("랭킹 조회 - 유저 정보가 존재하면 닉네임을, 없으면 '알수없음' 반환")
-  void getDailyRankingWithNickname() {
+  @DisplayName("랭킹 조회 - 유저 정보가 존재하면 닉네임을, 없으면 '알수없음' 반환 및 소수점 버림 로직 검증")
+  void getRankingWithNickname() {
     UUID user1 = UUID.randomUUID();
     UUID user2 = UUID.randomUUID();
 
+    // 소수점이 있는 점수로 세팅하여 버림 처리가 잘 되는지 확인
     PowerUserRanking ranking1 = PowerUserRanking.builder().userId(user1)
-        .period(PowerUserPeriod.DAILY).score(BigDecimal.valueOf(20.0)).ranking(1).build();
+        .period(PowerUserPeriod.DAILY).score(BigDecimal.valueOf(20.8)).ranking(1).build();
     PowerUserRanking ranking2 = PowerUserRanking.builder().userId(user2)
-        .period(PowerUserPeriod.DAILY).score(BigDecimal.valueOf(10.0)).ranking(2).build();
+        .period(PowerUserPeriod.DAILY).score(BigDecimal.valueOf(10.4)).ranking(2).build();
 
     when(powerUserRankingRepository.findByPeriodOrderByRankingAsc(PowerUserPeriod.DAILY))
         .thenReturn(List.of(ranking1, ranking2));
+
     //user1은 정상 유저, user2는 탈퇴 등으로 null을 반환한다고 가정
     when(userService.getUser(user1)).thenReturn(new UserResponse("test@email.com", "정상유저"));
     when(userService.getUser(user2)).thenReturn(null);
 
-    List<PowerUserRankingResponseDto> result = powerUserRankingService.getDailyRankingWithNickname();
+    List<PowerUserRankingResponseDto> result = powerUserRankingService
+        .getRankingWithNickname(PowerUserPeriod.DAILY);
 
     assertThat(result).hasSize(2);
+
+    // 유저1: 닉네임 반환 및 20.8 -> 20.0 소수점 버림 확인
     assertThat(result.get(0).nickname()).isEqualTo("정상유저");
+    assertThat(result.get(0).score()).isEqualTo(20.0);
+
+    // 유저2: 닉네임 반환 및 10.4 -> 10.0 소수점 버림 확인
     assertThat(result.get(1).nickname()).isEqualTo("알수없음");
+    assertThat(result.get(1).score()).isEqualTo(10.0);
   }
 
   @Test
-  @DisplayName("랭킹 집계 예외 - 당일 활용 데이터가 하나도 없으면 랭킹을 부여하지 않고 종료")
+  @DisplayName("랭킹 집계 예외 - 활용 데이터가 하나도 없으면 랭킹을 부여하지 않고 종료")
   void calculateAndSaveDailyRanking_empty() {
     //모든 쿼리가 빈 데이터를 반환한다고 가정
     when(powerUserRankingRepository.getReviewPopularScoreSum(any(), any())).thenReturn(Map.of());
     when(powerUserRankingRepository.getLikeCount(any(), any())).thenReturn(Map.of());
     when(powerUserRankingRepository.getCommentCount(any(), any())).thenReturn(Map.of());
 
-    powerUserRankingService.calculateAndSaveDailyRanking();
+    powerUserRankingService.calculateAndSaveAllRankings();
 
-    // 기존 데이터 삭제는 무조건 1회 실행
-    verify(powerUserRankingRepository).deleteByPeriod(PowerUserPeriod.DAILY);
+    // 기존 데이터 삭제는 4개 기간에 대해 무조건 실행
+    verify(powerUserRankingRepository, times(4))
+        .deleteByPeriod(any(PowerUserPeriod.class));
     // 데이터가 없으므로 DB 저장은 한 번도 실행되지 않아야 함
     verify(powerUserRankingRepository, never()).saveAll(any());
   }
