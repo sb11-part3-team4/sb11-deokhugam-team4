@@ -310,7 +310,12 @@ public class ReviewServiceImpl implements ReviewService {
     @Transactional
     public void decrementCommentCount(UUID reviewId) {
         int updated = reviewRepository.decrementCommentCount(reviewId);
-        if (updated == 0) throw ReviewNotFoundException.withId(reviewId);
+        if (updated == 0) {
+            if (!reviewRepository.existsById(reviewId)) {
+                throw ReviewNotFoundException.withId(reviewId);
+            }
+            return;
+        }
         log.info("[ReviewService] decrementCommentCount 완료 - reviewId: {}", reviewId);
     }
 

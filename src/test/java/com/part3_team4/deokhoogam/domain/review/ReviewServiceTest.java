@@ -819,9 +819,21 @@ public class ReviewServiceTest {
     void decrementCommentCount_reviewNotFound() {
         UUID reviewId = UUID.randomUUID();
         given(reviewRepository.decrementCommentCount(reviewId)).willReturn(0);
+        given(reviewRepository.existsById(reviewId)).willReturn(false);
 
         assertThatThrownBy(() -> reviewService.decrementCommentCount(reviewId))
                 .isInstanceOf(ReviewNotFoundException.class);
+    }
+
+    @Test
+    @DisplayName("commentCount가 0인 리뷰에 decrementCommentCount 호출 시 예외없이 종료된다")
+    void decrementCommentCount_alreadyZero() {
+        UUID reviewId = UUID.randomUUID();
+        given(reviewRepository.decrementCommentCount(reviewId)).willReturn(0);
+        given(reviewRepository.existsById(reviewId)).willReturn(true);
+
+        assertThatCode(() -> reviewService.decrementCommentCount(reviewId))
+                .doesNotThrowAnyException();
     }
 
 }
