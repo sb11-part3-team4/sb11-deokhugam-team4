@@ -60,8 +60,6 @@ public class ReviewServiceImpl implements ReviewService {
     @Transactional
     public ReviewResponse createReview(UUID userId, ReviewCreateRequest request) {
 
-        log.info("[ReviewService] createReview 시작 - userId: {}, bookId: {}", userId, request.bookId());
-
         bookRepository.findById(request.bookId())
                 .orElseThrow(() -> BookNotFoundException.withId(request.bookId()));
 
@@ -104,8 +102,6 @@ public class ReviewServiceImpl implements ReviewService {
         Review review = result.review();
         boolean likedByMe = result.likedByMe();
 
-        log.info("[ReviewService] getReview 완료 - reviewId: {}", reviewId);
-
         return new ReviewResponse(
                 review.getId(), review.getUserId(), review.getBookId(),
                 review.getRating(), review.getContent(),
@@ -119,8 +115,6 @@ public class ReviewServiceImpl implements ReviewService {
     @Override
     @Transactional
     public ReviewResponse updateReview(UUID reviewId, UUID userId, ReviewUpdateRequest request) {
-
-        log.info("[ReviewService] updateReview 시작 - reviewId: {}, userId: {}", reviewId, userId);
 
         Review review = reviewRepository.findById(reviewId)
                 .orElseThrow(() -> ReviewNotFoundException.withId(reviewId));
@@ -145,8 +139,6 @@ public class ReviewServiceImpl implements ReviewService {
     @Transactional
     public void deleteReview(UUID reviewId, UUID userId) {
 
-        log.info("[ReviewService] deleteReview 시작 - reviewId: {}, userId: {}", reviewId, userId);
-
         Review review = reviewRepository.findById(reviewId)
                 .orElseThrow(() -> ReviewNotFoundException.withId(reviewId));
         if (!review.getUserId().equals(userId))
@@ -166,8 +158,6 @@ public class ReviewServiceImpl implements ReviewService {
     @Override
     @Transactional
     public ReviewLikeResponse toggleLike(UUID reviewId, UUID userId) {
-
-        log.info("[ReviewService] toggleLike 시작 - reviewId: {}, userId: {}", reviewId, userId);
 
         Review review = reviewRepository.findById(reviewId)
                 .orElseThrow(() -> ReviewNotFoundException.withId(reviewId));
@@ -229,8 +219,6 @@ public class ReviewServiceImpl implements ReviewService {
                     : last.createdAt() != null ? last.createdAt().toString() : null;
             nextAfter = last.id().toString();
         }
-
-        log.info("[ReviewService] getReviews 완료 - count: {}", content.size());
 
         return new PageResponse<>(content, nextCursor, nextAfter, content.size(), null, hasNext);
     }
@@ -295,8 +283,6 @@ public class ReviewServiceImpl implements ReviewService {
             nextAfter = last.createdAt().toString();
         }
 
-        log.info("[ReviewService] getPopularReviews 완료 - period: {}, count: {}", period, content.size());
-
         return new PageResponse<>(content, nextCursor, nextAfter, content.size(), null, hasNext);
     }
 
@@ -316,8 +302,6 @@ public class ReviewServiceImpl implements ReviewService {
     @Transactional
     public void incrementCommentCount (UUID reviewId) {
 
-        log.info("[ReviewService] incrementCommentCount 시작 - reviewId: {}", reviewId);
-
         Review review = reviewRepository.findById(reviewId)
                 .orElseThrow(() -> ReviewNotFoundException.withId(reviewId));
         review.incrementCommentCount();
@@ -328,8 +312,6 @@ public class ReviewServiceImpl implements ReviewService {
     @Override
     @Transactional
     public void decrementCommentCount(UUID reviewId) {
-
-        log.info("[ReviewService] decrementCommentCount 시작 - reviewId: {}", reviewId);
 
         Review review = reviewRepository.findById(reviewId)
                 .orElseThrow(() -> ReviewNotFoundException.withId(reviewId));
