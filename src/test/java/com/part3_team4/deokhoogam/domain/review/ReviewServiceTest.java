@@ -81,8 +81,11 @@ public class ReviewServiceTest {
 
         ReviewCreateRequest request = new ReviewCreateRequest(bookId, 4, "좋은 책이에요");
 
+        User user = new User("test@test.com", "테스트유저", "password");
+
         given(bookRepository.findById(bookId)).willReturn(Optional.of(book));
         given(reviewRepository.existsByUserIdAndBookId(userId, bookId)).willReturn(false);
+        given(userRepository.findById(userId)).willReturn(Optional.of(user));
         given(reviewRepository.save(any(Review.class))).willAnswer(i -> i.getArgument(0));
         given(reviewRepository.countByBookId(bookId)).willReturn(1L);
         given(reviewRepository.averageRatingByBookId(bookId)).willReturn(new BigDecimal("4.0"));
@@ -137,8 +140,16 @@ public class ReviewServiceTest {
         UUID bookId = UUID.randomUUID();
         Review review = Review.create(userId, bookId, 4, "좋은 책이에요");
 
+        Book book = Book.builder()
+                .title("테스트 책").author("저자").description("설명")
+                .publisher("출판사").publishedDate(LocalDate.of(2020, 1, 1))
+                .build();
+        User user = new User("test@test.com", "테스트유저", "password");
+
         given(reviewRepository.findByIdWithLiked(any(UUID.class), eq(userId)))
                 .willReturn(Optional.of(new ReviewWithLiked(review, false)));
+        given(bookRepository.findById(any(UUID.class))).willReturn(Optional.of(book));
+        given(userRepository.findById(userId)).willReturn(Optional.of(user));
 
         ReviewResponse response = reviewService.getReview(review.getId(), userId);
 
@@ -184,7 +195,15 @@ public class ReviewServiceTest {
         Review review = Review.create(ownerUserId, bookId, 4, "좋은 책이에요");
         ReviewUpdateRequest request = new ReviewUpdateRequest(5, "수정된 내용");
 
+        Book book = Book.builder()
+                .title("테스트 책").author("저자").description("설명")
+                .publisher("출판사").publishedDate(LocalDate.of(2020, 1, 1))
+                .build();
+        User user = new User("test@test.com", "테스트유저", "password");
+
         given(reviewRepository.findById(any(UUID.class))).willReturn(Optional.of(review));
+        given(bookRepository.findById(any(UUID.class))).willReturn(Optional.of(book));
+        given(userRepository.findById(ownerUserId)).willReturn(Optional.of(user));
 
         ReviewResponse response = reviewService.updateReview(review.getId(), ownerUserId, request);
 
@@ -216,7 +235,15 @@ public class ReviewServiceTest {
         Review review = Review.create(ownerUserId, bookId, 4, "내용");
         ReviewUpdateRequest request = new ReviewUpdateRequest(6, "수정된 내용");
 
+        Book book = Book.builder()
+                .title("테스트 책").author("저자").description("설명")
+                .publisher("출판사").publishedDate(LocalDate.of(2020, 1, 1))
+                .build();
+        User user = new User("test@test.com", "테스트유저", "password");
+
         given(reviewRepository.findById(reviewId)).willReturn(Optional.of(review));
+        given(bookRepository.findById(any(UUID.class))).willReturn(Optional.of(book));
+        given(userRepository.findById(ownerUserId)).willReturn(Optional.of(user));
 
         assertThatThrownBy(() -> reviewService.updateReview(reviewId, ownerUserId, request))
                 .isInstanceOf(InvalidReviewException.class);
