@@ -8,12 +8,14 @@ import com.part3_team4.deokhoogam.domain.user.dto.UserLoginResultDto;
 import com.part3_team4.deokhoogam.domain.user.dto.UserUpdateRequestDto;
 import com.part3_team4.deokhoogam.domain.user.dto.response.PowerUserRankingResponseDto;
 import com.part3_team4.deokhoogam.domain.user.dto.response.UserResponse;
+import com.part3_team4.deokhoogam.domain.user.enums.PowerUserPeriod;
 import com.part3_team4.deokhoogam.domain.user.service.PowerUserRankingService;
 import com.part3_team4.deokhoogam.domain.user.service.UserService;
 import jakarta.validation.Valid;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.DeleteMapping;
@@ -26,6 +28,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
+@Slf4j
 @RestController
 @RequestMapping("/api/users")
 public class UserController {
@@ -71,6 +74,7 @@ public class UserController {
       @Valid @RequestBody PasswordUpdateRequestDto request) {
 
     userService.updatePassword(userId, request);
+
     return ResponseEntity.ok().build();
   }
 
@@ -92,27 +96,19 @@ public class UserController {
   }
 
   @PostMapping("/login")
-  public ResponseEntity<Map<String, Object>> login(
+  public ResponseEntity<UserLoginResultDto> login(
       @Valid @RequestBody UserLoginRequestDto request) {
 
     UserLoginResultDto result = userService.login(request.email(), request.password());
 
-    Map<String, Object> responseBody = Map.of(
-        "token", "",
-        "accessToken", "",
-        "id", result.id(),
-        "email", result.email(),
-        "nickname", result.nickname(),
-        "createdAt", result.createdAt()
-    );
-
-    return ResponseEntity.ok(responseBody);
+    return ResponseEntity.ok(result);
   }
 
   @GetMapping("/power")
-  public ResponseEntity<Map<String, Object>> getPowerUsers() {
+  public ResponseEntity<Map<String, Object>> getPowerUsers(
+      @RequestParam(defaultValue = "DAILY") PowerUserPeriod period) {
 
-    List<PowerUserRankingResponseDto> rankings = powerUserRankingService.getDailyRankingWithNickname();
+    List<PowerUserRankingResponseDto> rankings = powerUserRankingService.getRankingWithNickname(period);
 
     Map<String, Object> response = Map.of("content", rankings);
 

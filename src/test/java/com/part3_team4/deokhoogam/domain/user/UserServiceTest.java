@@ -5,6 +5,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.BDDMockito.then;
+import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 
 import com.part3_team4.deokhoogam.domain.user.dto.PasswordUpdateRequestDto;
@@ -25,6 +26,8 @@ import com.part3_team4.deokhoogam.domain.user.mapper.UserMapper;
 import com.part3_team4.deokhoogam.domain.user.repository.DeletedUserRepository;
 import com.part3_team4.deokhoogam.domain.user.repository.UserRepository;
 import com.part3_team4.deokhoogam.domain.user.service.UserServiceImpl;
+import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 import org.junit.jupiter.api.DisplayName;
@@ -267,7 +270,7 @@ public class UserServiceTest {
     userService.deleteUser(userId);
 
     then(deleteUserRepository).should().save(any(DeletedUser.class));
-    then(eventPublisher).should().publishEvent(any(UserDeletedEvent.class));
+    then(eventPublisher).should().publishEvent(new UserDeletedEvent(userId, false));
     then(userRepository).should().delete(user);
   }
 
@@ -299,7 +302,7 @@ public class UserServiceTest {
     userService.hardDeleteUser(userId);
 
     then(deleteUserRepository).should().delete(deletedUser);
-    then(eventPublisher).should().publishEvent(any(UserDeletedEvent.class));
+    then(eventPublisher).should().publishEvent(new UserDeletedEvent(userId, true));
   }
 
   @Test
@@ -346,7 +349,6 @@ public class UserServiceTest {
 
     UserLoginResultDto result = userService.login(email, rawPassword);
 
-    assertThat(result.token()).isEqualTo(""); // 빈 문자열로 변경
     assertThat(result.nickname()).isEqualTo("testUser");
   }
 
@@ -387,5 +389,29 @@ public class UserServiceTest {
     assertThrows(InvalidCredentialsException.class, () -> {
     userService.login(email, "password123!");
     });
+  }
+
+  @Test
+  @DisplayName("다건 유저 닉네임 목록 조회(N+1 최적화용) 성공")
+  void getUserNicknames_success() {
+    UUID userId1 = UUID.randomUUID();
+    UUID userId2 = UUID.randomUUID();
+
+    User user1 = mock(User.class);
+    given(user1.getId()).willReturn(userId1);
+    given(user1.getName()).willReturn("user1");
+
+    User user2 = mock(User.class);
+    given(user2.getId()).willReturn(userId2);
+    given(user2.getName()).willReturn("user2");
+
+    List<UUID> userIds = List.of(userId1, userId2);
+    given(userRepository.findAllById(userIds)).willReturn(List.of(user1, user2));
+
+    Map<UUID, String> nicknames = userService.getUserNicknames(userIds);
+
+    assertThat(nicknames).hasSize(2);
+    assertThat(nicknames.get(userId1)).isEqualTo("user1");
+    assertThat(nicknames.get(userId2)).isEqualTo("user2");
   }
 }
