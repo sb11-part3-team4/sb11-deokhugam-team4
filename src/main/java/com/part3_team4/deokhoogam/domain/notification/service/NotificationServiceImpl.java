@@ -13,6 +13,7 @@ import java.util.List;
 import java.util.UUID;
 import java.util.Objects;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.data.domain.PageRequest;
@@ -24,6 +25,7 @@ import org.springframework.data.domain.Sort;
  * 이 클래스는 NotificationServiceTest를 통과시키기 위한 Green 단계 구현입니다.
  * 따라서 현재는 서비스 테스트에서 요구한 기능만 최소한으로 구현합니다.
  */
+@Slf4j
 @Service
 @RequiredArgsConstructor
 @Transactional
@@ -33,6 +35,19 @@ public class NotificationServiceImpl implements NotificationService {
    * 알림 Entity를 저장하거나 조회하기 위해 사용하는 Repository입니다.
    */
   private final NotificationRepository notificationRepository;
+
+  /**
+   * 로그에서 알림이 생성된 원인을 구분하기 위한 내부 타입입니다.
+   *
+   * DB에 저장되는 도메인 필드가 아니라 로그 식별 목적으로만 사용합니다.
+   * 문자열을 직접 반복해서 사용하지 않도록 Service 내부 enum으로 관리합니다.
+   */
+  private enum NotificationLogType {
+    REACTION,
+    LIKE,
+    COMMENT,
+    POPULAR_REVIEW
+  }
 
   /**
    * 알림을 생성합니다.
