@@ -4,6 +4,7 @@ import com.part3_team4.deokhoogam.domain.review.dto.ReviewWithLiked;
 import com.part3_team4.deokhoogam.domain.review.entity.Review;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
@@ -45,6 +46,14 @@ public interface ReviewRepository extends JpaRepository<Review, UUID>{
             @Param("reviewId") UUID reviewId,
             @Param("userId") UUID userId
     );
+
+    @Modifying
+    @Query("UPDATE Review r SET r.commentCount = r.commentCount + 1 WHERE r.id = :reviewId")
+    int incrementCommentCount(@Param("reviewId") UUID reviewId);
+
+    @Modifying
+    @Query("UPDATE Review r SET r.commentCount = r.commentCount - 1 WHERE r.id = :reviewId AND r.commentCount > 0")
+    int decrementCommentCount(@Param("reviewId") UUID reviewId);
 
 
 }

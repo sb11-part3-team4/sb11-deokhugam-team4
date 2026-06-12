@@ -301,22 +301,21 @@ public class ReviewServiceImpl implements ReviewService {
     @Override
     @Transactional
     public void incrementCommentCount (UUID reviewId) {
-
-        Review review = reviewRepository.findById(reviewId)
-                .orElseThrow(() -> ReviewNotFoundException.withId(reviewId));
-        review.incrementCommentCount();
-
+        int updated = reviewRepository.incrementCommentCount(reviewId);
+        if (updated == 0) throw ReviewNotFoundException.withId(reviewId);
         log.info("[ReviewService] incrementCommentCount 완료 - reviewId: {}", reviewId);
     }
 
     @Override
     @Transactional
     public void decrementCommentCount(UUID reviewId) {
-
-        Review review = reviewRepository.findById(reviewId)
-                .orElseThrow(() -> ReviewNotFoundException.withId(reviewId));
-        review.decrementCommentCount();
-
+        int updated = reviewRepository.decrementCommentCount(reviewId);
+        if (updated == 0) {
+            if (!reviewRepository.existsById(reviewId)) {
+                throw ReviewNotFoundException.withId(reviewId);
+            }
+            return;
+        }
         log.info("[ReviewService] decrementCommentCount 완료 - reviewId: {}", reviewId);
     }
 
