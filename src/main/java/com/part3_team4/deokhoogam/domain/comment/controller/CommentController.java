@@ -2,6 +2,8 @@ package com.part3_team4.deokhoogam.domain.comment.controller;
 
 import com.part3_team4.deokhoogam.domain.comment.dto.CommentDto;
 import com.part3_team4.deokhoogam.domain.comment.service.CommentService;
+import com.part3_team4.deokhoogam.global.exception.ErrorCode;
+import com.part3_team4.deokhoogam.global.exception.InvalidRequestException;
 import jakarta.validation.Valid;
 import java.time.Instant;
 import java.util.UUID;
@@ -53,8 +55,7 @@ public class CommentController {
             try {
                 cursorUuid = UUID.fromString(cursor);
             } catch (IllegalArgumentException e) {
-                // TODO: [GlobalExceptionHandler] IllegalArgumentException 핸들러 추가 후 try-catch 제거
-                return ResponseEntity.badRequest().build();
+                throw new InvalidRequestException(ErrorCode.INVALID_INPUT_VALUE);
             }
         }
         return ResponseEntity.ok(commentService.getComments(reviewId, direction, cursorUuid, after, limit));
