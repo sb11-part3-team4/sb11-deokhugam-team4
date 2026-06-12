@@ -5,6 +5,7 @@ import com.part3_team4.deokhoogam.domain.review.entity.DeletedReview;
 import com.part3_team4.deokhoogam.domain.review.entity.Review;
 import com.part3_team4.deokhoogam.domain.review.entity.ReviewDeletedEvent;
 import com.part3_team4.deokhoogam.domain.review.repository.DeletedReviewRepository;
+import com.part3_team4.deokhoogam.domain.review.repository.ReviewLikeRepository;
 import com.part3_team4.deokhoogam.domain.review.repository.ReviewRepository;
 import com.part3_team4.deokhoogam.domain.user.entity.UserDeletedEvent;
 import java.util.List;
@@ -22,6 +23,7 @@ public class ReviewEventListener {
   private final ReviewRepository reviewRepository;
   private final DeletedReviewRepository deletedReviewRepository;
   private final ApplicationEventPublisher eventPublisher;
+  private final ReviewLikeRepository reviewLikeRepository;
 
   //유저 삭제 이벤트 수신
   @EventListener
@@ -34,9 +36,10 @@ public class ReviewEventListener {
     }
 
     //삭제되는 리뷰마다 하위 데이터 삭제를 위한 이벤트 발행
-    reviews.forEach(review ->
-        eventPublisher.publishEvent(new ReviewDeletedEvent(review.getId(), event.isHardDelete()))
-    );
+    reviews.forEach(review -> {
+      eventPublisher.publishEvent(new ReviewDeletedEvent(review.getId(), event.isHardDelete()));
+      reviewLikeRepository.deleteAllByReviewId(review.getId()); //좋아요 데이터 선행 삭제
+    });
 
     if (!event.isHardDelete()) {
       //논리 삭제: 백업 테이블로 복사 후 원본 테이블에서 삭제
@@ -62,9 +65,10 @@ public class ReviewEventListener {
     }
 
     //삭제되는 리뷰마다 하위 데이터 삭제를 위한 이벤트 발행
-    reviews.forEach(review ->
-        eventPublisher.publishEvent(new ReviewDeletedEvent(review.getId(), event.isHardDelete()))
-    );
+    reviews.forEach(review -> {
+      eventPublisher.publishEvent(new ReviewDeletedEvent(review.getId(), event.isHardDelete()));
+      reviewLikeRepository.deleteAllByReviewId(review.getId()); // 좋아요 데이터 선행 삭제 (FK 에러 방지)
+    });
 
     if (!event.isHardDelete()) {
       //논리 삭제: 백업 테이블로 복사 후 원본 테이블에서 삭제

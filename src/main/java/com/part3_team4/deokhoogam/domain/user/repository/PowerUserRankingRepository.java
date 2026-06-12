@@ -8,6 +8,7 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
+import org.springframework.transaction.annotation.Transactional;
 
 public interface PowerUserRankingRepository extends JpaRepository<PowerUserRanking, UUID>,
     PowerUserQueryRepository {
@@ -17,4 +18,9 @@ public interface PowerUserRankingRepository extends JpaRepository<PowerUserRanki
   @Modifying(clearAutomatically = true)
   @Query("DELETE FROM PowerUserRanking p WHERE p.period = :period")
   void deleteByPeriod(@Param("period") PowerUserPeriod period);
+
+  // 유저 삭제 이벤트용 삭제 메서드 추가
+  @Modifying
+  @Transactional
+  void deleteByUserId(UUID userId);
 }
