@@ -3,12 +3,14 @@ package com.part3_team4.deokhoogam.domain.review.service;
 import com.part3_team4.deokhoogam.domain.book.entity.BookDeletedEvent;
 import com.part3_team4.deokhoogam.domain.review.entity.DeletedReview;
 import com.part3_team4.deokhoogam.domain.review.entity.Review;
+import com.part3_team4.deokhoogam.domain.review.entity.ReviewDeletedEvent;
 import com.part3_team4.deokhoogam.domain.review.repository.DeletedReviewRepository;
 import com.part3_team4.deokhoogam.domain.review.repository.ReviewRepository;
 import com.part3_team4.deokhoogam.domain.user.entity.UserDeletedEvent;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.context.event.EventListener;
 import org.springframework.stereotype.Component;
 
@@ -16,8 +18,10 @@ import org.springframework.stereotype.Component;
 @Component
 @RequiredArgsConstructor
 public class ReviewEventListener {
+
   private final ReviewRepository reviewRepository;
   private final DeletedReviewRepository deletedReviewRepository;
+  private final ApplicationEventPublisher eventPublisher;
 
   //유저 삭제 이벤트 수신
   @EventListener
@@ -28,6 +32,11 @@ public class ReviewEventListener {
     if (reviews.isEmpty()) {
       return;
     }
+
+    //삭제되는 리뷰마다 하위 데이터 삭제를 위한 이벤트 발행
+    reviews.forEach(review ->
+        eventPublisher.publishEvent(new ReviewDeletedEvent(review.getId(), event.isHardDelete()))
+    );
 
     if (!event.isHardDelete()) {
       //논리 삭제: 백업 테이블로 복사 후 원본 테이블에서 삭제
@@ -51,6 +60,11 @@ public class ReviewEventListener {
     if (reviews.isEmpty()) {
       return;
     }
+
+    //삭제되는 리뷰마다 하위 데이터 삭제를 위한 이벤트 발행
+    reviews.forEach(review ->
+        eventPublisher.publishEvent(new ReviewDeletedEvent(review.getId(), event.isHardDelete()))
+    );
 
     if (!event.isHardDelete()) {
       //논리 삭제: 백업 테이블로 복사 후 원본 테이블에서 삭제
