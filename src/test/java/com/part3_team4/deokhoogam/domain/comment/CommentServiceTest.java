@@ -5,6 +5,7 @@ import com.part3_team4.deokhoogam.domain.comment.entity.Comment;
 import com.part3_team4.deokhoogam.domain.comment.entity.DeletedComment;
 import com.part3_team4.deokhoogam.domain.comment.exception.CommentNotFoundException;
 import com.part3_team4.deokhoogam.domain.comment.exception.CommentNotOwnerException;
+import com.part3_team4.deokhoogam.global.exception.InvalidRequestException;
 import com.part3_team4.deokhoogam.domain.comment.repository.CommentRepository;
 import com.part3_team4.deokhoogam.domain.comment.repository.DeletedCommentRepository;
 import com.part3_team4.deokhoogam.domain.comment.service.CommentServiceImpl;
@@ -511,6 +512,24 @@ class CommentServiceTest {
             assertThat(result.content()).hasSize(1);
             assertThat(result.content().get(0).content()).isEqualTo("after 이후 댓글");
             assertThat(result.content().get(0).userNickname()).isEqualTo("테스트유저");
+        }
+
+        @Test
+        @DisplayName("cursor만 제공하고 after가 없으면 InvalidRequestException이 발생한다")
+        void getComments_cursorOnly_throwsInvalidRequestException() {
+            given(reviewRepository.existsById(REVIEW_ID)).willReturn(true);
+
+            assertThatThrownBy(() -> commentService.getComments(REVIEW_ID, "DESC", UUID.randomUUID(), null, 50))
+                    .isInstanceOf(InvalidRequestException.class);
+        }
+
+        @Test
+        @DisplayName("after만 제공하고 cursor가 없으면 InvalidRequestException이 발생한다")
+        void getComments_afterOnly_throwsInvalidRequestException() {
+            given(reviewRepository.existsById(REVIEW_ID)).willReturn(true);
+
+            assertThatThrownBy(() -> commentService.getComments(REVIEW_ID, "ASC", null, Instant.now(), 50))
+                    .isInstanceOf(InvalidRequestException.class);
         }
 
         @Test
