@@ -60,12 +60,12 @@ public class ReviewServiceImpl implements ReviewService {
     @Transactional
     public ReviewResponse createReview(UUID userId, ReviewCreateRequest request) {
 
-        Book book = bookRepository.findById(request.bookId())
-                .orElseThrow(() -> BookNotFoundException.withId(request.bookId()));
-
         if (reviewRepository.existsByUserIdAndBookId(userId, request.bookId())) {
             throw ReviewAlreadyExistsException.withUserIdAndBookId(userId, request.bookId());
         }
+
+        Book book = bookRepository.findById(request.bookId())
+                .orElseThrow(() -> BookNotFoundException.withId(request.bookId()));
 
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> UserNotFoundException.withId(userId));
@@ -108,13 +108,13 @@ public class ReviewServiceImpl implements ReviewService {
         ReviewWithLiked result = reviewRepository.findByIdWithLiked(reviewId, userId)
                 .orElseThrow(() -> ReviewNotFoundException.withId(reviewId));
 
-        Book book = bookRepository.findById(result.review().getBookId())
-                .orElseThrow(() -> BookNotFoundException.withId(result.review().getBookId()));
-
-        User user = userRepository.findById(userId)
-                .orElseThrow(() -> UserNotFoundException.withId(userId));
-
         Review review = result.review();
+
+        Book book = bookRepository.findById(review.getBookId())
+                .orElseThrow(() -> BookNotFoundException.withId(review.getBookId()));
+
+        User user = userRepository.findById(review.getUserId())
+                .orElseThrow(() -> UserNotFoundException.withId(review.getUserId()));
         boolean likedByMe = result.likedByMe();
 
         return new ReviewResponse(
@@ -150,8 +150,8 @@ public class ReviewServiceImpl implements ReviewService {
         Book book = bookRepository.findById(review.getBookId())
                 .orElseThrow(() -> BookNotFoundException.withId(review.getBookId()));
 
-        User user = userRepository.findById(userId)
-                .orElseThrow(() -> UserNotFoundException.withId(userId));
+        User user = userRepository.findById(review.getUserId())
+                .orElseThrow(() -> UserNotFoundException.withId(review.getUserId()));
 
         review.update(request.rating(), request.content());
 
