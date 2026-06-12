@@ -98,27 +98,110 @@ class CommentRepositoryTest {
     }
 
     @Test
-    @DisplayName("커서 이전의 댓글만 조회된다 (createdAt 기준)")
-    void findBeforeCursor_returnsOnlyEarlierComments() {
+    @DisplayName("findNextPageDesc: 커서 이전의 댓글만 DESC로 조회된다")
+    void findNextPageDesc_returnsCommentsBeforeCursor() {
         Instant base = Instant.now();
         saveWithCreatedAt("첫 번째 댓글", base.minusSeconds(20));
         saveWithCreatedAt("두 번째 댓글", base.minusSeconds(10));
         Comment third = saveWithCreatedAt("세 번째 댓글", base);
 
-        Instant cursor = third.getCreatedAt();
-
-        List<Comment> result = commentRepository.findByReviewIdAndCreatedAtBeforeOrderByCreatedAtDesc(
-                testReview.getId(), cursor, PageRequest.of(0, 10));
+        List<Comment> result = commentRepository.findNextPageDesc(
+                testReview.getId(), third.getCreatedAt(), third.getId(), PageRequest.of(0, 10));
 
         assertThat(result).hasSize(2);
         assertThat(result.get(0).getContent()).isEqualTo("두 번째 댓글");
         assertThat(result.get(1).getContent()).isEqualTo("첫 번째 댓글");
     }
 
-    // TODO: 동일 createdAt + 서로 다른 id 시나리오 회귀 테스트 추가
-    //       현재 커서 테스트는 타임스탬프가 모두 달라 동일 createdAt 다건 시 페이지 누락/중복을 검증하지 못함
-    //       커서를 (createdAt, id) 복합키로 고도화한 뒤 아래 케이스를 작성할 것:
-    //       - 같은 createdAt을 가진 댓글 N개 중 절반을 1페이지로 조회했을 때 2페이지에서 나머지가 누락/중복 없이 반환되는지 검증
+    @Test
+    @DisplayName("findNextPageDesc: 커서가 가장 오래된 댓글이면 빈 리스트를 반환한다")
+    void findNextPageDesc_withOldestCursor_returnsEmpty() {
+        Instant base = Instant.now();
+        Comment first = saveWithCreatedAt("첫 번째 댓글", base.minusSeconds(20));
+        saveWithCreatedAt("두 번째 댓글", base.minusSeconds(10));
+        saveWithCreatedAt("세 번째 댓글", base);
+
+        List<Comment> result = commentRepository.findNextPageDesc(
+                testReview.getId(), first.getCreatedAt(), first.getId(), PageRequest.of(0, 10));
+
+        assertThat(result).isEmpty();
+    }
+
+    @Test
+    @DisplayName("findNextPageDesc: 동일 createdAt 레코드가 페이지 경계에서 누락되지 않는다")
+    void findNextPageDesc_sameCreatedAt_noMissingRecords() {
+        Instant sameTime = Instant.now().minusSeconds(5);
+        Comment c1 = saveWithCreatedAt("댓글-1", sameTime);
+        Comment c2 = saveWithCreatedAt("댓글-2", sameTime);
+        Comment c3 = saveWithCreatedAt("댓글-3", sameTime);
+        Comment c4 = saveWithCreatedAt("댓글-4", sameTime);
+
+        // 1페이지: 4개 중 2개 → DESC, id DESC 순서이므로 id가 큰 것부터
+        List<Comment> page1 = commentRepository.findByReviewIdOrderByCreatedAtDesc(
+                testReview.getId(), PageRequest.of(0, 2));
+        assertThat(page1).hasSize(2);
+
+        // 2페이지: page1 마지막 요소의 (createdAt, id)로 커서 설정
+        Comment lastOfPage1 = page1.get(1);
+        List<Comment> page2 = commentRepository.findNextPageDesc(
+                testReview.getId(), lastOfPage1.getCreatedAt(), lastOfPage1.getId(), PageRequest.of(0, 2));
+
+        assertThat(page2).hasSize(2);
+
+        // 1페이지와 2페이지를 합치면 4개, 중복 없음
+        List<UUID> allIds = new java.util.ArrayList<>();
+        page1.forEach(c -> allIds.add(c.getId()));
+        page2.forEach(c -> allIds.add(c.getId()));
+        assertThat(allIds).hasSize(4);
+        assertThat(allIds).doesNotHaveDuplicates();
+        assertThat(allIds).containsExactlyInAnyOrder(c1.getId(), c2.getId(), c3.getId(), c4.getId());
+    }
+
+    @Test
+    @DisplayName("findNextPageAsc: 커서 이후의 댓글만 ASC로 조회된다")
+    void findNextPageAsc_returnsCommentsAfterCursor() {
+        Instant base = Instant.now();
+        Comment first = saveWithCreatedAt("첫 번째 댓글", base.minusSeconds(20));
+        saveWithCreatedAt("두 번째 댓글", base.minusSeconds(10));
+        saveWithCreatedAt("세 번째 댓글", base);
+
+        List<Comment> result = commentRepository.findNextPageAsc(
+                testReview.getId(), first.getCreatedAt(), first.getId(), PageRequest.of(0, 10));
+
+        assertThat(result).hasSize(2);
+        assertThat(result.get(0).getContent()).isEqualTo("두 번째 댓글");
+        assertThat(result.get(1).getContent()).isEqualTo("세 번째 댓글");
+    }
+
+    @Test
+    @DisplayName("findNextPageAsc: 동일 createdAt 레코드가 페이지 경계에서 누락되지 않는다")
+    void findNextPageAsc_sameCreatedAt_noMissingRecords() {
+        Instant sameTime = Instant.now().minusSeconds(5);
+        Comment c1 = saveWithCreatedAt("댓글-1", sameTime);
+        Comment c2 = saveWithCreatedAt("댓글-2", sameTime);
+        Comment c3 = saveWithCreatedAt("댓글-3", sameTime);
+        Comment c4 = saveWithCreatedAt("댓글-4", sameTime);
+
+        // 1페이지: 4개 중 2개 → ASC, id ASC 순서이므로 id가 작은 것부터
+        List<Comment> page1 = commentRepository.findByReviewIdOrderByCreatedAtAsc(
+                testReview.getId(), PageRequest.of(0, 2));
+        assertThat(page1).hasSize(2);
+
+        // 2페이지: page1 마지막 요소의 (createdAt, id)로 커서 설정
+        Comment lastOfPage1 = page1.get(1);
+        List<Comment> page2 = commentRepository.findNextPageAsc(
+                testReview.getId(), lastOfPage1.getCreatedAt(), lastOfPage1.getId(), PageRequest.of(0, 2));
+
+        assertThat(page2).hasSize(2);
+
+        // 1페이지와 2페이지를 합치면 4개, 중복 없음
+        List<UUID> allIds = new java.util.ArrayList<>();
+        page1.forEach(c -> allIds.add(c.getId()));
+        page2.forEach(c -> allIds.add(c.getId()));
+        assertThat(allIds).hasSize(4);
+        assertThat(allIds).doesNotHaveDuplicates();
+        assertThat(allIds).containsExactlyInAnyOrder(c1.getId(), c2.getId(), c3.getId(), c4.getId());
+    }
 
     @Test
     @DisplayName("다른 reviewId의 댓글은 조회되지 않는다")
@@ -154,21 +237,6 @@ class CommentRepositoryTest {
         assertThat(result).hasSize(2);
     }
 
-    @Test
-    @DisplayName("커서가 가장 오래된 댓글의 createdAt이면 빈 리스트를 반환한다")
-    void findBeforeCursor_withFirstCursor_returnsEmpty() {
-        Instant base = Instant.now();
-        Comment first = saveWithCreatedAt("첫 번째 댓글", base.minusSeconds(20));
-        saveWithCreatedAt("두 번째 댓글", base.minusSeconds(10));
-        saveWithCreatedAt("세 번째 댓글", base);
-
-        Instant cursor = first.getCreatedAt();
-
-        List<Comment> result = commentRepository.findByReviewIdAndCreatedAtBeforeOrderByCreatedAtDesc(
-                testReview.getId(), cursor, PageRequest.of(0, 10));
-
-        assertThat(result).isEmpty();
-    }
 
     @Test
     @DisplayName("해당 reviewId의 댓글이 모두 삭제된다")
