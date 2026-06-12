@@ -29,6 +29,9 @@ spring:
       hibernate:
         default_batch_fetch_size: 1000
 
+
+
+
 logging:
   level:
     root: INFO
@@ -43,3 +46,9 @@ ocr:
     api-key: ${OCR_SPACE_API_KEY:dummy_key}
     connect-timeout: 5000
     read-timeout: 15000
+
+cache:
+  ranking:
+    enabled: true
+
+
