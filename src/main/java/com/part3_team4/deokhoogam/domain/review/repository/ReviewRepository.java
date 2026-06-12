@@ -8,6 +8,7 @@ import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
+import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -54,6 +55,9 @@ public interface ReviewRepository extends JpaRepository<Review, UUID>{
     @Modifying
     @Query("UPDATE Review r SET r.commentCount = r.commentCount - 1 WHERE r.id = :reviewId AND r.commentCount > 0")
     int decrementCommentCount(@Param("reviewId") UUID reviewId);
+
+    @Query("SELECT r FROM Review r WHERE r.createdAt >= :start AND r.createdAt <= :end")
+    List<Review> findByCreatedAtBetween(@Param("start")Instant start, @Param("end") Instant end);
 
 
 }

@@ -49,4 +49,5 @@ public interface PopularReviewRepository extends JpaRepository<PopularReview, UU
             """, nativeQuery = true)
     List<PopularReview> findByPeriodAndRankLessThan(@Param("period") String period, @Param("rank") int rank, Pageable pageable);
 
+    void deleteByPeriod(String period);
 }
