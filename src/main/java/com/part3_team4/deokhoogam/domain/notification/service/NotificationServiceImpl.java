@@ -6,12 +6,14 @@ import com.part3_team4.deokhoogam.domain.notification.entity.Notification;
 import com.part3_team4.deokhoogam.domain.notification.exception.NotificationAccessDeniedException;
 import com.part3_team4.deokhoogam.domain.notification.exception.NotificationNotFoundException;
 import com.part3_team4.deokhoogam.domain.notification.repository.NotificationRepository;
+import com.part3_team4.deokhoogam.domain.notification.exception.NotificationInvalidInputException;
 import com.part3_team4.deokhoogam.global.common.PageResponse;
 import java.time.Instant;
 import java.util.List;
 import java.util.UUID;
 import java.util.Objects;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.data.domain.PageRequest;
@@ -23,6 +25,7 @@ import org.springframework.data.domain.Sort;
  * 이 클래스는 NotificationServiceTest를 통과시키기 위한 Green 단계 구현입니다.
  * 따라서 현재는 서비스 테스트에서 요구한 기능만 최소한으로 구현합니다.
  */
+@Slf4j
 @Service
 @RequiredArgsConstructor
 @Transactional
@@ -32,6 +35,19 @@ public class NotificationServiceImpl implements NotificationService {
    * 알림 Entity를 저장하거나 조회하기 위해 사용하는 Repository입니다.
    */
   private final NotificationRepository notificationRepository;
+
+  /**
+   * 로그에서 알림이 생성된 원인을 구분하기 위한 내부 타입입니다.
+   *
+   * DB에 저장되는 도메인 필드가 아니라 로그 식별 목적으로만 사용합니다.
+   * 문자열을 직접 반복해서 사용하지 않도록 Service 내부 enum으로 관리합니다.
+   */
+  private enum NotificationLogType {
+    REACTION,
+    LIKE,
+    COMMENT,
+    POPULAR_REVIEW
+  }
 
   /**
    * 알림을 생성합니다.
@@ -53,7 +69,8 @@ public class NotificationServiceImpl implements NotificationService {
         userId,
         reviewId,
         reviewContent,
-        sender + "님이 내 리뷰에 반응했습니다."
+        sender + "님이 내 리뷰에 반응했습니다.",
+        NotificationLogType.REACTION
     );
   }
 
@@ -122,6 +139,14 @@ public class NotificationServiceImpl implements NotificationService {
 
     notification.updateConfirmed(request.confirmed());
 
+    // 알림 상태 변경이 정상적으로 완료된 마지막 시점에 한 번만 기록합니다.
+    log.info(
+        "알림 확인 상태 변경 완료: notificationId={}, userId={}, confirmed={}",
+        notificationId,
+        requesterId,
+        request.confirmed()
+    );
+
     return NotificationDto.from(notification);
   }
 
@@ -141,6 +166,14 @@ public class NotificationServiceImpl implements NotificationService {
         notificationRepository.findAllByUserIdAndConfirmedFalse(requesterId);
 
     notifications.forEach(notification -> notification.updateConfirmed(true));
+
+    // 몇 개의 알림이 실제로 변경됐는지 운영에서 확인할 수 있도록 기록합니다.
+    // 개별 알림마다 로그를 남기지 않고 전체 요청을 하나의 사건으로 기록합니다.
+    log.info(
+        "전체 알림 읽음 처리 완료: userId={}, updatedCount={}",
+        requesterId,
+        notifications.size()
+    );
   }
 
   /**
@@ -167,7 +200,8 @@ public class NotificationServiceImpl implements NotificationService {
         receiverId,
         reviewId,
         reviewContent,
-        sender + "님이 내 리뷰에 좋아요를 눌렀습니다."
+        sender + "님이 내 리뷰에 좋아요를 눌렀습니다.",
+        NotificationLogType.LIKE
     );
   }
 
@@ -195,7 +229,8 @@ public class NotificationServiceImpl implements NotificationService {
         receiverId,
         reviewId,
         reviewContent,
-        sender + "님이 내 리뷰에 댓글을 남겼습니다."
+        sender + "님이 내 리뷰에 댓글을 남겼습니다.",
+        NotificationLogType.COMMENT
     );
   }
 
@@ -231,7 +266,8 @@ public class NotificationServiceImpl implements NotificationService {
         receiverId,
         reviewId,
         reviewContent,
-        buildPopularReviewMessage(period, rank)
+        buildPopularReviewMessage(period, rank),
+        NotificationLogType.POPULAR_REVIEW
     );
   }
 
@@ -287,14 +323,21 @@ public class NotificationServiceImpl implements NotificationService {
   /**
    * 알림 유형별 메서드에서 공통으로 사용하는 저장 메서드입니다.
    *
-   * 좋아요와 댓글 알림은 메시지만 다르고 Notification 생성 과정은 같으므로,
-   * 중복되는 엔티티 생성 및 Repository 저장 코드를 이 메서드로 분리합니다.
+   * Repository 저장이 예외 없이 완료된 이후에만 INFO 로그를 남깁니다.
+   * 리뷰 내용과 메시지 전문은 로그 크기 및 개인정보 노출을 고려하여 기록하지 않습니다.
+   *
+   * @param receiverId 알림 수신자 ID
+   * @param reviewId 알림과 연결된 리뷰 ID
+   * @param reviewContent 알림 생성 당시 리뷰 내용
+   * @param message 사용자에게 표시할 알림 메시지
+   * @param notificationType 알림이 생성된 원인
    */
   private void saveNotification(
       UUID receiverId,
       UUID reviewId,
       String reviewContent,
-      String message
+      String message,
+      NotificationLogType notificationType
   ) {
     Notification notification = Notification.builder()
         .userId(receiverId)
@@ -305,7 +348,16 @@ public class NotificationServiceImpl implements NotificationService {
         .confirmed(false)
         .build();
 
+    // save()가 예외 없이 반환된 시점에만 성공 로그를 기록합니다.
     notificationRepository.save(notification);
+
+    log.info(
+        "알림 생성 완료: notificationId={}, receiverId={}, reviewId={}, type={}",
+        notification.getId(),
+        receiverId,
+        reviewId,
+        notificationType
+    );
   }
 
   @Override
@@ -318,30 +370,125 @@ public class NotificationServiceImpl implements NotificationService {
       Instant after,
       int limit
   ) {
+    // 알림은 본인만 조회할 수 있으므로 요청자와 조회 대상 사용자를 먼저 비교합니다.
+    // 권한 검증을 가장 먼저 수행하면 권한이 없는 요청에 대해
+    // PageRequest 생성이나 Repository 조회가 실행되는 것을 방지할 수 있습니다.
+    validateReadPermission(requesterId, userId);
+
+    // cursor와 after는 하나의 커서 위치를 구성하는 값입니다.
+    // 하나만 전달되면 잘못된 요청으로 처리합니다.
+    validateCursorPair(cursor, after);
+
+    // 다음 페이지 존재 여부를 확인하기 위해 요청한 limit보다 1개 더 조회합니다.
+    // 예를 들어 limit이 20이면 최대 21개를 조회합니다.
+    PageRequest pageRequest = PageRequest.of(0, limit + 1);
+
+    // 커서 존재 여부에 따라 첫 페이지 또는 다음 페이지를 조회합니다.
+    List<Notification> notifications = cursor == null
+        ? findFirstPage(userId, direction, pageRequest)
+        : findNextPage(userId, direction, cursor, after, pageRequest);
+
+    // 조회 결과를 Swagger 응답 형식인 PageResponse로 변환합니다.
+    return createPageResponse(userId, notifications, limit);
+  }
+
+  /**
+   * 요청자가 조회 대상 사용자의 알림을 조회할 권한이 있는지 검증합니다.
+   *
+   * 현재 알림 목록 API는 본인의 알림만 조회할 수 있습니다.
+   * 따라서 요청 헤더의 사용자 ID와 query parameter의 userId가 같아야 합니다.
+   */
+  private void validateReadPermission(UUID requesterId, UUID userId) {
     if (!requesterId.equals(userId)) {
       throw NotificationAccessDeniedException.withUserId(userId);
     }
-    // hasNext 판단을 위해 요청 limit보다 1개 더 조회합니다.
-    PageRequest pageRequest = PageRequest.of(0, limit + 1);
+  }
 
-    List<Notification> notifications;
+  /**
+   * 커서 페이지네이션 파라미터 조합을 검증합니다.
+   *
+   * 정상적인 조합:
+   * - cursor == null, after == null: 첫 페이지 조회
+   * - cursor != null, after != null: 다음 페이지 조회
+   *
+   * 잘못된 조합:
+   * - cursor만 존재
+   * - after만 존재
+   */
+  private void validateCursorPair(UUID cursor, Instant after) {
+    // 두 null 여부가 서로 다르면 하나만 전달된 상태입니다.
+    // XOR와 같은 의미지만 가독성을 위해 명시적인 비교식을 사용합니다.
+    boolean onlyOneProvided = (cursor == null) != (after == null);
 
-    // cursor와 after가 없으면 첫 페이지 조회입니다.
-    if (cursor == null || after == null) {
-      notifications = direction == Sort.Direction.ASC
-          ? notificationRepository.findByUserIdOrderByCreatedAtAscIdAsc(userId, pageRequest)
-          : notificationRepository.findByUserIdOrderByCreatedAtDescIdDesc(userId, pageRequest);
-    } else {
-      // cursor와 after가 있으면 다음 페이지 조회입니다.
-      notifications = direction == Sort.Direction.ASC
-          ? notificationRepository.findNextPageAsc(userId, after, cursor, pageRequest)
-          : notificationRepository.findNextPageDesc(userId, after, cursor, pageRequest);
+    if (onlyOneProvided) {
+      throw NotificationInvalidInputException.withCursorPair(cursor, after);
+    }
+  }
+
+  /**
+   * 커서가 없는 첫 페이지를 조회합니다.
+   *
+   * ASC는 오래된 알림부터, DESC는 최신 알림부터 조회합니다.
+   */
+  private List<Notification> findFirstPage(
+      UUID userId,
+      Sort.Direction direction,
+      PageRequest pageRequest
+  ) {
+    if (direction == Sort.Direction.ASC) {
+      return notificationRepository
+          .findByUserIdOrderByCreatedAtAscIdAsc(userId, pageRequest);
     }
 
-    // limit + 1개가 조회되었다면 다음 페이지가 존재합니다.
+    return notificationRepository
+        .findByUserIdOrderByCreatedAtDescIdDesc(userId, pageRequest);
+  }
+
+  /**
+   * cursor와 after를 기준으로 다음 페이지를 조회합니다.
+   *
+   * createdAt만으로 커서를 구성하면 동일한 시각에 생성된 알림 사이에서
+   * 중복 또는 누락이 발생할 수 있습니다. 따라서 ID를 보조 정렬 조건으로 사용합니다.
+   */
+  private List<Notification> findNextPage(
+      UUID userId,
+      Sort.Direction direction,
+      UUID cursor,
+      Instant after,
+      PageRequest pageRequest
+  ) {
+    if (direction == Sort.Direction.ASC) {
+      return notificationRepository.findNextPageAsc(
+          userId,
+          after,
+          cursor,
+          pageRequest
+      );
+    }
+
+    return notificationRepository.findNextPageDesc(
+        userId,
+        after,
+        cursor,
+        pageRequest
+    );
+  }
+
+  /**
+   * 조회된 알림 목록을 PageResponse로 변환합니다.
+   *
+   * Repository에서는 hasNext 판단을 위해 limit + 1개를 조회하지만,
+   * 실제 응답에는 사용자가 요청한 limit 개수까지만 포함합니다.
+   */
+  private PageResponse<NotificationDto> createPageResponse(
+      UUID userId,
+      List<Notification> notifications,
+      int limit
+  ) {
+    // limit보다 많이 조회됐다면 다음 페이지가 존재합니다.
     boolean hasNext = notifications.size() > limit;
 
-    // 응답 content에는 실제 요청 limit 개수만 포함합니다.
+    // 응답에는 최대 limit개의 알림만 포함합니다.
     List<Notification> pageContent = hasNext
         ? notifications.subList(0, limit)
         : notifications;
@@ -353,11 +500,14 @@ public class NotificationServiceImpl implements NotificationService {
     String nextCursor = null;
     String nextAfter = null;
 
-    // 다음 페이지가 있을 때만 다음 커서 값을 내려줍니다.
+    // 다음 페이지가 있을 때만 현재 응답의 마지막 알림으로
+    // 다음 요청에 사용할 cursor와 after를 생성합니다.
     if (hasNext && !pageContent.isEmpty()) {
-      Notification last = pageContent.get(pageContent.size() - 1);
-      nextCursor = last.getId().toString();
-      nextAfter = last.getCreatedAt().toString();
+      Notification lastNotification =
+          pageContent.get(pageContent.size() - 1);
+
+      nextCursor = lastNotification.getId().toString();
+      nextAfter = lastNotification.getCreatedAt().toString();
     }
 
     return new PageResponse<>(

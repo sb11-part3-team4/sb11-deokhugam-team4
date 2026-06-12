@@ -61,7 +61,6 @@ public class S3FileUploader implements FileUploader {
 
   @Override
   public void delete(String fileUrl) {
-    log.info("S3 파일 삭제 로직 실행: {}", fileUrl);
 
     if (fileUrl == null || fileUrl.isBlank()) {
       log.warn("삭제할 파일 URL이 존재하지 않습니다.");
@@ -156,7 +155,6 @@ public class S3FileUploader implements FileUploader {
       }
       return path;
     } catch (java.net.URISyntaxException e) {
-      log.error("잘못된 파일 URL 형식입니다: {}", fileUrl);
       throw InvalidFileException.withFieldAndValue(ErrorKey.FILE, fileUrl, "유효하지 않은 파일 URL입니다.");
     }
   }
@@ -166,7 +164,7 @@ public class S3FileUploader implements FileUploader {
       s3Template.deleteObject(bucketName, key);
       log.info("S3 파일 정리 완료: {}", key);
     } catch (S3Exception e) {
-      log.error("S3 파일 정리 실패: " + key, e);
+      log.error("S3 파일 정리 실패: {}", key, e);
     }
   }
 }

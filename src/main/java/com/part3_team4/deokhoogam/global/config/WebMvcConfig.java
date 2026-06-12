@@ -17,6 +17,17 @@ public class WebMvcConfig implements WebMvcConfigurer {
   @Override
   public void addInterceptors(InterceptorRegistry registry) {
     registry.addInterceptor(mdcLoggingInterceptor())
-        .addPathPatterns("/**"); // 모든 경로에 적용
+        .addPathPatterns("/**")
+        .excludePathPatterns(
+            "/css/**",
+            "/js/**",
+            "/assets/**",
+            "/images/**",
+            "/favicon.ico",
+            "/static/**",
+            "/swagger-ui/**",
+            "/v3/api-docs/**",
+            "/actuator/**"
+        );
   }
 }
