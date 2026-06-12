@@ -14,7 +14,7 @@ public interface CommentService {
 
     void hardDeleteComment(UUID commentId);
 
-    CommentDto.CommentsResponse getComments(UUID reviewId, String direction, Instant cursor, Instant after, int limit);
+    CommentDto.CommentsResponse getComments(UUID reviewId, String direction, UUID cursor, Instant after, int limit);
 
     CommentDto.CommentResponse getComment(UUID commentId);
 }
