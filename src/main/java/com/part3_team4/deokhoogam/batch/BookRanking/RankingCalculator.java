@@ -13,11 +13,12 @@ import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.redis.core.Cursor;
+import org.springframework.data.redis.core.ScanOptions;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
@@ -82,12 +83,18 @@ public class RankingCalculator {
 
     //기존 캐시 삭제
     try {
-      Set<String> keys = redisTemplate.keys("ranking:book:" + period + ":*");
-      if (!keys.isEmpty()) {
-        redisTemplate.delete(keys);
+      String pattern = "ranking:book:" + period + ":*";
+      ScanOptions options = ScanOptions.scanOptions().match(pattern).count(100).build();
+
+      List<String> keysToDelete = new ArrayList<>();
+      try (Cursor<String> cursor = redisTemplate.scan(options)) {
+        cursor.forEachRemaining(keysToDelete::add);
       }
-    }
-    catch (Exception e) {
+
+      if (!keysToDelete.isEmpty()) {
+        redisTemplate.delete(keysToDelete);
+      }
+    } catch (Exception e) {
       log.warn("Redis 캐시 삭제 실패 (무시): period={}", period, e);
     }
 
