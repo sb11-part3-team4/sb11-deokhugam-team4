@@ -12,12 +12,15 @@ import com.part3_team4.deokhoogam.domain.user.enums.PowerUserPeriod;
 import com.part3_team4.deokhoogam.domain.user.service.PowerUserRankingService;
 import com.part3_team4.deokhoogam.domain.user.service.UserService;
 import jakarta.validation.Valid;
+import jakarta.validation.constraints.Max;
+import jakarta.validation.constraints.Min;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
@@ -31,6 +34,7 @@ import org.springframework.web.bind.annotation.RestController;
 @Slf4j
 @RestController
 @RequestMapping("/api/users")
+@Validated
 public class UserController {
 
   private final UserService userService;
@@ -107,7 +111,7 @@ public class UserController {
   @GetMapping("/power")
   public ResponseEntity<Map<String, Object>> getPowerUsers(
       @RequestParam(defaultValue = "DAILY") PowerUserPeriod period,
-      @RequestParam(defaultValue = "10") int limit) {
+      @RequestParam(defaultValue = "10") @Min(1) @Max(100) int limit) {
 
     List<PowerUserRankingResponseDto> rankings = powerUserRankingService.getRankingWithNickname(period, limit);
 

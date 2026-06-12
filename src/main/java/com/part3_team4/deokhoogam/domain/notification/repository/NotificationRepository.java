@@ -160,11 +160,11 @@ public interface NotificationRepository extends JpaRepository<Notification, UUID
   long deleteByConfirmedTrueAndUpdatedAtBefore(Instant threshold);
 
 
-  @Modifying
+  @Modifying(clearAutomatically = true, flushAutomatically = true)
   @Query("DELETE FROM Notification n WHERE n.reviewId = :reviewId")
   void deleteAllByReviewId(@Param("reviewId") UUID reviewId);
 
-  @Modifying
+  @Modifying(clearAutomatically = true, flushAutomatically = true)
   @Query("DELETE FROM Notification n WHERE n.userId = :userId")
   void deleteAllByUserId(@Param("userId") UUID userId);
 }
