@@ -18,12 +18,15 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+
 @Service
+@Slf4j
 @RequiredArgsConstructor
 public class PowerUserRankingService {
 
@@ -47,11 +50,15 @@ public class PowerUserRankingService {
       try {
         String cached = redisTemplate.opsForValue().get(key);
         if (cached != null) {
+          log.debug("파워유저 랭킹 캐시 히트: key={}", key);
           return redisObjectMapper.readValue(
               cached, new TypeReference<>() {
               });
         }
-      } catch (Exception e) { }
+        log.debug("파워유저 랭킹 캐시 미스: key={}", key);
+      } catch (Exception e) {
+        log.warn("파워유저 랭킹 캐시 읽기 실패, DB 폴백: key={}", key, e);
+      }
     }
 
 
@@ -82,8 +89,10 @@ public class PowerUserRankingService {
     if (cacheEnabled) {
       try {
         redisTemplate.opsForValue().set(
-            key, redisObjectMapper.writeValueAsString(result), Duration.ofHours(25));
-      } catch (Exception e) { }
+            key, redisObjectMapper.writeValueAsString(result), Duration.ofHours(2));
+      } catch (Exception e) {
+        log.warn("파워유저 랭킹 캐시 저장 실패: key={}", key, e);
+      }
     }
 
     return result;

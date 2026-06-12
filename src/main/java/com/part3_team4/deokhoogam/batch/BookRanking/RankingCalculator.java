@@ -17,8 +17,8 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
-import org.springframework.data.redis.core.StringRedisTemplate;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -81,11 +81,15 @@ public class RankingCalculator {
     bookRankingRepository.saveAll(rankings);
 
     //기존 캐시 삭제
-    Set<String> keys = redisTemplate.keys("ranking:book:" + period + ":*");
-    if (!keys.isEmpty()) {
-      redisTemplate.delete(keys);
+    try {
+      Set<String> keys = redisTemplate.keys("ranking:book:" + period + ":*");
+      if (!keys.isEmpty()) {
+        redisTemplate.delete(keys);
+      }
     }
-
+    catch (Exception e) {
+      log.warn("Redis 캐시 삭제 실패 (무시): period={}", period, e);
+    }
 
     log.info("기간별 랭킹 산출 완료: period={}, 대상도서={}건", period, rankings.size());
   }

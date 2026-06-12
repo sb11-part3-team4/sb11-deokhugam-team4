@@ -19,12 +19,13 @@ import java.util.UUID;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.domain.Slice;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-
+@Slf4j
 @Service
 @RequiredArgsConstructor
 @Transactional(readOnly = true)
@@ -52,12 +53,14 @@ public class BookRankingService {
       try {
         String cached = redisTemplate.opsForValue().get(key);
         if (cached != null) {
+          log.debug("랭킹 캐시 히트: key={}", key);
           return redisObjectMapper.readValue(
               cached, new TypeReference<PageResponse<BookRankingDto>>() {
               });
         }
+        log.debug("랭킹 캐시 미스: key={}", key);
       } catch (Exception e) {
-        // 캐시 읽기 실패 시 DB로
+        log.warn("랭킹 캐시 읽기 실패, DB 폴백: key={}", key, e);
       }
     }
 
@@ -102,9 +105,9 @@ public class BookRankingService {
     if (cacheable) {
       try {
         redisTemplate.opsForValue().set(
-            key, redisObjectMapper.writeValueAsString(result), Duration.ofHours(25));
+            key, redisObjectMapper.writeValueAsString(result), Duration.ofHours(2));
       } catch (Exception e) {
-        // 저장 실패해도 무시
+        log.warn("랭킹 캐시 저장 실패: key={}", key, e);
       }
     }
 
