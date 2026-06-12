@@ -307,7 +307,11 @@ public class ReviewServiceImpl implements ReviewService {
                 popularReviews = popularReviewRepository.findByPeriodAndRankLessThan(period, cursorRank, pageable);
             }
         } else {
-            popularReviews = popularReviewRepository.findByPeriod(period, pageable);
+            if ("ASC".equalsIgnoreCase(direction)) {
+                popularReviews = popularReviewRepository.findByPeriodOrderByRankAsc(period, pageable);
+            } else {
+                popularReviews = popularReviewRepository.findByPeriodOrderByRankDesc(period, pageable);
+            }
         }
 
         boolean hasNext = popularReviews.size() > limit;

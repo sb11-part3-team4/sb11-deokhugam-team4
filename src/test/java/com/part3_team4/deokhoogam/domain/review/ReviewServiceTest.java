@@ -615,7 +615,7 @@ public class ReviewServiceTest {
         User user = new User("test@test.com", "닉네임", "password");
         ReflectionTestUtils.setField(user, "id", userId);
 
-        given(popularReviewRepository.findByPeriod(eq("DAILY"), any(Pageable.class)))
+        given(popularReviewRepository.findByPeriodOrderByRankAsc(eq("DAILY"), any(Pageable.class)))
                 .willReturn(List.of(popularReview));
         given(reviewRepository.findAllById(anyList())).willReturn(List.of(review));
 
@@ -673,7 +673,7 @@ public class ReviewServiceTest {
         User user2 = new User("b@b.com", "유저2", "pw");
         ReflectionTestUtils.setField(user2, "id", userId2);
 
-        given(popularReviewRepository.findByPeriod(eq("DAILY"), any(Pageable.class)))
+        given(popularReviewRepository.findByPeriodOrderByRankAsc(eq("DAILY"), any(Pageable.class)))
                 .willReturn(List.of(rank1, rank2));
         given(reviewRepository.findAllById(anyList())).willReturn(List.of(review1, review2));
 
@@ -709,7 +709,7 @@ public class ReviewServiceTest {
         User user = new User("test@test.com", "닉네임", "password");
         ReflectionTestUtils.setField(user, "id", userId);
 
-        given(popularReviewRepository.findByPeriod(eq("DAILY"), any(Pageable.class)))
+        given(popularReviewRepository.findByPeriodOrderByRankAsc(eq("DAILY"), any(Pageable.class)))
                 .willReturn(List.of(popularReview));
         given(reviewRepository.findAllById(anyList())).willReturn(List.of(review));
         given(bookRepository.findAllById(anyList())).willReturn(List.of(book));

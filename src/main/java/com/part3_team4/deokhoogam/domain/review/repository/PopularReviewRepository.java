@@ -17,8 +17,19 @@ public interface PopularReviewRepository extends JpaRepository<PopularReview, UU
         INNER JOIN book b ON r.book_id = b.id
         INNER JOIN "user" u ON r.user_id = u.id
         WHERE pr.period = :period
+        ORDER BY pr.rank ASC
         """, nativeQuery = true)
-    List<PopularReview> findByPeriod(@Param("period") String period, Pageable pageable);
+    List<PopularReview> findByPeriodOrderByRankAsc(@Param("period") String period, Pageable pageable);
+
+    @Query(value = """
+        SELECT pr.* FROM popular_review pr
+        INNER JOIN review r ON pr.review_id = r.id
+        INNER JOIN book b ON r.book_id = b.id
+        INNER JOIN "user" u ON r.user_id = u.id
+        WHERE pr.period = :period
+        ORDER BY pr.rank DESC 
+        """, nativeQuery = true)
+    List<PopularReview> findByPeriodOrderByRankDesc(@Param("period") String period, Pageable pageable);
 
     @Query(value = """
             SELECT pr.* FROM popular_review pr
