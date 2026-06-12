@@ -49,6 +49,6 @@ ocr:
 
 cache:
   ranking:
-    enabled: false
+    enabled: true
 
 
