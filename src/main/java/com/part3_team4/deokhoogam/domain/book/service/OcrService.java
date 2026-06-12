@@ -6,9 +6,11 @@ import com.part3_team4.deokhoogam.global.exception.ErrorCode;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class OcrService {
@@ -21,9 +23,14 @@ public class OcrService {
   public String extractIsbnFromImage(MultipartFile file) {
     validateFile(file);
 
+    log.info("OCR ISBN 추출 요청: size={}", file.getSize());
+
     String rawText = ocrSpaceApiClient.extractTextFromImage(file);
 
-    return parseIsbnFromText(rawText);
+    String isbn = parseIsbnFromText(rawText);
+
+    log.info("OCR ISBN 추출 성공: isbn={}", isbn);
+    return isbn;
   }
 
   private void validateFile(MultipartFile file) {
@@ -39,7 +46,7 @@ public class OcrService {
       String extracted = matcher.group(1).replaceAll("[\\s-]", "");
       return extracted.toUpperCase();
     }
-
+    log.warn("OCR 텍스트에서 ISBN 패턴 미발견");
     throw OcrProcessingException.from(ErrorCode.OCR_ISBN_NOT_FOUND);
   }
 }

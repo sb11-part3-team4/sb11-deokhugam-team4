@@ -8,6 +8,7 @@ import java.time.Duration;
 import java.util.List;
 import java.util.Objects;
 import java.util.stream.Collectors;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.web.client.RestTemplateBuilder;
 import org.springframework.http.MediaType;
@@ -21,6 +22,7 @@ import org.springframework.web.client.RestTemplate;
 import org.springframework.web.multipart.MultipartFile;
 
 @Component
+@Slf4j
 public class OcrSpaceApiClient {
 
   private final RestClient restClient;
@@ -65,11 +67,14 @@ public class OcrSpaceApiClient {
           .collect(Collectors.joining("\n"));
 
     } catch (RestClientResponseException e) {
+      log.warn("OCR Space API 응답 오류: status={}", e.getStatusCode());
       throw ExternalApiException.withCause(
           ErrorCode.EXTERNAL_API_ERROR,
           "HTTP Status: " + e.getStatusCode(), e
       );
     } catch (RestClientException e) {
+
+      log.warn("OCR Space API 통신 오류");
       throw ExternalApiException.withCause(
           ErrorCode.EXTERNAL_API_TIMEOUT,
           "OCR 서버와 통신 중 오류가 발생했습니다.", e
@@ -82,6 +87,8 @@ public class OcrSpaceApiClient {
 
     if (response == null || response.isErroredOnProcessing() || results == null
         || results.isEmpty()) {
+      log.warn("OCR Space API 처리 실패 응답: errored={}",
+          response != null && response.isErroredOnProcessing());
       throw OcrProcessingException.from(ErrorCode.OCR_PROCESSING_FAILED);
     }
 
