@@ -79,7 +79,7 @@ public class ReviewEventListener {
   //도서 삭제 이벤트 수신
   @EventListener
   public void handleBookDeletedEvent(BookDeletedEvent event) {
-    log.info("도서 삭제 이벤트 수신 - userId: {}, isHardDelete: {}", event.bookId(), event.isHardDelete());
+    log.info("도서 삭제 이벤트 수신 - bookId: {}, isHardDelete: {}", event.bookId(), event.isHardDelete());
 
     List<Review> reviews = reviewRepository.findAllByBookId(event.bookId());
     if (reviews.isEmpty()) {

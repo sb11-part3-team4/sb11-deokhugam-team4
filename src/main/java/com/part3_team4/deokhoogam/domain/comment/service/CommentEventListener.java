@@ -25,6 +25,11 @@ public class CommentEventListener {
   public void handleUserDeletedEvent(UserDeletedEvent event) {
     log.info("유저 삭제 이벤트 수신 (댓글 파트) - userId: {}, isHardDelete: {}", event.userId(), event.isHardDelete());
 
+    // 활성 댓글 존재 여부와 무관하게, 물리 삭제면 백업 테이블 데이터부터 무조건 삭제
+    if (event.isHardDelete()) {
+      deletedCommentRepository.deleteByUserId(event.userId());
+    }
+
     List<Comment> comments = commentRepository.findAllByUserId(event.userId());
     if (comments.isEmpty()) return;
 
@@ -44,6 +49,11 @@ public class CommentEventListener {
   @EventListener
   public void handleReviewDeletedEvent(ReviewDeletedEvent event) {
     log.info("리뷰 삭제 이벤트 수신 (댓글 파트) - reviewId: {}, isHardDelete: {}", event.reviewId(), event.isHardDelete());
+
+    // 활성 댓글 존재 여부와 무관하게, 물리 삭제면 백업 테이블 데이터부터 무조건 삭제
+    if (event.isHardDelete()) {
+      deletedCommentRepository.deleteByReviewId(event.reviewId());
+    }
 
     List<Comment> comments = commentRepository.findAllByReviewId(event.reviewId());
     if (comments.isEmpty()) return;
