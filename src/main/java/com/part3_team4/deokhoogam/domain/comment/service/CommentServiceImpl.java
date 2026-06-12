@@ -5,6 +5,8 @@ import com.part3_team4.deokhoogam.domain.comment.entity.Comment;
 import com.part3_team4.deokhoogam.domain.comment.entity.DeletedComment;
 import com.part3_team4.deokhoogam.domain.comment.exception.CommentNotFoundException;
 import com.part3_team4.deokhoogam.domain.comment.exception.CommentNotOwnerException;
+import com.part3_team4.deokhoogam.global.exception.ErrorCode;
+import com.part3_team4.deokhoogam.global.exception.InvalidRequestException;
 import com.part3_team4.deokhoogam.domain.comment.repository.CommentRepository;
 import com.part3_team4.deokhoogam.domain.comment.repository.DeletedCommentRepository;
 import com.part3_team4.deokhoogam.domain.review.entity.Review;
@@ -102,6 +104,10 @@ public class CommentServiceImpl implements CommentService {
     public CommentDto.CommentsResponse getComments(UUID reviewId, String direction, UUID cursor, Instant after, int limit) {
         if (!reviewRepository.existsById(reviewId)) {
             throw ReviewNotFoundException.withId(reviewId);
+        }
+        // 복합 커서는 cursor와 after가 함께 제공되어야 함
+        if ((cursor == null) != (after == null)) {
+            throw new InvalidRequestException(ErrorCode.INVALID_INPUT_VALUE);
         }
         PageRequest pageable = PageRequest.of(0, limit + 1);
         boolean isAsc = "ASC".equalsIgnoreCase(direction);
