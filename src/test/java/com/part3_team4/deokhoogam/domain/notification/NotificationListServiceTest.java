@@ -2,11 +2,14 @@ package com.part3_team4.deokhoogam.domain.notification;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.BDDMockito.given;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.Mockito.verifyNoInteractions;
 
 import com.part3_team4.deokhoogam.domain.notification.dto.NotificationDto;
 import com.part3_team4.deokhoogam.domain.notification.entity.Notification;
 import com.part3_team4.deokhoogam.domain.notification.repository.NotificationRepository;
 import com.part3_team4.deokhoogam.domain.notification.service.NotificationServiceImpl;
+import com.part3_team4.deokhoogam.domain.notification.exception.NotificationInvalidInputException;
 import com.part3_team4.deokhoogam.global.common.PageResponse;
 import com.part3_team4.deokhoogam.domain.notification.exception.NotificationAccessDeniedException;
 import java.time.Instant;
@@ -21,7 +24,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
 import org.springframework.test.util.ReflectionTestUtils;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
+
 
 /**
  * 알림 목록 조회 Service 로직을 검증하는 테스트입니다.
@@ -179,6 +182,58 @@ class NotificationListServiceTest {
     ReflectionTestUtils.setField(notification, "updatedAt", createdAt);
 
     return notification;
+  }
+
+  @Test
+  @DisplayName("cursor만 전달하면 잘못된 페이지네이션 요청 예외가 발생한다")
+  void findAllWithCursorOnly() {
+    // given
+    UUID userId = UUID.randomUUID();
+    UUID cursor = UUID.randomUUID();
+
+    // when & then
+    // 다음 페이지 조회에는 cursor와 after가 모두 필요합니다.
+    // cursor만 전달된 요청을 첫 페이지로 처리하면 클라이언트가
+    // 같은 목록을 반복해서 조회할 수 있으므로 400 예외를 발생시킵니다.
+    assertThatThrownBy(() ->
+        notificationService.findAll(
+            userId,
+            userId,
+            Sort.Direction.DESC,
+            cursor,
+            null,
+            20
+        )
+    ).isInstanceOf(NotificationInvalidInputException.class);
+
+    // 입력값 검증에서 요청이 중단되어야 하므로
+    // Repository 조회는 한 번도 실행되면 안 됩니다.
+    verifyNoInteractions(notificationRepository);
+  }
+
+  @Test
+  @DisplayName("after만 전달하면 잘못된 페이지네이션 요청 예외가 발생한다")
+  void findAllWithAfterOnly() {
+    // given
+    UUID userId = UUID.randomUUID();
+    Instant after = Instant.parse("2026-06-01T03:00:00Z");
+
+    // when & then
+    // 생성 시각만으로는 동일한 시각에 생성된 알림을 구분할 수 없습니다.
+    // 보조 정렬 조건인 cursor가 없으므로 잘못된 요청으로 처리합니다.
+    assertThatThrownBy(() ->
+        notificationService.findAll(
+            userId,
+            userId,
+            Sort.Direction.DESC,
+            null,
+            after,
+            20
+        )
+    ).isInstanceOf(NotificationInvalidInputException.class);
+
+    // 잘못된 요청이므로 DB 조회가 발생하지 않아야 합니다.
+    verifyNoInteractions(notificationRepository);
   }
 
   @Test

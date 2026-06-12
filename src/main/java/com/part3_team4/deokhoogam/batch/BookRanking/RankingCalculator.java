@@ -16,9 +16,11 @@ import java.util.Map;
 import java.util.UUID;
 import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
+@Slf4j
 @Component
 @RequiredArgsConstructor
 public class RankingCalculator {
@@ -74,6 +76,8 @@ public class RankingCalculator {
     bookRankingRepository.deleteByPeriod(period);
     bookRankingRepository.flush();
     bookRankingRepository.saveAll(rankings);
+
+    log.info("기간별 랭킹 산출 완료: period={}, 대상도서={}건", period, rankings.size());
   }
 
   // 점수 계산 중간 결과를 잠깐 담는 용도

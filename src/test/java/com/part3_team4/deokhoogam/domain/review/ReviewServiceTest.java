@@ -81,8 +81,11 @@ public class ReviewServiceTest {
 
         ReviewCreateRequest request = new ReviewCreateRequest(bookId, 4, "좋은 책이에요");
 
+        User user = new User("test@test.com", "테스트유저", "password");
+
         given(bookRepository.findById(bookId)).willReturn(Optional.of(book));
         given(reviewRepository.existsByUserIdAndBookId(userId, bookId)).willReturn(false);
+        given(userRepository.findById(userId)).willReturn(Optional.of(user));
         given(reviewRepository.save(any(Review.class))).willAnswer(i -> i.getArgument(0));
         given(reviewRepository.countByBookId(bookId)).willReturn(1L);
         given(reviewRepository.averageRatingByBookId(bookId)).willReturn(new BigDecimal("4.0"));
@@ -101,15 +104,8 @@ public class ReviewServiceTest {
     void createReview_duplicateReview_throwsException() {
         UUID userId = UUID.randomUUID();
         UUID bookId = UUID.randomUUID();
-
-        Book book = Book.builder()
-                .title("테스트 책").author("저자").description("설명")
-                .publisher("출판사").publishedDate(LocalDate.of(2020, 1, 1))
-                .build();
-
         ReviewCreateRequest request = new ReviewCreateRequest(bookId, 4, "좋은 책이에요");
 
-        given(bookRepository.findById(bookId)).willReturn(Optional.of(book));
         given(reviewRepository.existsByUserIdAndBookId(userId, bookId)).willReturn(true);
 
         assertThatThrownBy(() -> reviewService.createReview(userId, request))
@@ -137,8 +133,16 @@ public class ReviewServiceTest {
         UUID bookId = UUID.randomUUID();
         Review review = Review.create(userId, bookId, 4, "좋은 책이에요");
 
+        Book book = Book.builder()
+                .title("테스트 책").author("저자").description("설명")
+                .publisher("출판사").publishedDate(LocalDate.of(2020, 1, 1))
+                .build();
+        User user = new User("test@test.com", "테스트유저", "password");
+
         given(reviewRepository.findByIdWithLiked(any(UUID.class), eq(userId)))
                 .willReturn(Optional.of(new ReviewWithLiked(review, false)));
+        given(bookRepository.findById(any(UUID.class))).willReturn(Optional.of(book));
+        given(userRepository.findById(review.getUserId())).willReturn(Optional.of(user));
 
         ReviewResponse response = reviewService.getReview(review.getId(), userId);
 
@@ -184,7 +188,15 @@ public class ReviewServiceTest {
         Review review = Review.create(ownerUserId, bookId, 4, "좋은 책이에요");
         ReviewUpdateRequest request = new ReviewUpdateRequest(5, "수정된 내용");
 
+        Book book = Book.builder()
+                .title("테스트 책").author("저자").description("설명")
+                .publisher("출판사").publishedDate(LocalDate.of(2020, 1, 1))
+                .build();
+        User user = new User("test@test.com", "테스트유저", "password");
+
         given(reviewRepository.findById(any(UUID.class))).willReturn(Optional.of(review));
+        given(bookRepository.findById(any(UUID.class))).willReturn(Optional.of(book));
+        given(userRepository.findById(ownerUserId)).willReturn(Optional.of(user));
 
         ReviewResponse response = reviewService.updateReview(review.getId(), ownerUserId, request);
 
@@ -216,7 +228,15 @@ public class ReviewServiceTest {
         Review review = Review.create(ownerUserId, bookId, 4, "내용");
         ReviewUpdateRequest request = new ReviewUpdateRequest(6, "수정된 내용");
 
+        Book book = Book.builder()
+                .title("테스트 책").author("저자").description("설명")
+                .publisher("출판사").publishedDate(LocalDate.of(2020, 1, 1))
+                .build();
+        User user = new User("test@test.com", "테스트유저", "password");
+
         given(reviewRepository.findById(reviewId)).willReturn(Optional.of(review));
+        given(bookRepository.findById(any(UUID.class))).willReturn(Optional.of(book));
+        given(userRepository.findById(ownerUserId)).willReturn(Optional.of(user));
 
         assertThatThrownBy(() -> reviewService.updateReview(reviewId, ownerUserId, request))
                 .isInstanceOf(InvalidReviewException.class);
@@ -783,29 +803,57 @@ public class ReviewServiceTest {
 
 
     @Test
-    @DisplayName("incrementCommentCount 호출 시 commentCount가 1 증가한다")
+    @DisplayName("incrementCommentCount 호출 시 repository 쿼리를 실행한다")
     void incrementCommentCount_success() {
         UUID reviewId = UUID.randomUUID();
-        Review review = Review.create(UUID.randomUUID(), UUID.randomUUID(), 4, "내용");
+        given(reviewRepository.incrementCommentCount(reviewId)).willReturn(1);
 
-        given(reviewRepository.findById(reviewId)).willReturn(Optional.of(review));
+        reviewService.incrementCommentCount(reviewId);
 
-            reviewService.incrementCommentCount(reviewId);
-
-            assertThat(review.getCommentCount()).isEqualTo(1);
+        verify(reviewRepository).incrementCommentCount(reviewId);
     }
 
     @Test
-    @DisplayName("decrementCommentCount 호출 시 commentCount가 1 감소한다")
+    @DisplayName("decrementCommentCount 호출 시 repository 쿼리를 실행한다")
     void decrementCommentCount_success() {
         UUID reviewId = UUID.randomUUID();
-        Review review = Review.create(UUID.randomUUID(), UUID.randomUUID(), 4, "내용");
-        review.incrementCommentCount();
-
-        given(reviewRepository.findById(reviewId)).willReturn(Optional.of(review));
+        given(reviewRepository.decrementCommentCount(reviewId)).willReturn(1);
 
         reviewService.decrementCommentCount(reviewId);
 
-        assertThat(review.getCommentCount()).isEqualTo(0);
+        verify(reviewRepository).decrementCommentCount(reviewId);
     }
+
+    @Test
+    @DisplayName("존재하지 않는 reviewId로 incrementCommentCount 호출 시 예외가 발생한다")
+    void incrementCommentCount_reviewNotFound() {
+        UUID reviewId = UUID.randomUUID();
+        given(reviewRepository.incrementCommentCount(reviewId)).willReturn(0);
+
+        assertThatThrownBy(() -> reviewService.incrementCommentCount(reviewId))
+                .isInstanceOf(ReviewNotFoundException.class);
+    }
+
+    @Test
+    @DisplayName("존재하지 않는 reviewId로 decrementCommentCount 호출 시 예외가 발생한다")
+    void decrementCommentCount_reviewNotFound() {
+        UUID reviewId = UUID.randomUUID();
+        given(reviewRepository.decrementCommentCount(reviewId)).willReturn(0);
+        given(reviewRepository.existsById(reviewId)).willReturn(false);
+
+        assertThatThrownBy(() -> reviewService.decrementCommentCount(reviewId))
+                .isInstanceOf(ReviewNotFoundException.class);
+    }
+
+    @Test
+    @DisplayName("commentCount가 0인 리뷰에 decrementCommentCount 호출 시 예외없이 종료된다")
+    void decrementCommentCount_alreadyZero() {
+        UUID reviewId = UUID.randomUUID();
+        given(reviewRepository.decrementCommentCount(reviewId)).willReturn(0);
+        given(reviewRepository.existsById(reviewId)).willReturn(true);
+
+        assertThatCode(() -> reviewService.decrementCommentCount(reviewId))
+                .doesNotThrowAnyException();
+    }
+
 }

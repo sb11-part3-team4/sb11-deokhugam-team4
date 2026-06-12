@@ -20,10 +20,17 @@ public class GlobalExceptionHandler {
   // 커스텀 비즈니스 예외
   @ExceptionHandler(BusinessException.class)
   public ResponseEntity<ErrorResponse> handleBusinessException(BusinessException e) {
-    log.warn("Business Exception: {} - {}", e.getErrorCode().getCode(),
-        e.getErrorCode().getMessage());
-    ErrorResponse response = ErrorResponse.from(e);
+    ErrorCode errorCode = e.getErrorCode();
 
+    // 5xx는 서버/외부 장애 → ERROR(스택트레이스), 4xx는 클라이언트 문제 → WARN
+    if (errorCode.getStatus().is5xxServerError()) {
+      log.error("Business Exception (server): {} - {}",
+          errorCode.getCode(), errorCode.getMessage(), e);
+    } else {
+      log.warn("Business Exception (client): {} - {}",
+          errorCode.getCode(), errorCode.getMessage());
+    }
+    ErrorResponse response = ErrorResponse.from(e);
     return ResponseEntity
         .status(response.status())
         .body(response);
@@ -51,6 +58,14 @@ public class GlobalExceptionHandler {
         .body(response);
   }
 
+  @ExceptionHandler(MethodArgumentTypeMismatchException.class)
+  public ResponseEntity<ErrorResponse> handleTypeMismatch(MethodArgumentTypeMismatchException e) {
+    log.warn("Type Mismatch: {}", e.getMessage());
+    ErrorCode errorCode = ErrorCode.INVALID_INPUT_VALUE;
+    ErrorResponse response = ErrorResponse.of(errorCode, e);
+    return ResponseEntity.status(errorCode.getStatus()).body(response);
+  }
+
   @ExceptionHandler(MissingRequestHeaderException.class)
   public ResponseEntity<ErrorResponse>
   handleMissingHeader(MissingRequestHeaderException e) {
@@ -74,11 +89,5 @@ public class GlobalExceptionHandler {
         .body(response);
   }
 
-  @ExceptionHandler(MethodArgumentTypeMismatchException.class)
-  public ResponseEntity<ErrorResponse> handleTypeMismatch(MethodArgumentTypeMismatchException e) {
-    log.warn("Type Mismatch: {}", e.getMessage());
-    ErrorCode errorCode = ErrorCode.INVALID_INPUT_VALUE;
-    ErrorResponse response = ErrorResponse.of(errorCode, e);
-    return ResponseEntity.status(errorCode.getStatus()).body(response);
-  }
+
 }

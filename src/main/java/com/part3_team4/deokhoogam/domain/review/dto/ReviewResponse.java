@@ -9,9 +9,13 @@ public record ReviewResponse (
         UUID bookId,
         int rating,
         String content,
+        String bookTitle,
+        String bookThumbnailUrl,
+        String userNickname,
         int likeCount,
         int commentCount,
         boolean likedByMe,
         Instant createdAt,
         Instant updatedAt
+
 ) {}
