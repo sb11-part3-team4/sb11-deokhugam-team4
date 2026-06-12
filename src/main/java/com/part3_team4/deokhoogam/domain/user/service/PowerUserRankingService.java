@@ -1,10 +1,8 @@
 package com.part3_team4.deokhoogam.domain.user.service;
 
 import com.part3_team4.deokhoogam.domain.user.dto.response.PowerUserRankingResponseDto;
-import com.part3_team4.deokhoogam.domain.user.dto.response.UserResponse;
 import com.part3_team4.deokhoogam.domain.user.entity.PowerUserRanking;
 import com.part3_team4.deokhoogam.domain.user.enums.PowerUserPeriod;
-import com.part3_team4.deokhoogam.domain.user.exception.UserNotFoundException;
 import com.part3_team4.deokhoogam.domain.user.repository.PowerUserRankingRepository;
 import java.math.BigDecimal;
 import java.time.Instant;
@@ -17,6 +15,8 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -29,8 +29,11 @@ public class PowerUserRankingService {
 
   public record UserScore(UUID userId, BigDecimal score) {}
 
-  public List<PowerUserRankingResponseDto> getRankingWithNickname(PowerUserPeriod period) {
-    List<PowerUserRanking> rankings = powerUserRankingRepository.findByPeriodOrderByRankingAsc(period);
+  public List<PowerUserRankingResponseDto> getRankingWithNickname(PowerUserPeriod period, int limit) {
+
+    // PageRequest를 생성하여 최대 limit 개수만큼만 가져오도록 설정
+    Pageable pageable = PageRequest.of(0, limit);
+    List<PowerUserRanking> rankings = powerUserRankingRepository.findByPeriodOrderByRankingAsc(period, pageable);
 
     if (rankings.isEmpty()) {
       return List.of();

@@ -106,9 +106,10 @@ public class UserController {
 
   @GetMapping("/power")
   public ResponseEntity<Map<String, Object>> getPowerUsers(
-      @RequestParam(defaultValue = "DAILY") PowerUserPeriod period) {
+      @RequestParam(defaultValue = "DAILY") PowerUserPeriod period,
+      @RequestParam(defaultValue = "10") int limit) {
 
-    List<PowerUserRankingResponseDto> rankings = powerUserRankingService.getRankingWithNickname(period);
+    List<PowerUserRankingResponseDto> rankings = powerUserRankingService.getRankingWithNickname(period, limit);
 
     Map<String, Object> response = Map.of("content", rankings);
 
