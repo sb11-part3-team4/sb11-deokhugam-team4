@@ -1,6 +1,7 @@
 package com.part3_team4.deokhoogam.domain.review.service;
 
 import com.part3_team4.deokhoogam.domain.book.entity.BookDeletedEvent;
+import com.part3_team4.deokhoogam.domain.book.service.BookService;
 import com.part3_team4.deokhoogam.domain.review.entity.DeletedReview;
 import com.part3_team4.deokhoogam.domain.review.entity.Review;
 import com.part3_team4.deokhoogam.domain.review.entity.ReviewDeletedEvent;
@@ -8,7 +9,11 @@ import com.part3_team4.deokhoogam.domain.review.repository.DeletedReviewReposito
 import com.part3_team4.deokhoogam.domain.review.repository.ReviewLikeRepository;
 import com.part3_team4.deokhoogam.domain.review.repository.ReviewRepository;
 import com.part3_team4.deokhoogam.domain.user.entity.UserDeletedEvent;
+import java.math.BigDecimal;
 import java.util.List;
+import java.util.Set;
+import java.util.UUID;
+import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.ApplicationEventPublisher;
@@ -24,6 +29,7 @@ public class ReviewEventListener {
   private final DeletedReviewRepository deletedReviewRepository;
   private final ApplicationEventPublisher eventPublisher;
   private final ReviewLikeRepository reviewLikeRepository;
+  private final BookService bookService;
 
   //유저 삭제 이벤트 수신
   @EventListener
@@ -48,10 +54,21 @@ public class ReviewEventListener {
           .toList();
       deletedReviewRepository.saveAll(deletedReviews);
       reviewRepository.deleteAll(reviews);
-    } else {
-      //물리 삭제: 원본 테이블에서 삭제(FK 에러 방지)
-      reviewRepository.deleteAll(reviews);
     }
+    //물리 삭제: 원본 테이블에서 삭제(FK 에러 방지)
+    reviewRepository.deleteAll(reviews);
+
+    //리뷰 삭제 후, 영향을 받은 도서들의 리뷰 수와 평점을 다시 계산해서 업데이트
+    Set<UUID> affectedBookIds = reviews.stream()
+        .map(Review::getBookId)
+        .collect(Collectors.toSet());
+
+    affectedBookIds.forEach(bookId -> {
+      long reviewCount = reviewRepository.countByBookId(bookId);
+      BigDecimal avgRating = reviewRepository.averageRatingByBookId(bookId);
+      bookService.updateReviewData(bookId, Math.toIntExact(reviewCount), avgRating);
+      log.info("도서 통계 업데이트 완료 - bookId: {}, count: {}, rating: {}", bookId, reviewCount, avgRating);
+    });
   }
 
   //도서 삭제 이벤트 수신
