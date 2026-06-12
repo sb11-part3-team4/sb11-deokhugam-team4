@@ -758,6 +758,7 @@ class BookServiceTest {
       bookService.delete(mockId);
 
       //then
+      then(eventPublisher).should().publishEvent(any(com.part3_team4.deokhoogam.domain.book.entity.BookDeletedEvent.class));
       then(bookRepository).should().deleteById(mockId);
       then(deletedBookRepository).should().save(any(DeletedBook.class));
 
@@ -791,6 +792,7 @@ class BookServiceTest {
 
       bookService.deleteHard(mockId);
 
+      then(eventPublisher).should().publishEvent(any(com.part3_team4.deokhoogam.domain.book.entity.BookDeletedEvent.class));
       then(deletedBookRepository).should().findById(mockId);
       then(deletedBookRepository).should().deleteById(mockId);
       then(fileUploader).should().delete(any());

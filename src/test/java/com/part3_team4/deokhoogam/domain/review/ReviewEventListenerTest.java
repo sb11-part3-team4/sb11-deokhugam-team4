@@ -40,12 +40,13 @@ class ReviewEventListenerTest {
     when(review.getBookId()).thenReturn(UUID.randomUUID()); // 통계 업데이트를 위해 bookId 필요
     when(reviewRepository.findAllByUserId(userId)).thenReturn(List.of(review));
 
-    // when
     reviewEventListener.handleUserDeletedEvent(new UserDeletedEvent(userId, false));
 
-    // then
     verify(deletedReviewRepository).saveAll(any());
     verify(reviewRepository).deleteAll(any());
     verify(bookService).updateReviewData(any(), anyInt(), any());
+    verify(eventPublisher, times(1)).publishEvent(any(com.part3_team4.deokhoogam.domain.review.entity.ReviewDeletedEvent.class));
+    verify(reviewLikeRepository, times(1)).deleteAllByReviewId(any(UUID.class));
+    verify(popularReviewRepository, times(1)).deleteAllByReviewId(any(UUID.class));
   }
 }
