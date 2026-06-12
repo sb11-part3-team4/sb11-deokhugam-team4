@@ -211,15 +211,16 @@ class CommentControllerTest {
         }
 
         @Test
-        @DisplayName("cursor와 함께 DESC 조회하면 해당 커서 이전 데이터를 반환한다")
+        @DisplayName("cursor(UUID)와 함께 DESC 조회하면 해당 커서 이전 데이터를 반환한다")
         void getComments_withCursor_returnsDataBeforeCursor() throws Exception {
-            given(commentService.getComments(any(UUID.class), anyString(), any(Instant.class), isNull(), anyInt()))
+            UUID cursorId = UUID.randomUUID();
+            given(commentService.getComments(any(UUID.class), anyString(), any(UUID.class), isNull(), anyInt()))
                     .willReturn(sampleCommentsResponse(List.of(sampleResponse("커서 이전 댓글"))));
 
             mockMvc.perform(get("/api/comments")
                             .param("reviewId", REVIEW_ID.toString())
                             .param("direction", "DESC")
-                            .param("cursor", Instant.now().minusSeconds(10).toString()))
+                            .param("cursor", cursorId.toString()))
                     .andExpect(status().isOk())
                     .andExpect(jsonPath("$.content[0].content").value("커서 이전 댓글"));
         }
@@ -285,11 +286,11 @@ class CommentControllerTest {
         }
 
         @Test
-        @DisplayName("잘못된 cursor 형식으로 요청하면 400을 반환한다")
+        @DisplayName("UUID 형식이 아닌 cursor로 요청하면 400을 반환한다")
         void getComments_invalidCursor_returns400() throws Exception {
             mockMvc.perform(get("/api/comments")
                             .param("reviewId", REVIEW_ID.toString())
-                            .param("cursor", "not-a-valid-instant"))
+                            .param("cursor", "not-a-valid-uuid"))
                     .andExpect(status().isBadRequest());
         }
     }
