@@ -4,7 +4,6 @@ import com.part3_team4.deokhoogam.domain.comment.dto.CommentDto;
 import com.part3_team4.deokhoogam.domain.comment.service.CommentService;
 import jakarta.validation.Valid;
 import java.time.Instant;
-import java.time.format.DateTimeParseException;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -49,16 +48,16 @@ public class CommentController {
             @RequestParam(required = false) String cursor,
             @RequestParam(required = false) Instant after,
             @RequestParam(defaultValue = "50") int limit) {
-        Instant cursorInstant = null;
+        UUID cursorUuid = null;
         if (cursor != null) {
             try {
-                cursorInstant = Instant.parse(cursor);
-            } catch (DateTimeParseException e) {
-                // TODO: [GlobalExceptionHandler] DateTimeParseException 핸들러 추가 후 try-catch 제거
+                cursorUuid = UUID.fromString(cursor);
+            } catch (IllegalArgumentException e) {
+                // TODO: [GlobalExceptionHandler] IllegalArgumentException 핸들러 추가 후 try-catch 제거
                 return ResponseEntity.badRequest().build();
             }
         }
-        return ResponseEntity.ok(commentService.getComments(reviewId, direction, cursorInstant, after, limit));
+        return ResponseEntity.ok(commentService.getComments(reviewId, direction, cursorUuid, after, limit));
     }
 
     @GetMapping("/{commentId}")
