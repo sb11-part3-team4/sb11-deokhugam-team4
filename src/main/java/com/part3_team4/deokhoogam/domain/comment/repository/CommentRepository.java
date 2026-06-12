@@ -40,6 +40,8 @@ public interface CommentRepository extends JpaRepository<Comment, UUID> {
     long countByUserId(@Param("userId") UUID userId);
 
     // 이벤트 리스너용 다건 조회 메서드 추가
-    List<Comment> findAllByUserId(UUID userId);
-    List<Comment> findAllByReviewId(UUID reviewId);
+    @Query("SELECT c FROM Comment c WHERE c.user.id = :userId")
+    List<Comment> findAllByUserId(@Param("userId") UUID userId);
+    @Query("SELECT c FROM Comment c WHERE c.review.id = :reviewId")
+    List<Comment> findAllByReviewId(@Param("reviewId") UUID reviewId);
 }
