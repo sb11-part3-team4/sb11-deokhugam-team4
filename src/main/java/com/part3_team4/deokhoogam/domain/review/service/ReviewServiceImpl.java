@@ -331,13 +331,10 @@ public class ReviewServiceImpl implements ReviewService {
         List<PopularReviewResponse> content = popularReviews.stream()
                 .map(pr -> {
                     Review rev = reviewMap.get(pr.getReviewId());
-                    if (rev == null) return null;
                     Book book = bookMap.get(rev.getBookId());
                     User user = userMap.get(rev.getUserId());
-                    if (book == null || user == null) return null;
                     return toPopularReviewResponse(pr, rev, book, user);
                 })
-                .filter(Objects::nonNull)
                 .toList();
 
 
