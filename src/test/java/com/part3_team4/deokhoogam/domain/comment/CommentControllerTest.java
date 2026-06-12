@@ -286,12 +286,14 @@ class CommentControllerTest {
         }
 
         @Test
-        @DisplayName("UUID 형식이 아닌 cursor로 요청하면 400을 반환한다")
+        @DisplayName("UUID 형식이 아닌 cursor로 요청하면 400과 INVALID_INPUT_VALUE 에러 응답을 반환한다")
         void getComments_invalidCursor_returns400() throws Exception {
             mockMvc.perform(get("/api/comments")
                             .param("reviewId", REVIEW_ID.toString())
                             .param("cursor", "not-a-valid-uuid"))
-                    .andExpect(status().isBadRequest());
+                    .andExpect(status().isBadRequest())
+                    .andExpect(jsonPath("$.code").value("COMMON-002"))
+                    .andExpect(jsonPath("$.message").value("잘못된 입력값입니다."));
         }
     }
 
