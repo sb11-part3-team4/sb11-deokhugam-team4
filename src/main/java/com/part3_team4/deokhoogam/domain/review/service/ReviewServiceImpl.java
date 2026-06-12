@@ -60,12 +60,15 @@ public class ReviewServiceImpl implements ReviewService {
     @Transactional
     public ReviewResponse createReview(UUID userId, ReviewCreateRequest request) {
 
-        bookRepository.findById(request.bookId())
-                .orElseThrow(() -> BookNotFoundException.withId(request.bookId()));
-
         if (reviewRepository.existsByUserIdAndBookId(userId, request.bookId())) {
             throw ReviewAlreadyExistsException.withUserIdAndBookId(userId, request.bookId());
         }
+
+        Book book = bookRepository.findById(request.bookId())
+                .orElseThrow(() -> BookNotFoundException.withId(request.bookId()));
+
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> UserNotFoundException.withId(userId));
 
         Review review = Review.create(userId, request.bookId(), request.rating(), request.content());
         Review saved;
@@ -81,15 +84,20 @@ public class ReviewServiceImpl implements ReviewService {
         log.info("[ReviewService] createReview 완료 - reviewId: {}", saved.getId());
 
         return new ReviewResponse(
-                saved.getId(), saved.getUserId(), saved.getBookId(),
-                saved.getRating(), saved.getContent(),
-                saved.getLikeCount(), saved.getCommentCount(),
-                false, saved.getCreatedAt(), saved.getUpdatedAt()
+                saved.getId(),
+                saved.getUserId(),
+                saved.getBookId(),
+                saved.getRating(),
+                saved.getContent(),
+                book.getTitle(),
+                book.getThumbnailUrl(),
+                user.getName(),
+                saved.getLikeCount(),
+                saved.getCommentCount(),
+                false,
+                saved.getCreatedAt(),
+                saved.getUpdatedAt()
         );
-
-
-
-
 
     }
 
@@ -99,14 +107,30 @@ public class ReviewServiceImpl implements ReviewService {
 
         ReviewWithLiked result = reviewRepository.findByIdWithLiked(reviewId, userId)
                 .orElseThrow(() -> ReviewNotFoundException.withId(reviewId));
+
         Review review = result.review();
+
+        Book book = bookRepository.findById(review.getBookId())
+                .orElseThrow(() -> BookNotFoundException.withId(review.getBookId()));
+
+        User user = userRepository.findById(review.getUserId())
+                .orElseThrow(() -> UserNotFoundException.withId(review.getUserId()));
         boolean likedByMe = result.likedByMe();
 
         return new ReviewResponse(
-                review.getId(), review.getUserId(), review.getBookId(),
-                review.getRating(), review.getContent(),
-                review.getLikeCount(), review.getCommentCount(),
-                likedByMe, review.getCreatedAt(), review.getUpdatedAt()
+                review.getId(),
+                review.getUserId(),
+                review.getBookId(),
+                review.getRating(),
+                review.getContent(),
+                book.getTitle(),
+                book.getThumbnailUrl(),
+                user.getName(),
+                review.getLikeCount(),
+                review.getCommentCount(),
+                likedByMe,
+                review.getCreatedAt(),
+                review.getUpdatedAt()
         );
 
     }
@@ -123,6 +147,12 @@ public class ReviewServiceImpl implements ReviewService {
             throw ReviewNotOwnerException.withUserId(userId);
         }
 
+        Book book = bookRepository.findById(review.getBookId())
+                .orElseThrow(() -> BookNotFoundException.withId(review.getBookId()));
+
+        User user = userRepository.findById(review.getUserId())
+                .orElseThrow(() -> UserNotFoundException.withId(review.getUserId()));
+
         review.update(request.rating(), request.content());
 
         boolean likedByMe = reviewLikeRepository.existsByReviewIdAndUserId(reviewId, userId);
@@ -130,8 +160,19 @@ public class ReviewServiceImpl implements ReviewService {
         log.info("[ReviewService] updateReview 완료 - reviewId: {}", reviewId);
 
         return new ReviewResponse(
-                review.getId(), review.getUserId(), review.getBookId(), review.getRating(), review.getContent(),
-                review.getLikeCount(), review.getCommentCount(), likedByMe, review.getCreatedAt(), review.getUpdatedAt()
+                review.getId(),
+                review.getUserId(),
+                review.getBookId(),
+                review.getRating(),
+                review.getContent(),
+                book.getTitle(),
+                book.getThumbnailUrl(),
+                user.getName(),
+                review.getLikeCount(),
+                review.getCommentCount(),
+                likedByMe,
+                review.getCreatedAt(),
+                review.getUpdatedAt()
         );
     }
 
@@ -200,14 +241,39 @@ public class ReviewServiceImpl implements ReviewService {
         Set<UUID> likedReviewIds = new HashSet<>(
                 reviewLikeRepository.findLikedReviewIds(userId, reviewIds));
 
+        List<UUID> bookIds =
+                reviews.stream().map(Review::getBookId).distinct().toList();
+        List<UUID> userIds =
+                reviews.stream().map(Review::getUserId).distinct().toList();
+        Map<UUID, Book> bookMap = bookRepository.findAllById(bookIds).stream()
+                .collect(Collectors.toMap(Book::getId, b -> b));
+        Map<UUID, User> userMap = userRepository.findAllById(userIds).stream()
+                .collect(Collectors.toMap(User::getId, u -> u));
+
+
+
+
         List<ReviewResponse> content = reviews.stream()
-                .map(review -> new ReviewResponse(
-                        review.getId(), review.getUserId(), review.getBookId(),
-                        review.getRating(), review.getContent(),
-                        review.getLikeCount(), review.getCommentCount(),
-                        likedReviewIds.contains(review.getId()),
-                        review.getCreatedAt(), review.getUpdatedAt()
-                ))
+                .map(review -> {
+                        Book book = bookMap.get(review.getBookId());
+                        User user = userMap.get(review.getUserId());
+                        return new ReviewResponse(
+
+                                review.getId(),
+                                review.getUserId(),
+                                review.getBookId(),
+                                review.getRating(),
+                                review.getContent(),
+                                book != null ? book.getTitle() : null,
+                                book != null ? book.getThumbnailUrl() : null,
+                                user != null ? user.getName() : null,
+                                review.getLikeCount(),
+                                review.getCommentCount(),
+                                likedReviewIds.contains(review.getId()),
+                                review.getCreatedAt(),
+                                review.getUpdatedAt()
+                        );
+                })
                 .toList();
 
         String nextCursor = null;

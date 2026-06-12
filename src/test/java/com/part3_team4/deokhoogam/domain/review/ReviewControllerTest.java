@@ -50,7 +50,9 @@ public class ReviewControllerTest {
         ReviewCreateRequest request = new ReviewCreateRequest(bookId, 4, "종은 책이에요");
 
         ReviewResponse response = new ReviewResponse(
-                reviewId, userId, bookId, 4, "좋은 책이에요", 0, 0, false, Instant.now(), Instant.now()
+                reviewId, userId, bookId, 4, "좋은 책이에요",
+                "테스트 도서", "http://thumbnail.url", "테스트유저",
+                0, 0, false, Instant.now(), Instant.now()
         );
 
         given(reviewService.createReview(eq(userId),
@@ -165,7 +167,9 @@ public class ReviewControllerTest {
         UUID bookId = UUID.randomUUID();
 
         ReviewResponse response = new ReviewResponse(
-                reviewId, userId, bookId, 4, "좋은 책이에요", 0, 0, true, Instant.now(), Instant.now()
+                reviewId, userId, bookId, 4, "좋은 책이에요",
+                "테스트 도서", "http://thumbnail.url", "테스트유저",
+                0, 0, true, Instant.now(), Instant.now()
                 );
 
         given(reviewService.getReview(eq(reviewId), eq(userId))).willReturn(response);
