@@ -24,6 +24,7 @@ import com.part3_team4.deokhoogam.domain.user.repository.UserRepository;
 import com.part3_team4.deokhoogam.domain.review.dto.ReviewWithLiked;
 
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -78,7 +79,9 @@ public class ReviewServiceImpl implements ReviewService {
             throw ReviewAlreadyExistsException.withUserIdAndBookId(userId, request.bookId());
         }
         long reviewCount = reviewRepository.countByBookId(request.bookId());
-        BigDecimal avgRating = reviewRepository.averageRatingByBookId(request.bookId());
+        BigDecimal avgRating =
+                reviewRepository.averageRatingByBookId(request.bookId())
+                                .setScale(2, RoundingMode.HALF_UP);
         bookService.updateReviewData(request.bookId(), Math.toIntExact(reviewCount), avgRating);
 
         log.info("[ReviewService] createReview 완료 - reviewId: {}", saved.getId());
@@ -189,7 +192,9 @@ public class ReviewServiceImpl implements ReviewService {
         reviewRepository.delete(review);
 
         long reviewCount = reviewRepository.countByBookId(review.getBookId());
-        BigDecimal avgRating = reviewRepository.averageRatingByBookId(review.getBookId());
+        BigDecimal avgRating =
+                reviewRepository.averageRatingByBookId(review.getBookId())
+                                .setScale(2, RoundingMode.HALF_UP);
         bookService.updateReviewData(review.getBookId(), Math.toIntExact(reviewCount), avgRating);
 
         log.info("[ReviewService] deleteReview 완료 - reviewId: {}", reviewId);
