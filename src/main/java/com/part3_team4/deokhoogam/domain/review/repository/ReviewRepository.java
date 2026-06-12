@@ -46,5 +46,7 @@ public interface ReviewRepository extends JpaRepository<Review, UUID>{
             @Param("userId") UUID userId
     );
 
-
+    //이벤트 리스너용 다건 조회 메서드
+    List<Review> findAllByUserId(UUID userId);
+    List<Review> findAllByBookId(UUID bookId);
 }
