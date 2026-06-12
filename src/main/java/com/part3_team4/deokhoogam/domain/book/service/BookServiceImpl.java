@@ -68,10 +68,13 @@ public class BookServiceImpl implements BookService {
           .originalFilename(originalFilename)
           .build();
 
-      return BookDto.from(bookPersistence.save(book));
+      Book saved = bookPersistence.save(book);
+      log.info("도서 등록 완료: bookId={}, isbn={}", saved.getId(), saved.getIsbn());
+      return BookDto.from(saved);
 
     } catch (DataIntegrityViolationException e) {
       if (thumbnailUrl != null) {
+        log.warn("도서 등록 실패로 업로드된 썸네일 롤백: url={}", thumbnailUrl);
         fileUploader.delete(thumbnailUrl);
       }
 
@@ -82,6 +85,7 @@ public class BookServiceImpl implements BookService {
 
     } catch (Exception e) {
       if (thumbnailUrl != null) {
+        log.warn("도서 등록 중 예외 발생으로 업로드된 썸네일 롤백: url={}", thumbnailUrl);
         fileUploader.delete(thumbnailUrl);
       }
       throw e;
@@ -96,10 +100,12 @@ public class BookServiceImpl implements BookService {
     try {
       // TODO: 기존 썸네일 삭제 정책은 추후 Reconciliation를 도입하여 고도화 예정
       Book updatedBook = bookPersistence.update(id, request, newThumbnailUrl, originalFilename);
+      log.info("도서 수정 완료: bookId={}", id);
       return BookDto.from(updatedBook);
 
     } catch (Exception e) {
       if (newThumbnailUrl != null) {
+        log.warn("도서 수정 실패로 업로드된 썸네일 롤백: bookId={}, url={}", id, newThumbnailUrl);
         fileUploader.delete(newThumbnailUrl);
       }
       throw e;
@@ -205,6 +211,8 @@ public class BookServiceImpl implements BookService {
 
     deletedBookRepository.save(deletedBook);
 
+    log.info("도서 논리 삭제 완료: bookId={}", bookId);
+
   }
 
   @Override
@@ -220,6 +228,7 @@ public class BookServiceImpl implements BookService {
     fileUploader.delete(deletedBook.getThumbnailUrl());
 
     //고아 파일 처리는 하위 도메인의 배치 연산으로 정리
+    log.info("도서 물리 삭제 완료: bookId={}, thumbnailUrl={}", bookId, deletedBook.getThumbnailUrl());
   }
 
 
