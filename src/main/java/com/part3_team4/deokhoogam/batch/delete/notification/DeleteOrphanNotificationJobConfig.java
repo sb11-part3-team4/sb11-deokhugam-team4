@@ -3,9 +3,16 @@ package com.part3_team4.deokhoogam.batch.delete.notification;
 import com.part3_team4.deokhoogam.domain.notification.entity.Notification;
 import com.part3_team4.deokhoogam.domain.notification.repository.NotificationRepository;
 import jakarta.persistence.EntityManagerFactory;
+import java.time.Duration;
+import java.util.List;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.batch.core.BatchStatus;
 import org.springframework.batch.core.Job;
+import org.springframework.batch.core.JobExecution;
+import org.springframework.batch.core.JobExecutionListener;
 import org.springframework.batch.core.Step;
+import org.springframework.batch.core.StepExecution;
 import org.springframework.batch.core.job.builder.JobBuilder;
 import org.springframework.batch.core.repository.JobRepository;
 import org.springframework.batch.core.step.builder.StepBuilder;
@@ -16,8 +23,7 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.transaction.PlatformTransactionManager;
 
-import java.util.List;
-
+@Slf4j
 @Configuration
 @RequiredArgsConstructor
 public class DeleteOrphanNotificationJobConfig {
@@ -37,6 +43,28 @@ public class DeleteOrphanNotificationJobConfig {
     @Bean
     public Job deleteOrphanNotificationJob() {
         return new JobBuilder("deleteOrphanNotificationJob", jobRepository)
+            .listener(new JobExecutionListener() {
+                @Override
+                public void beforeJob(JobExecution jobExecution) {
+                    log.info("배치 시작 - job: {}", jobExecution.getJobInstance().getJobName());
+                }
+
+                @Override
+                public void afterJob(JobExecution jobExecution) {
+                    String jobName = jobExecution.getJobInstance().getJobName();
+                    long writeCount = jobExecution.getStepExecutions().stream()
+                        .mapToLong(StepExecution::getWriteCount).sum();
+                    long durationMs = (jobExecution.getStartTime() != null && jobExecution.getEndTime() != null)
+                        ? Duration.between(jobExecution.getStartTime(), jobExecution.getEndTime()).toMillis()
+                        : -1L;
+                    if (jobExecution.getStatus() == BatchStatus.FAILED) {
+                        jobExecution.getAllFailureExceptions()
+                            .forEach(e -> log.error("배치 실패 - job: {}", jobName, e));
+                    } else {
+                        log.info("배치 완료 - job: {}, 처리 건수: {}, 소요시간: {}ms", jobName, writeCount, durationMs);
+                    }
+                }
+            })
             .start(deleteOrphanNotificationStep())
             .build();
     }
