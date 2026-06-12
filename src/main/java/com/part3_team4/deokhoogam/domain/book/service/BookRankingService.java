@@ -1,5 +1,7 @@
 package com.part3_team4.deokhoogam.domain.book.service;
 
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.part3_team4.deokhoogam.domain.book.dto.ranking.BookRankingDto;
 import com.part3_team4.deokhoogam.domain.book.dto.ranking.RankingCursor;
 import com.part3_team4.deokhoogam.domain.book.entity.Book;
@@ -10,26 +12,56 @@ import com.part3_team4.deokhoogam.domain.book.repository.BookRepository;
 import com.part3_team4.deokhoogam.domain.book.repository.ranking.BookRankingRepository;
 import com.part3_team4.deokhoogam.global.common.PageResponse;
 import com.part3_team4.deokhoogam.global.util.CursorUtils;
+import java.time.Duration;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.domain.Slice;
+import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 @Service
 @RequiredArgsConstructor
 @Transactional(readOnly = true)
+
 public class BookRankingService {
 
   private final BookRankingRepository bookRankingRepository;
   private final BookRepository bookRepository;
+  private final StringRedisTemplate redisTemplate;
+  private final ObjectMapper redisObjectMapper;
+
+  @Value("${cache.ranking.enabled:true}")
+  private boolean cacheEnabled;
 
   public PageResponse<BookRankingDto> getRankings(PeriodType period, Direction direction,String cursor, int limit) {
-    // 커서 디코딩
+
+
+
+    // 첫 페이지(cursor 없음)만 캐싱
+    boolean cacheable = (cursor == null && cacheEnabled);
+    String key = "ranking:book:" + period + ":" + direction + ":" + limit;
+
+    // 1. 캐시 조회
+    if (cacheable) {
+      try {
+        String cached = redisTemplate.opsForValue().get(key);
+        if (cached != null) {
+          return redisObjectMapper.readValue(
+              cached, new TypeReference<PageResponse<BookRankingDto>>() {
+              });
+        }
+      } catch (Exception e) {
+        // 캐시 읽기 실패 시 DB로
+      }
+    }
+
+      // 커서 디코딩
     RankingCursor decoded = CursorUtils.decodeRankingCursor(cursor);
     Integer rankingCursor = (decoded == null) ? null : decoded.getRanking();
 
@@ -57,7 +89,7 @@ public class BookRankingService {
           RankingCursor.builder().ranking(lastRanking).build());
     }
 
-    return new PageResponse<>(
+    PageResponse<BookRankingDto> result = new PageResponse<>(
         content,
         nextCursor,
         null,                 // nextAfter 미사용
@@ -65,6 +97,18 @@ public class BookRankingService {
         null,                 // totalElements 미사용 (슬라이스라 전체개수 없음)
         slice.hasNext()
     );
+
+    //캐시 저장
+    if (cacheable) {
+      try {
+        redisTemplate.opsForValue().set(
+            key, redisObjectMapper.writeValueAsString(result), Duration.ofHours(25));
+      } catch (Exception e) {
+        // 저장 실패해도 무시
+      }
+    }
+
+    return result;
   }
 
   private BookRankingDto toDto(BookRanking r, Book book) {

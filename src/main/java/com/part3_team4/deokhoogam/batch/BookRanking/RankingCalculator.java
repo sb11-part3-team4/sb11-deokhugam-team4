@@ -13,9 +13,11 @@ import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -25,6 +27,8 @@ public class RankingCalculator {
 
   private final BookRankingRepository bookRankingRepository;
   private final BookRepository bookRepository;
+  private final StringRedisTemplate redisTemplate;
+
 
   private final RankingScoreCalculator scoreCalculator;
 
@@ -44,7 +48,6 @@ public class RankingCalculator {
       BigDecimal score = scoreCalculator.calculate(s.getReviewCount(), s.getAvgRating());
       scored.add(new Scored(s, score));
     }
-
 
     // 4. 동점 정렬용: 책 createdAt 한 번에 조회
     List<UUID> bookIds = scored.stream().map(s -> s.projection().getBookId()).toList();
@@ -74,6 +77,13 @@ public class RankingCalculator {
     bookRankingRepository.deleteByPeriod(period);
     bookRankingRepository.flush();
     bookRankingRepository.saveAll(rankings);
+
+    //기존 캐시 삭제
+    Set<String> keys = redisTemplate.keys("ranking:book:" + period + ":*");
+    if (!keys.isEmpty()) {
+      redisTemplate.delete(keys);
+    }
+
   }
 
   // 점수 계산 중간 결과를 잠깐 담는 용도
