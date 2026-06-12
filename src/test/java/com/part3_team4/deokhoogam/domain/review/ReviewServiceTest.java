@@ -34,6 +34,7 @@ import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.data.domain.Pageable;
 import org.springframework.test.util.ReflectionTestUtils;
 
@@ -67,6 +68,8 @@ public class ReviewServiceTest {
     BookService bookService;
     @Mock
     NotificationService notificationService;
+    @Mock
+    ApplicationEventPublisher eventPublisher;
 
     @Test
     @DisplayName("정상적인 요청으로 리뷰를 등록하면 ReviewResponse를 반환한다")
