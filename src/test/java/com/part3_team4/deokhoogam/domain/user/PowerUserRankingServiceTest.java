@@ -2,6 +2,7 @@ package com.part3_team4.deokhoogam.domain.user;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -27,6 +28,7 @@ import org.mockito.Captor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.data.domain.Pageable;
 
 @ExtendWith(MockitoExtension.class)
 public class PowerUserRankingServiceTest {
@@ -152,7 +154,8 @@ public class PowerUserRankingServiceTest {
     PowerUserRanking ranking2 = PowerUserRanking.builder().userId(user2)
         .period(PowerUserPeriod.DAILY).score(BigDecimal.valueOf(10.4)).ranking(2).build();
 
-    when(powerUserRankingRepository.findByPeriodOrderByRankingAsc(PowerUserPeriod.DAILY))
+    when(powerUserRankingRepository.findByPeriodOrderByRankingAsc(eq(PowerUserPeriod.DAILY), any(
+        Pageable.class)))
         .thenReturn(List.of(ranking1, ranking2));
 
     // user1은 닉네임이 정상 매핑되고, user2는 DB에 없어 Map에 담기지 않는다고 가정
@@ -160,7 +163,7 @@ public class PowerUserRankingServiceTest {
         .thenReturn(Map.of(user1, "정상유저"));
 
     List<PowerUserRankingResponseDto> result = powerUserRankingService
-        .getRankingWithNickname(PowerUserPeriod.DAILY);
+        .getRankingWithNickname(PowerUserPeriod.DAILY, 10);
 
     assertThat(result).hasSize(2);
 
