@@ -6,6 +6,7 @@ import com.part3_team4.deokhoogam.domain.review.entity.DeletedReview;
 import com.part3_team4.deokhoogam.domain.review.entity.Review;
 import com.part3_team4.deokhoogam.domain.review.entity.ReviewDeletedEvent;
 import com.part3_team4.deokhoogam.domain.review.repository.DeletedReviewRepository;
+import com.part3_team4.deokhoogam.domain.review.repository.PopularReviewRepository;
 import com.part3_team4.deokhoogam.domain.review.repository.ReviewLikeRepository;
 import com.part3_team4.deokhoogam.domain.review.repository.ReviewRepository;
 import com.part3_team4.deokhoogam.domain.user.entity.UserDeletedEvent;
@@ -30,6 +31,7 @@ public class ReviewEventListener {
   private final ApplicationEventPublisher eventPublisher;
   private final ReviewLikeRepository reviewLikeRepository;
   private final BookService bookService;
+  private final PopularReviewRepository popularReviewRepository;
 
   //유저 삭제 이벤트 수신
   @EventListener
@@ -45,6 +47,8 @@ public class ReviewEventListener {
     reviews.forEach(review -> {
       eventPublisher.publishEvent(new ReviewDeletedEvent(review.getId(), event.isHardDelete()));
       reviewLikeRepository.deleteAllByReviewId(review.getId()); //좋아요 데이터 선행 삭제
+      //삭제 시 인기 리뷰 선행 삭제
+      popularReviewRepository.deleteAllByReviewId(review.getId());
     });
 
     if (!event.isHardDelete()) {
@@ -54,9 +58,10 @@ public class ReviewEventListener {
           .toList();
       deletedReviewRepository.saveAll(deletedReviews);
       reviewRepository.deleteAll(reviews);
+    }else {
+      //물리 삭제: 원본 테이블에서 삭제(FK 에러 방지)
+      reviewRepository.deleteAll(reviews);
     }
-    //물리 삭제: 원본 테이블에서 삭제(FK 에러 방지)
-    reviewRepository.deleteAll(reviews);
 
     //리뷰 삭제 후, 영향을 받은 도서들의 리뷰 수와 평점을 다시 계산해서 업데이트
     Set<UUID> affectedBookIds = reviews.stream()
@@ -85,6 +90,8 @@ public class ReviewEventListener {
     reviews.forEach(review -> {
       eventPublisher.publishEvent(new ReviewDeletedEvent(review.getId(), event.isHardDelete()));
       reviewLikeRepository.deleteAllByReviewId(review.getId()); // 좋아요 데이터 선행 삭제 (FK 에러 방지)
+      //삭제 시 인기 리뷰 선행 삭제
+      popularReviewRepository.deleteAllByReviewId(review.getId());
     });
 
     if (!event.isHardDelete()) {

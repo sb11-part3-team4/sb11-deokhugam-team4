@@ -136,6 +136,8 @@ public class ReviewServiceImpl implements ReviewService {
             throw ReviewNotOwnerException.withUserId(userId);
 
         eventPublisher.publishEvent(new ReviewDeletedEvent(reviewId, false));
+        // 원본 리뷰 삭제 전 인기 리뷰부터 삭제
+        popularReviewRepository.deleteAllByReviewId(reviewId);
 
         reviewLikeRepository.deleteAllByReviewId(reviewId);
         deletedReviewRepository.save(DeletedReview.from(review));
