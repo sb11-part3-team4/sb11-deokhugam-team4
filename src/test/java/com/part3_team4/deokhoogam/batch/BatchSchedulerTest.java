@@ -1,9 +1,9 @@
 package com.part3_team4.deokhoogam.batch;
 
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.batch.core.Job;
@@ -17,23 +17,23 @@ import static org.mockito.BDDMockito.*;
 @ExtendWith(MockitoExtension.class)
 public class BatchSchedulerTest {
 
-    @InjectMocks
     BatchScheduler batchScheduler;
 
-    @Mock
-    JobLauncher jobLauncher;
+    @Mock JobLauncher jobLauncher;
 
-    @Mock
-    Job deleteOrphanCommentJob;
+    @Mock Job deleteOrphanCommentJob;
 
-    @Mock
-    Job deleteOrphanReviewJob;
+    @Mock Job deleteOrphanReviewJob;
 
-    @Mock
-    Job deleteOrphanNotificationJob;
+    @Mock Job deleteOrphanNotificationJob;
 
-    @Mock
-    Job popularReviewJob;
+    @Mock Job popularReviewJob;
+
+    @BeforeEach
+    void setUp() {
+        batchScheduler = new BatchScheduler(jobLauncher, deleteOrphanCommentJob,
+                deleteOrphanReviewJob, deleteOrphanNotificationJob, popularReviewJob);
+    }
 
     @Test
     @DisplayName("runPopularReviewJob 호출 시 popularReviewJob이 실행된다")
