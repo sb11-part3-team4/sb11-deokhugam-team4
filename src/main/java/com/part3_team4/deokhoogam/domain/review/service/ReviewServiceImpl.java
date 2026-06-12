@@ -9,6 +9,7 @@ import com.part3_team4.deokhoogam.domain.review.dto.*;
 import com.part3_team4.deokhoogam.domain.review.entity.DeletedReview;
 import com.part3_team4.deokhoogam.domain.review.entity.PopularReview;
 import com.part3_team4.deokhoogam.domain.review.entity.Review;
+import com.part3_team4.deokhoogam.domain.review.entity.ReviewDeletedEvent;
 import com.part3_team4.deokhoogam.domain.review.entity.ReviewLike;
 import com.part3_team4.deokhoogam.domain.review.exception.InvalidReviewException;
 import com.part3_team4.deokhoogam.domain.review.exception.ReviewAlreadyExistsException;
@@ -30,6 +31,7 @@ import java.util.stream.Collectors;
 import com.part3_team4.deokhoogam.global.common.PageResponse;
 import com.part3_team4.deokhoogam.global.exception.ErrorKey;
 import lombok.RequiredArgsConstructor;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -51,6 +53,7 @@ public class ReviewServiceImpl implements ReviewService {
     private final UserRepository userRepository;
     private final BookService bookService;
     private final NotificationService notificationService;
+    private final ApplicationEventPublisher eventPublisher;
 
 
     @Override
@@ -131,6 +134,9 @@ public class ReviewServiceImpl implements ReviewService {
                 .orElseThrow(() -> ReviewNotFoundException.withId(reviewId));
         if (!review.getUserId().equals(userId))
             throw ReviewNotOwnerException.withUserId(userId);
+
+        eventPublisher.publishEvent(new ReviewDeletedEvent(reviewId, false));
+
         reviewLikeRepository.deleteAllByReviewId(reviewId);
         deletedReviewRepository.save(DeletedReview.from(review));
         reviewRepository.delete(review);
