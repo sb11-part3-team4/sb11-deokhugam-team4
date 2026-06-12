@@ -615,7 +615,7 @@ public class ReviewServiceTest {
         User user = new User("test@test.com", "닉네임", "password");
         ReflectionTestUtils.setField(user, "id", userId);
 
-        given(popularReviewRepository.findByPeriod(eq("DAILY"), any(Pageable.class)))
+        given(popularReviewRepository.findByPeriodOrderByRankAsc(eq("DAILY"), any(Pageable.class)))
                 .willReturn(List.of(popularReview));
         given(reviewRepository.findAllById(anyList())).willReturn(List.of(review));
 
@@ -627,7 +627,44 @@ public class ReviewServiceTest {
 
         assertThat(response.content()).hasSize(1);
         assertThat(response.content().get(0).period()).isEqualTo("DAILY");
+    }
 
+    @Test
+    @DisplayName("direction=DESC로 조회하면 findByPeriodOrderByRankDesc를 호출한다")
+    void getPopularReview_periodFilter_desc_success() {
+        UUID reviewId = UUID.randomUUID();
+        UUID userId = UUID.randomUUID();
+        UUID bookId = UUID.randomUUID();
+
+        PopularReview popularReview = PopularReview.create(reviewId, "DAILY", new BigDecimal("0.7"), 1, LocalDate.now());
+
+        Review review = Review.create(userId, bookId, 4, "좋은 책이에요");
+        ReflectionTestUtils.setField(review, "id", reviewId);
+
+        Book book = Book.builder()
+                .title("테스트 책")
+                .author("저자")
+                .description("설명")
+                .publisher("출판사")
+                .publishedDate(LocalDate.of(2020, 1, 1))
+                .build();
+        ReflectionTestUtils.setField(book, "id", bookId);
+
+        User user = new User("test@test.com", "닉네임", "password");
+        ReflectionTestUtils.setField(user, "id", userId);
+
+        given(popularReviewRepository.findByPeriodOrderByRankDesc(eq("DAILY"), any(Pageable.class)))
+                .willReturn(List.of(popularReview));
+
+        given(reviewRepository.findAllById(anyList())).willReturn(List.of(review));
+        given(bookRepository.findAllById(anyList())).willReturn(List.of(book));
+        given(userRepository.findAllById(anyList())).willReturn(List.of(user));
+
+        PageResponse<PopularReviewResponse> response =
+                reviewService.getPopularReviews("DAILY", "DESC", null, null, 50);
+
+        assertThat(response.content()).hasSize(1);
+        assertThat(response.content().get(0).period()).isEqualTo("DAILY");
     }
 
     @Test
@@ -673,7 +710,7 @@ public class ReviewServiceTest {
         User user2 = new User("b@b.com", "유저2", "pw");
         ReflectionTestUtils.setField(user2, "id", userId2);
 
-        given(popularReviewRepository.findByPeriod(eq("DAILY"), any(Pageable.class)))
+        given(popularReviewRepository.findByPeriodOrderByRankAsc(eq("DAILY"), any(Pageable.class)))
                 .willReturn(List.of(rank1, rank2));
         given(reviewRepository.findAllById(anyList())).willReturn(List.of(review1, review2));
 
@@ -709,7 +746,7 @@ public class ReviewServiceTest {
         User user = new User("test@test.com", "닉네임", "password");
         ReflectionTestUtils.setField(user, "id", userId);
 
-        given(popularReviewRepository.findByPeriod(eq("DAILY"), any(Pageable.class)))
+        given(popularReviewRepository.findByPeriodOrderByRankAsc(eq("DAILY"), any(Pageable.class)))
                 .willReturn(List.of(popularReview));
         given(reviewRepository.findAllById(anyList())).willReturn(List.of(review));
         given(bookRepository.findAllById(anyList())).willReturn(List.of(book));
