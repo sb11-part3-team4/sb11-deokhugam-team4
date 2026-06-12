@@ -19,6 +19,7 @@ import com.part3_team4.deokhoogam.domain.book.dto.BookUpdateRequest;
 import com.part3_team4.deokhoogam.domain.book.dto.NaverBookDto;
 import com.part3_team4.deokhoogam.domain.book.entity.Book;
 import com.part3_team4.deokhoogam.domain.book.entity.DeletedBook;
+import com.part3_team4.deokhoogam.domain.book.entity.SortType;
 import com.part3_team4.deokhoogam.domain.book.exception.BookNotFoundException;
 import com.part3_team4.deokhoogam.domain.book.exception.InvalidIsbnException;
 import com.part3_team4.deokhoogam.domain.book.exception.IsbnAlreadyExistsException;
@@ -682,7 +683,121 @@ class BookServiceTest {
 
         verify(bookRepository, times(1)).getBooks(any(), any());
       }
+
+      @Nested
+      @DisplayName("정렬 기준별 다음 커서를 만들 때")
+      class TestGetBooks_NextCursorBySortType {
+
+        @Test
+        @DisplayName("RATING 정렬이면 nextCursor의 mainValue에 마지막 책의 평점이 담긴다")
+        void next_cursor_holds_rating_when_sort_by_rating() {
+          // given
+          Book lastBook = BookFixtureFactory.createBook1();
+          ReflectionTestUtils.setField(lastBook, "createdAt", Instant.now());
+
+          BookGetListRequest request = BookGetListRequest.builder()
+              .orderBy(SortType.RATING)
+              .limit(1)
+              .build();
+
+          Slice<Book> mockSlice = new SliceImpl<>(
+              List.of(lastBook), PageRequest.of(0, request.limit()), true);
+
+          given(bookRepository.getBooks(any(), any())).willReturn(mockSlice);
+
+          // when
+          PageResponse<BookDto> result = bookService.getBooks(request);
+
+          // then
+          assertThat(result.nextCursor()).isNotNull();
+          BookCursor decoded = CursorUtils.decodeCursor(result.nextCursor());
+          assertThat(decoded.getMainValue()).isEqualTo(lastBook.getRating().toString());
+        }
+
+        @Test
+        @DisplayName("REVIEW_COUNT 정렬이면 nextCursor의 mainValue에 마지막 책의 리뷰 수가 담긴다")
+        void next_cursor_holds_review_count_when_sort_by_review_count() {
+          // given
+          Book lastBook = BookFixtureFactory.createBook1();
+          ReflectionTestUtils.setField(lastBook, "createdAt", Instant.now());
+
+          BookGetListRequest request = BookGetListRequest.builder()
+              .orderBy(SortType.REVIEW_COUNT)
+              .limit(1)
+              .build();
+
+          Slice<Book> mockSlice = new SliceImpl<>(
+              List.of(lastBook), PageRequest.of(0, request.limit()), true);
+
+          given(bookRepository.getBooks(any(), any())).willReturn(mockSlice);
+
+          // when
+          PageResponse<BookDto> result = bookService.getBooks(request);
+
+          // then
+          assertThat(result.nextCursor()).isNotNull();
+          BookCursor decoded = CursorUtils.decodeCursor(result.nextCursor());
+          assertThat(decoded.getMainValue())
+              .isEqualTo(String.valueOf(lastBook.getReviewCount()));
+        }
+
+        @Test
+        @DisplayName("PUBLISHED_DATE 정렬이면 nextCursor의 mainValue에 마지막 책의 출판일이 담긴다")
+        void next_cursor_holds_published_date_when_sort_by_published_date() {
+          // given
+          Book lastBook = BookFixtureFactory.createBook1();
+          ReflectionTestUtils.setField(lastBook, "createdAt", Instant.now());
+
+          BookGetListRequest request = BookGetListRequest.builder()
+              .orderBy(SortType.PUBLISHED_DATE)
+              .limit(1)
+              .build();
+
+          Slice<Book> mockSlice = new SliceImpl<>(
+              List.of(lastBook), PageRequest.of(0, request.limit()), true);
+
+          given(bookRepository.getBooks(any(), any())).willReturn(mockSlice);
+
+          // when
+          PageResponse<BookDto> result = bookService.getBooks(request);
+
+          // then
+          assertThat(result.nextCursor()).isNotNull();
+          BookCursor decoded = CursorUtils.decodeCursor(result.nextCursor());
+          assertThat(decoded.getMainValue())
+              .isEqualTo(lastBook.getPublishedDate().toString());
+        }
+
+        @Test
+        @DisplayName("TITLE 정렬이면 nextCursor의 mainValue에 마지막 책의 제목이 담긴다")
+        void next_cursor_holds_title_when_sort_by_title() {
+          // given
+          Book lastBook = BookFixtureFactory.createBook1();
+          ReflectionTestUtils.setField(lastBook, "createdAt", Instant.now());
+
+          BookGetListRequest request = BookGetListRequest.builder()
+              .orderBy(SortType.TITLE)
+              .limit(1)
+              .build();
+
+          Slice<Book> mockSlice = new SliceImpl<>(
+              List.of(lastBook), PageRequest.of(0, request.limit()), true);
+
+          given(bookRepository.getBooks(any(), any())).willReturn(mockSlice);
+
+          // when
+          PageResponse<BookDto> result = bookService.getBooks(request);
+
+          // then
+          assertThat(result.nextCursor()).isNotNull();
+          BookCursor decoded = CursorUtils.decodeCursor(result.nextCursor());
+          assertThat(decoded.getMainValue()).isEqualTo(lastBook.getTitle());
+        }
+      }
+
     }
+
+
 
     @Nested
     @DisplayName("잘못 된 데이터가 들어왔을 경우")
