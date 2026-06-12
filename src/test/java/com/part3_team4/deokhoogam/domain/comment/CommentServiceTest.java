@@ -386,7 +386,7 @@ class CommentServiceTest {
         }
 
         @Test
-        @DisplayName("조회 결과가 limit+1개이면 hasNext가 true이고 nextCursor/nextAfter가 채워진다")
+        @DisplayName("조회 결과가 limit+1개이면 hasNext가 true이고 nextCursor(댓글 id)/nextAfter(createdAt)가 채워진다")
         void getComments_moreThanLimit_hasNextTrue() {
             Instant createdAt = Instant.now().minusSeconds(5);
             // 비영속 엔티티는 @CreatedDate가 적용되지 않아 createdAt이 null이므로 mock 사용
@@ -414,7 +414,7 @@ class CommentServiceTest {
 
             assertThat(result.hasNext()).isTrue();
             assertThat(result.content()).hasSize(1);
-            assertThat(result.nextCursor()).isEqualTo(createdAt.toString());
+            assertThat(result.nextCursor()).isEqualTo(COMMENT_ID.toString());
             assertThat(result.nextAfter()).isEqualTo(createdAt);
         }
 
@@ -448,20 +448,21 @@ class CommentServiceTest {
         }
 
         @Test
-        @DisplayName("direction=DESC, cursor 있으면 해당 커서 이전 데이터를 반환한다")
-        void getComments_desc_withCursor_returnsPaginatedResults() {
-            Instant cursor = Instant.now().minusSeconds(1);
+        @DisplayName("direction=DESC, cursor+after 있으면 findNextPageDesc로 다음 페이지를 반환한다")
+        void getComments_desc_withCursorAndAfter_returnsNextPage() {
+            UUID cursor = UUID.randomUUID();
+            Instant after = Instant.now().minusSeconds(1);
             User mockUser = testUser();
             Review mockReview = testReview();
             Comment comment = Comment.create(mockReview, mockUser, "커서 이전 댓글");
             given(reviewRepository.existsById(REVIEW_ID)).willReturn(true);
-            given(commentRepository.findByReviewIdAndCreatedAtBeforeOrderByCreatedAtDesc(
-                    eq(REVIEW_ID), eq(cursor), any(Pageable.class)))
+            given(commentRepository.findNextPageDesc(
+                    eq(REVIEW_ID), eq(after), eq(cursor), any(Pageable.class)))
                     .willReturn(List.of(comment));
             given(userRepository.findAllById(anyCollection())).willReturn(List.of(mockUser));
             given(commentRepository.countByReviewId(REVIEW_ID)).willReturn(5L);
 
-            CommentDto.CommentsResponse result = commentService.getComments(REVIEW_ID, "DESC", cursor, null, 50);
+            CommentDto.CommentsResponse result = commentService.getComments(REVIEW_ID, "DESC", cursor, after, 50);
 
             assertThat(result.content()).hasSize(1);
             assertThat(result.content().get(0).content()).isEqualTo("커서 이전 댓글");
@@ -491,20 +492,21 @@ class CommentServiceTest {
         }
 
         @Test
-        @DisplayName("direction=ASC, after 있으면 해당 시간 이후 데이터를 반환한다")
-        void getComments_asc_withAfter_returnsPaginatedResults() {
+        @DisplayName("direction=ASC, cursor+after 있으면 findNextPageAsc로 다음 페이지를 반환한다")
+        void getComments_asc_withCursorAndAfter_returnsNextPage() {
+            UUID cursor = UUID.randomUUID();
             Instant after = Instant.now().minusSeconds(1);
             User mockUser = testUser();
             Review mockReview = testReview();
             Comment comment = Comment.create(mockReview, mockUser, "after 이후 댓글");
             given(reviewRepository.existsById(REVIEW_ID)).willReturn(true);
-            given(commentRepository.findByReviewIdAndCreatedAtAfterOrderByCreatedAtAsc(
-                    eq(REVIEW_ID), eq(after), any(Pageable.class)))
+            given(commentRepository.findNextPageAsc(
+                    eq(REVIEW_ID), eq(after), eq(cursor), any(Pageable.class)))
                     .willReturn(List.of(comment));
             given(userRepository.findAllById(anyCollection())).willReturn(List.of(mockUser));
             given(commentRepository.countByReviewId(REVIEW_ID)).willReturn(3L);
 
-            CommentDto.CommentsResponse result = commentService.getComments(REVIEW_ID, "ASC", null, after, 50);
+            CommentDto.CommentsResponse result = commentService.getComments(REVIEW_ID, "ASC", cursor, after, 50);
 
             assertThat(result.content()).hasSize(1);
             assertThat(result.content().get(0).content()).isEqualTo("after 이후 댓글");
