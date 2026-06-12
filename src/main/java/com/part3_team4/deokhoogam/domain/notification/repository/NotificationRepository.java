@@ -6,7 +6,9 @@ import java.util.List;
 import java.util.UUID;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 
 /**
  * Notification Entity의 DB 접근을 담당하는 Repository입니다.
@@ -157,4 +159,12 @@ public interface NotificationRepository extends JpaRepository<Notification, UUID
    */
   long deleteByConfirmedTrueAndUpdatedAtBefore(Instant threshold);
 
+
+  @Modifying
+  @Query("DELETE FROM Notification n WHERE n.reviewId = :reviewId")
+  void deleteAllByReviewId(@Param("reviewId") UUID reviewId);
+
+  @Modifying
+  @Query("DELETE FROM Notification n WHERE n.userId = :userId")
+  void deleteAllByUserId(@Param("userId") UUID userId);
 }
