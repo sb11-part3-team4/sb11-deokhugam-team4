@@ -391,6 +391,7 @@ public class ReviewServiceTest {
     assertThatThrownBy(() -> reviewService.toggleLike(reviewId, userId))
         .isInstanceOf(ReviewNotFoundException.class);
 
+    then(reviewRepository).should().findById(reviewId);
     then(reviewRepository).shouldHaveNoMoreInteractions();
   }
 
