@@ -29,6 +29,8 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+
+import java.time.Instant;
 import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;
@@ -595,6 +597,64 @@ public class ReviewServiceTest {
 
         assertThat(response.hasNext()).isTrue();
         assertThat(response.content()).hasSize(2);
+
+    }
+
+    @Test
+    @DisplayName("cursor/after가 있으면 createdAt 기준 커서 쿼리를 호출한다")
+    void getReviews_withCoursor_createdAt() {
+        UUID requestUserId = UUID.randomUUID();
+        UUID afterId = UUID.randomUUID();
+        Instant cursorInstant = Instant.now();
+
+        Review review1 = Review.create(UUID.randomUUID(), UUID.randomUUID(), 4, "좋은 책이에요");
+
+        ReviewListRequest request = new ReviewListRequest(
+                null, null, null, "createdAt", "DESC",
+                cursorInstant.toString(), afterId.toString(), 10
+        );
+
+        given(reviewRepository.findReviewsWithCursorCreatedAtDesc(any(), any(),
+                any(), any(Instant.class), any(UUID.class), any(Pageable.class)))
+                .willReturn(List.of(review1));
+        given(reviewLikeRepository.findLikedReviewIds(any(), any()))
+                .willReturn(List.of());
+
+        PageResponse<ReviewResponse> response =
+                reviewService.getReviews(requestUserId, request);
+
+        assertThat(response.content()).hasSize(1);
+        verify(reviewRepository).findReviewsWithCursorCreatedAtDesc(any(), any(),
+                any(), any(Instant.class), any(UUID.class), any(Pageable.class));
+        verify(reviewRepository, never()).findReviews(any(), any(), any(), any(Pageable.class));
+    }
+
+    @Test
+    @DisplayName("cursor/after가 있고 orderBy=rating이면 rating 기준 켜서 쿼리를 호출한다")
+    void getReviews_withCursor_rating() {
+        UUID requestUserId = UUID.randomUUID();
+        UUID afterId = UUID.randomUUID();
+
+        Review review1 = Review.create(UUID.randomUUID(), UUID.randomUUID(), 4, "좋은 책이에요");
+
+        ReviewListRequest request = new ReviewListRequest(null, null, null,
+                "rating", "DESC", "4.0", afterId.toString(), 10
+        );
+
+        given(reviewRepository.findReviewsWithCursorRatingDesc(any(), any(),
+                any(), any(BigDecimal.class), any(UUID.class), any(Pageable.class)))
+                .willReturn(List.of(review1));
+        given(reviewLikeRepository.findLikedReviewIds(any(), any()))
+                .willReturn(List.of());
+
+        PageResponse<ReviewResponse> response =
+                reviewService.getReviews(requestUserId, request);
+
+        assertThat(response.content()).hasSize(1);
+        verify(reviewRepository).findReviewsWithCursorRatingDesc(any(), any(),
+                any(), any(BigDecimal.class), any(UUID.class), any(Pageable.class));
+        verify(reviewRepository, never()).findReviews(any(), any(), any(),
+                any(Pageable.class));
 
     }
 
