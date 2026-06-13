@@ -5,6 +5,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 import lombok.extern.slf4j.Slf4j;
+import org.hibernate.exception.ConstraintViolationException;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.FieldError;
@@ -79,10 +80,8 @@ public class GlobalExceptionHandler {
   @ExceptionHandler(DataIntegrityViolationException.class)
   public ResponseEntity<ErrorResponse> handleDataIntegrityViolationException(
       DataIntegrityViolationException e) {
-    String message = e.getMostSpecificCause().getMessage();
-
-    if (message != null && message.contains("duplicate key value violates unique constraint")) {
-      log.warn("Unique Constraint Violation: {}", message);
+    if (e.getCause() instanceof ConstraintViolationException cve) {
+      log.warn("Unique Constraint Violation: {}", e.getMostSpecificCause().getMessage());
 
       ErrorCode errorCode = ErrorCode.DUPLICATE_CONFLICT_ERROR;
       ErrorResponse response = ErrorResponse.of(errorCode, e);
