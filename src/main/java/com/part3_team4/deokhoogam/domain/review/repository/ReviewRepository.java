@@ -56,12 +56,16 @@ public interface ReviewRepository extends JpaRepository<Review, UUID> {
   @Query("UPDATE Review r SET r.commentCount = r.commentCount - 1 WHERE r.id = :reviewId AND r.commentCount > 0")
   int decrementCommentCount(@Param("reviewId") UUID reviewId);
 
-  @Modifying
+  @Modifying(clearAutomatically = true)
   @Query("UPDATE Review r SET r.likeCount = r.likeCount + 1 WHERE r.id = :reviewId")
   void incrementLikeCount(@Param("reviewId") UUID reviewId);
 
-  @Modifying
+  @Modifying(clearAutomatically = true)
   @Query("UPDATE Review r SET r.likeCount = r.likeCount - 1 WHERE r.id = :reviewId AND r.likeCount > 0")
   void decrementLikeCount(@Param("reviewId") UUID reviewId);
+
+  // 원자적 업데이트 후 클라이언트에게 내려줄 최신 카운트 단건 조회용
+  @Query("SELECT r.likeCount FROM Review r WHERE r.id = :reviewId")
+  int getLikeCount(@Param("reviewId") UUID reviewId);
 
 }

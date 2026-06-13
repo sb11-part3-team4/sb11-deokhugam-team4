@@ -212,27 +212,27 @@ public class ReviewServiceImpl implements ReviewService {
   public ReviewLikeResponse toggleLike(UUID reviewId, UUID userId) {
     Review review = reviewRepository.findById(reviewId)
         .orElseThrow(() -> ReviewNotFoundException.withId(reviewId));
-    int baseCount = review.getLikeCount();
 
     boolean alreadyLiked = reviewLikeRepository.existsByReviewIdAndUserId(reviewId, userId);
-    int newCount;
+
     if (alreadyLiked) {
       reviewLikeRepository.deleteByReviewIdAndUserId(reviewId, userId);
-      reviewRepository.decrementLikeCount(reviewId);
-      newCount = baseCount - 1;
+      reviewRepository.decrementLikeCount(reviewId); // DB 원자적 감소
     } else {
-      reviewLikeRepository.save(ReviewLike.create(reviewId, userId));
-      reviewRepository.incrementLikeCount(reviewId);
-      newCount = baseCount + 1;
       User actor = userRepository.findById(userId)
           .orElseThrow(() -> UserNotFoundException.withId(userId));
+
+      reviewLikeRepository.save(ReviewLike.create(reviewId, userId));
+      reviewRepository.incrementLikeCount(reviewId); // DB 원자적 증가
+
       notificationService.createLikeNotification(
           review.getUserId(), reviewId, review.getContent(), actor.getName(), userId);
     }
+    int updatedCount = reviewRepository.getLikeCount(reviewId);
 
     log.info("[ReviewService] toggleLike 완료 - reviewId: {}, liked: {}", reviewId, !alreadyLiked);
 
-    return new ReviewLikeResponse(reviewId, !alreadyLiked, newCount);
+    return new ReviewLikeResponse(reviewId, !alreadyLiked, updatedCount);
   }
 
   @Override
