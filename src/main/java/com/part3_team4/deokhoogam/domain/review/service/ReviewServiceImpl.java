@@ -25,6 +25,7 @@ import com.part3_team4.deokhoogam.domain.review.dto.ReviewWithLiked;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
+import java.time.Instant;
 import java.util.*;
 import java.util.stream.Collectors;
 import java.util.Objects;
@@ -233,10 +234,37 @@ public class ReviewServiceImpl implements ReviewService {
     public PageResponse<ReviewResponse> getReviews(UUID userId, ReviewListRequest request)
     {
 
-        Sort sort = Sort.by(Sort.Direction.fromString(request.direction()),
-        request.orderBy());
+        Sort sort = Sort.by(Sort.Direction.fromString(request.direction()), request.orderBy());
         Pageable pageable = PageRequest.of(0, request.limit() + 1, sort);
-        List<Review> reviews = reviewRepository.findReviews(request.userId(), request.bookId(), request.keyword(), pageable);
+
+        List<Review> reviews;
+        String cursor = request.cursor();
+        String after = request.after();
+
+        if (cursor != null && after != null) {
+            UUID afterId = UUID.fromString(after);
+            if ("rating".equals(request.orderBy())) {
+                BigDecimal cursorRating = new BigDecimal(cursor);
+                if ("DESC".equalsIgnoreCase(request.direction())) {
+                    reviews = reviewRepository.findReviewsWithCursorRatingDesc(
+                            request.userId(), request.bookId(), request.keyword(), cursorRating, afterId, pageable);
+                } else {
+                    reviews = reviewRepository.findReviewsWithCursorRatingAsc(
+                            request.userId(), request.bookId(), request.keyword(), cursorRating, afterId, pageable);
+                }
+            } else {
+                Instant cursorInstant = Instant.parse(cursor);
+                if ("DESC".equalsIgnoreCase(request.direction())) {
+                    reviews = reviewRepository.findReviewsWithCursorCreatedAtDesc(
+                            request.userId(), request.bookId(), request.keyword(), cursorInstant, afterId, pageable);
+                } else {
+                    reviews = reviewRepository.findReviewsWithCursorCreatedAtAsc(
+                            request.userId(), request.bookId(), request.keyword(), cursorInstant, afterId, pageable);
+                }
+            }
+        } else {
+            reviews = reviewRepository.findReviews(request.userId(), request.bookId(), request.keyword(), pageable);
+        }
 
         boolean hasNext = reviews.size() > request.limit();
         if (hasNext) {
