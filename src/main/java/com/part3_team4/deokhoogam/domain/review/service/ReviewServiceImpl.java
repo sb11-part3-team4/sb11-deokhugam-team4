@@ -213,20 +213,21 @@ public class ReviewServiceImpl implements ReviewService {
         boolean alreadyLiked = reviewLikeRepository.existsByReviewIdAndUserId(reviewId, userId);
         if (alreadyLiked) {
             reviewLikeRepository.deleteByReviewIdAndUserId(reviewId, userId);
-            review.decrementLikeCount();
+            reviewRepository.decrementLikeCount(reviewId);
         } else {
-            reviewLikeRepository.save(ReviewLike.create(reviewId, userId));
-            review.incrementLikeCount();
             User actor = userRepository.findById(userId)
                     .orElseThrow(() -> UserNotFoundException.withId(userId));
+            reviewLikeRepository.save(ReviewLike.create(reviewId, userId));
+            reviewRepository.incrementLikeCount(reviewId);
             notificationService.createLikeNotification(
                     review.getUserId(), reviewId, review.getContent(), actor.getName(), userId
             );
         }
+        int updatedCount = reviewRepository.getLikeCount(reviewId);
 
         log.info("[ReviewService] toggleLike 완료 - reviewId: {}, liked: {}", reviewId, !alreadyLiked);
 
-        return new ReviewLikeResponse(reviewId, !alreadyLiked, review.getLikeCount());
+        return new ReviewLikeResponse(reviewId, !alreadyLiked, updatedCount);
     }
 
     @Override

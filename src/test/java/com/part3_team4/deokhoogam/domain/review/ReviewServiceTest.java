@@ -322,7 +322,7 @@ public class ReviewServiceTest {
     }
 
     @Test
-    @DisplayName("좋아요가 없는 상태에서 토글하면 liked=true, likeCount가 1 증가한다")
+    @DisplayName("좋아요가 없는 상태에서 토글하면 liked=true가 되고, DB의 증가 쿼리를 호출한다")
     void toggleLike_like_success() {
         UUID userId = UUID.randomUUID();
         UUID bookId = UUID.randomUUID();
@@ -330,30 +330,35 @@ public class ReviewServiceTest {
         User actor = new User("test@test.com", "닉네임", "password");
 
         given(userRepository.findById(userId)).willReturn(Optional.of(actor));
-        given(reviewRepository.findById(any(UUID.class))).willReturn(Optional.of(review));
-        given(reviewLikeRepository.existsByReviewIdAndUserId(any(UUID.class),eq(userId))).willReturn(false);
+        given(reviewRepository.findById(review.getId())).willReturn(Optional.of(review));
+        given(reviewLikeRepository.existsByReviewIdAndUserId(review.getId(), userId)).willReturn(false);
+        given(reviewRepository.getLikeCount(review.getId())).willReturn(1);
 
-        ReviewLikeResponse response = reviewService.toggleLike(review.getId(),userId);
+        ReviewLikeResponse response = reviewService.toggleLike(review.getId(), userId);
 
         assertThat(response.liked()).isTrue();
         assertThat(response.likeCount()).isEqualTo(1);
+        then(reviewLikeRepository).should().save(any());
+        then(reviewRepository).should().incrementLikeCount(review.getId());
     }
 
     @Test
-    @DisplayName("이미 좋아요 상태에서 토글하면 liked=false, likeCount가 1 감소한다")
+    @DisplayName("이미 좋아요 상태에서 토글하면 liked=false가 되고, DB의 감소 쿼리를 호출한다")
     void toggleLike_unlike_success() {
         UUID userId = UUID.randomUUID();
         UUID bookId = UUID.randomUUID();
         Review review = Review.create(userId, bookId, 4, "내용");
-        review.incrementLikeCount();
 
-        given(reviewRepository.findById(any(UUID.class))).willReturn(Optional.of(review));
-        given(reviewLikeRepository.existsByReviewIdAndUserId(any(UUID.class),eq(userId))).willReturn(true);
+        given(reviewRepository.findById(review.getId())).willReturn(Optional.of(review));
+        given(reviewLikeRepository.existsByReviewIdAndUserId(review.getId(), userId)).willReturn(true);
+        given(reviewRepository.getLikeCount(review.getId())).willReturn(0);
 
         ReviewLikeResponse response = reviewService.toggleLike(review.getId(), userId);
 
         assertThat(response.liked()).isFalse();
         assertThat(response.likeCount()).isEqualTo(0);
+        then(reviewLikeRepository).should().deleteByReviewIdAndUserId(review.getId(), userId);
+        then(reviewRepository).should().decrementLikeCount(review.getId());
     }
 
     @Test
