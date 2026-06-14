@@ -5,6 +5,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 import lombok.extern.slf4j.Slf4j;
+import org.hibernate.exception.ConstraintViolationException;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
@@ -67,11 +69,30 @@ public class GlobalExceptionHandler {
   }
 
   @ExceptionHandler(MissingRequestHeaderException.class)
-  public ResponseEntity<ErrorResponse>
-  handleMissingHeader(MissingRequestHeaderException e) {
+  public ResponseEntity<ErrorResponse> handleMissingHeader(MissingRequestHeaderException e) {
     log.warn("Missing Header: {}", e.getHeaderName());
     ErrorCode errorCode = ErrorCode.INVALID_INPUT_VALUE;
     ErrorResponse response = ErrorResponse.of(errorCode, e);
+    return ResponseEntity.status(errorCode.getStatus()).body(response);
+  }
+
+  // 제약조건 위반 예외
+  @ExceptionHandler(DataIntegrityViolationException.class)
+  public ResponseEntity<ErrorResponse> handleDataIntegrityViolationException(
+      DataIntegrityViolationException e) {
+    if (e.getCause() instanceof ConstraintViolationException cve) {
+      log.warn("Unique Constraint Violation: {}", e.getMostSpecificCause().getMessage());
+
+      ErrorCode errorCode = ErrorCode.DUPLICATE_CONFLICT_ERROR;
+      ErrorResponse response = ErrorResponse.of(errorCode, e);
+
+      return ResponseEntity.status(errorCode.getStatus()).body(response);
+    }
+
+    log.error("Data Integrity Violation", e);
+    ErrorCode errorCode = ErrorCode.INTERNAL_SERVER_ERROR;
+    ErrorResponse response = ErrorResponse.of(errorCode, e);
+
     return ResponseEntity.status(errorCode.getStatus()).body(response);
   }
 
