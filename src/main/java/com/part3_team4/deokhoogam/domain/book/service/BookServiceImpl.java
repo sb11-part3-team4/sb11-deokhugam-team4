@@ -98,14 +98,13 @@ public class BookServiceImpl implements BookService {
 
   @Override
   public BookDto update(UUID id, BookUpdateRequest request, MultipartFile thumbnailFile) {
+    Book oldBook = bookRepository.findById(id).orElseThrow(() -> BookNotFoundException.withId(id));
+    String oldThumbnailUrl = oldBook.getThumbnailUrl();
+
     String newThumbnailUrl = uploadThumbnail(thumbnailFile);
     String originalFilename = extractOriginalFilename(thumbnailFile);
 
     try {
-      Book oldBook = bookRepository.findById(id)
-          .orElseThrow(() -> BookNotFoundException.withId(id));
-      String oldThumbnailUrl = oldBook.getThumbnailUrl();
-
       Book updatedBook = bookPersistence.update(id, request, newThumbnailUrl, originalFilename);
 
       if (newThumbnailUrl != null && oldThumbnailUrl != null
