@@ -23,11 +23,23 @@ class PowerUserRankingEventListenerTest {
   private PowerUserRankingRepository powerUserRankingRepository;
 
   @Test
-  @DisplayName("유저 삭제 이벤트 발생 시 랭킹 데이터 삭제")
-  void handleUserDeletedEvent() {
+  @DisplayName("유저 물리 삭제 시 랭킹 데이터가 정상적으로 삭제")
+  void handleUserDeletedEvent_HardDelete() {
     UUID userId = UUID.randomUUID();
 
+    // 물리 삭제 (isHardDelete = true)
     powerUserRankingEventListener.handleUserDeletedEvent(new UserDeletedEvent(userId, true));
+
+    verify(powerUserRankingRepository, times(1)).deleteByUserId(userId);
+  }
+
+  @Test
+  @DisplayName("유저 논리 삭제 시에도 랭킹 데이터가 정상적으로 삭제")
+  void handleUserDeletedEvent_SoftDelete() {
+    UUID userId = UUID.randomUUID();
+
+    // 논리 삭제 (isHardDelete = false)
+    powerUserRankingEventListener.handleUserDeletedEvent(new UserDeletedEvent(userId, false));
 
     verify(powerUserRankingRepository, times(1)).deleteByUserId(userId);
   }
