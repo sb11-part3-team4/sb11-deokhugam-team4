@@ -12,6 +12,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.batch.core.Job;
 import org.springframework.batch.core.Step;
 import org.springframework.batch.core.configuration.annotation.StepScope;
@@ -26,6 +27,7 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.transaction.PlatformTransactionManager;
 
+@Slf4j
 @Configuration
 @RequiredArgsConstructor
 public class DeleteOrphanThumbnailJobConfig {
@@ -36,12 +38,16 @@ public class DeleteOrphanThumbnailJobConfig {
   private final EntityManagerFactory entityManagerFactory;
   private final FileUploader fileUploader;
   private final Clock clock;
+  
+  private final JobLoggingListener jobLoggingListener;
+  private final SkipLoggingListener skipLoggingListener;
 
   private static final int CHUNK_SIZE = 100;
 
   @Bean
   public Job deleteOrphanThumbnailJob() {
     return new JobBuilder("deleteOrphanThumbnailJob", jobRepository)
+        .listener(jobLoggingListener)
         .start(deleteOrphanThumbnailStep())
         .build();
   }
@@ -56,6 +62,7 @@ public class DeleteOrphanThumbnailJobConfig {
         .faultTolerant()
         .skip(StorageOperationException.class)
         .skipLimit(100)
+        .listener(skipLoggingListener)
         .build();
   }
 
@@ -89,9 +96,8 @@ public class DeleteOrphanThumbnailJobConfig {
   @Bean
   public ItemProcessor<OrphanThumbnail, OrphanThumbnail> orphanThumbnailProcessor() {
     return orphanThumbnail -> {
-      fileUploader.delete(
-          orphanThumbnail.getFileUrl()
-      );
+      log.debug("외부 자원 삭제 시도 - URL: {}", orphanThumbnail.getFileUrl());
+      fileUploader.delete(orphanThumbnail.getFileUrl());
       return orphanThumbnail;
     };
   }
