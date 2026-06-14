@@ -77,4 +77,52 @@ public interface ReviewRepository extends JpaRepository<Review, UUID> {
   List<Review> findByCreatedAtBetween(@Param("start")Instant start, @Param("end") Instant end);
 
 
+    @Query("""
+      SELECT r FROM Review r
+      WHERE (:userId IS NULL OR r.userId = :userId)
+      AND (:bookId IS NULL OR r.bookId = :bookId)
+      AND (:keyword IS NULL OR r.content LIKE CONCAT('%', CAST(:keyword AS String), '%'))
+      AND (r.createdAt < :cursor OR (r.createdAt = :cursor AND r.id < :after))
+      """)
+    List<Review> findReviewsWithCursorCreatedAtDesc(
+            @Param("userId") UUID userId, @Param("bookId") UUID bookId,
+            @Param("keyword") String keyword, @Param("cursor") Instant cursor,
+            @Param("after") UUID after, Pageable pageable);
+
+    @Query("""
+      SELECT r FROM Review r
+      WHERE (:userId IS NULL OR r.userId = :userId)
+      AND (:bookId IS NULL OR r.bookId = :bookId)
+      AND (:keyword IS NULL OR r.content LIKE CONCAT('%', CAST(:keyword AS String), '%'))
+      AND (r.createdAt > :cursor OR (r.createdAt = :cursor AND r.id > :after))
+      """)
+    List<Review> findReviewsWithCursorCreatedAtAsc(
+            @Param("userId") UUID userId, @Param("bookId") UUID bookId,
+            @Param("keyword") String keyword, @Param("cursor") Instant cursor,
+            @Param("after") UUID after, Pageable pageable);
+
+    @Query("""
+      SELECT r FROM Review r
+      WHERE (:userId IS NULL OR r.userId = :userId)
+      AND (:bookId IS NULL OR r.bookId = :bookId)
+      AND (:keyword IS NULL OR r.content LIKE CONCAT('%', CAST(:keyword AS String), '%'))
+      AND (r.rating < :cursor OR (r.rating = :cursor AND r.id < :after))
+      """)
+    List<Review> findReviewsWithCursorRatingDesc(
+            @Param("userId") UUID userId, @Param("bookId") UUID bookId,
+            @Param("keyword") String keyword, @Param("cursor") BigDecimal cursor,
+            @Param("after") UUID after, Pageable pageable);
+
+    @Query("""
+      SELECT r FROM Review r
+      WHERE (:userId IS NULL OR r.userId = :userId)
+      AND (:bookId IS NULL OR r.bookId = :bookId)
+      AND (:keyword IS NULL OR r.content LIKE CONCAT('%', CAST(:keyword AS String), '%'))
+      AND (r.rating > :cursor OR (r.rating = :cursor AND r.id > :after))
+      """)
+    List<Review> findReviewsWithCursorRatingAsc(
+            @Param("userId") UUID userId, @Param("bookId") UUID bookId,
+            @Param("keyword") String keyword, @Param("cursor") BigDecimal cursor,
+            @Param("after") UUID after, Pageable pageable);
+
 }
