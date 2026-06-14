@@ -9,6 +9,7 @@ import com.part3_team4.deokhoogam.global.common.BaseEntity;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.FetchType;
+import jakarta.persistence.Index;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
@@ -18,57 +19,59 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 
 @Entity
-@Table(name = "comment")
+@Table(name = "comment", indexes = {
+    @Index(name = "idx_comment_review_created", columnList = "review_id, created_at DESC")
+})
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class Comment extends BaseEntity {
 
-    public static final int MAX_CONTENT_LENGTH = 1000;
+  public static final int MAX_CONTENT_LENGTH = 1000;
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "review_id", nullable = false)
-    private Review review;
+  @ManyToOne(fetch = FetchType.LAZY)
+  @JoinColumn(name = "review_id", nullable = false)
+  private Review review;
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "user_id", nullable = false)
-    private User user;
+  @ManyToOne(fetch = FetchType.LAZY)
+  @JoinColumn(name = "user_id", nullable = false)
+  private User user;
 
-    @Column(nullable = false, length = MAX_CONTENT_LENGTH)
-    private String content;
+  @Column(nullable = false, length = MAX_CONTENT_LENGTH)
+  private String content;
 
-    private Comment(Review review, User user, String content) {
-        this.review = review;
-        this.user = user;
-        this.content = content;
+  private Comment(Review review, User user, String content) {
+    this.review = review;
+    this.user = user;
+    this.content = content;
+  }
+
+  public static Comment create(Review review, User user, String content) {
+    if (review == null || user == null) {
+      throw CommentInvalidArgumentException.create();
     }
+    validate(content);
+    return new Comment(review, user, content);
+  }
 
-    public static Comment create(Review review, User user, String content) {
-        if (review == null || user == null) {
-            throw CommentInvalidArgumentException.create();
-        }
-        validate(content);
-        return new Comment(review, user, content);
-    }
+  public UUID getReviewId() {
+    return review.getId();
+  }
 
-    public UUID getReviewId() {
-        return review.getId();
-    }
+  public UUID getUserId() {
+    return user.getId();
+  }
 
-    public UUID getUserId() {
-        return user.getId();
-    }
+  public void updateContent(String content) {
+    validate(content);
+    this.content = content;
+  }
 
-    public void updateContent(String content) {
-        validate(content);
-        this.content = content;
+  private static void validate(String content) {
+    if (content == null || content.isBlank()) {
+      throw CommentContentRequiredException.create();
     }
-
-    private static void validate(String content) {
-        if (content == null || content.isBlank()) {
-            throw CommentContentRequiredException.create();
-        }
-        if (content.length() > MAX_CONTENT_LENGTH) {
-            throw CommentContentTooLongException.create();
-        }
+    if (content.length() > MAX_CONTENT_LENGTH) {
+      throw CommentContentTooLongException.create();
     }
+  }
 }
