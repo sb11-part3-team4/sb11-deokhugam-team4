@@ -957,4 +957,117 @@ public class ReviewServiceTest {
                 .doesNotThrowAnyException();
     }
 
+    @Test
+    @DisplayName("cursor/after가 있고 orderBy=rating, direction=ASC이면 rating ASC 커서 쿼리를 호출한다")
+    void getReviews_withCursor_ratingAsc() {
+        UUID requestUserId = UUID.randomUUID();
+        UUID afterId = UUID.randomUUID();
+        Review review1 = Review.create(UUID.randomUUID(), UUID.randomUUID(), 4, "좋은 책이에요");
+
+        ReviewListRequest request = new ReviewListRequest(null, null, null,
+                "rating", "ASC", "4.0", afterId.toString(), 10);
+
+        given(reviewRepository.findReviewsWithCursorRatingAsc(any(), any(), any(),
+                any(BigDecimal.class), any(UUID.class), any(Pageable.class)))
+                .willReturn(List.of(review1));
+        given(reviewLikeRepository.findLikedReviewIds(any(), any()))
+                .willReturn(List.of());
+
+        PageResponse<ReviewResponse> response = reviewService.getReviews(requestUserId, request);
+
+        assertThat(response.content()).hasSize(1);
+        verify(reviewRepository).findReviewsWithCursorRatingAsc(any(), any(), any(),
+                any(BigDecimal.class), any(UUID.class), any(Pageable.class));
+        verify(reviewRepository, never()).findReviews(any(), any(), any(), any(Pageable.class));
+    }
+
+    @Test
+    @DisplayName("cursor/after가 있고 orderBy=createdAt, direction=ASC이면 createdAt ASC 커서 쿼리를 호출한다")
+    void getReviews_withCursor_createdAsc() {
+        UUID requestUserId = UUID.randomUUID();
+        UUID afterId = UUID.randomUUID();
+        Instant cursorInstant = Instant.now();
+        Review review1 = Review.create(UUID.randomUUID(), UUID.randomUUID(), 4, "좋은 책이에요");
+
+        ReviewListRequest request = new ReviewListRequest(null, null, null,
+                "createdAt", "ASC", cursorInstant.toString(), afterId.toString(), 10);
+
+        given(reviewRepository.findReviewsWithCursorCreatedAtAsc(any(), any(), any(),
+                any(Instant.class), any(UUID.class), any(Pageable.class)))
+                .willReturn(List.of(review1));
+        given(reviewLikeRepository.findLikedReviewIds(any(), any()))
+                .willReturn(List.of());
+
+        PageResponse<ReviewResponse> response = reviewService.getReviews(requestUserId, request);
+
+        assertThat(response.content()).hasSize(1);
+        verify(reviewRepository).findReviewsWithCursorCreatedAtAsc(any(), any(), any(),
+                any(Instant.class), any(UUID.class), any(Pageable.class));
+        verify(reviewRepository, never()).findReviews(any(), any(), any(), any(Pageable.class));
+    }
+
+    @Test
+    @DisplayName("rating 기준 다음 페이지가 있으면 nextCursor에 마지막 항목의 rating 값이 설정된다")
+    void getReviews_hasNext_withRatingCursor() {
+        UUID requestUserId = UUID.randomUUID();
+        Review review1 = Review.create(UUID.randomUUID(), UUID.randomUUID(), 5, "첫 번째");
+        Review review2 = Review.create(UUID.randomUUID(), UUID.randomUUID(), 3, "두 번째");
+        Review review3 = Review.create(UUID.randomUUID(), UUID.randomUUID(), 1, "세 번째");
+
+        ReviewListRequest request = new ReviewListRequest(null, null, null,
+                "rating", "DESC", null, null, 2);
+
+        given(reviewRepository.findReviews(any(), any(), any(), any(Pageable.class)))
+                .willReturn(List.of(review1, review2, review3));
+        given(reviewLikeRepository.findLikedReviewIds(any(), any()))
+                .willReturn(List.of());
+
+        PageResponse<ReviewResponse> response = reviewService.getReviews(requestUserId,request);
+
+        assertThat(response.hasNext()).isTrue();
+        assertThat(response.nextCursor()).isEqualTo(String.valueOf(review2.getRating()));
+        assertThat(response.nextAfter()).isEqualTo(review2.getId().toString());
+
+    }
+
+    @Test
+    @DisplayName("인기 리뷰 조회 시 reviewMap에 없는 항목은 결과에서 제외된다")
+    void getPopularReviews_nullReview_filtered() {
+        UUID reviewId = UUID.randomUUID();
+        PopularReview popularReview = PopularReview.create(reviewId, "DAILY", new BigDecimal("0.7"), 1, LocalDate.now());
+
+        given(popularReviewRepository.findByPeriodOrderByRankAsc(eq("DAILY"), any(Pageable.class)))
+                .willReturn(List.of(popularReview));
+        given(reviewRepository.findAllById(anyList()))
+                .willReturn(List.of());
+
+        PageResponse<PopularReviewResponse> response = reviewService.getPopularReviews("DAILY", "ASC", null, null, 50);
+
+        assertThat(response.content()).isEmpty();
+    }
+
+    @Test
+    @DisplayName("인기 리뷰 조회 시 bookMap 또는 userMap에 없는 항목은 결과에서 제외된다")
+    void getPopularReviews_nullBookOrUser_filtered() {
+        UUID reviewId = UUID.randomUUID();
+        UUID userId = UUID.randomUUID();
+        UUID bookId = UUID.randomUUID();
+
+        PopularReview popularReview = PopularReview.create(reviewId, "DAILY", new BigDecimal("0.7"), 1, LocalDate.now());
+
+        Review review = Review.create(userId, bookId, 4, "내용");
+
+        ReflectionTestUtils.setField(review, "id", reviewId);
+
+        given(popularReviewRepository.findByPeriodOrderByRankAsc(eq("DAILY"), any(Pageable.class)))
+                .willReturn(List.of(popularReview));
+        given(reviewRepository.findAllById(anyList())).willReturn(List.of(review));
+        given(bookRepository.findAllById(anyList())).willReturn(List.of());
+
+        PageResponse<PopularReviewResponse> response = reviewService.getPopularReviews("DAILY", "ASC",
+                null, null, 50);
+
+        assertThat(response.content()).isEmpty();
+    }
+
 }
