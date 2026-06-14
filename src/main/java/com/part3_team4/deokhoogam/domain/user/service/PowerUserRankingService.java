@@ -1,10 +1,13 @@
 package com.part3_team4.deokhoogam.domain.user.service;
 
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.part3_team4.deokhoogam.domain.user.dto.response.PowerUserRankingResponseDto;
 import com.part3_team4.deokhoogam.domain.user.entity.PowerUserRanking;
 import com.part3_team4.deokhoogam.domain.user.enums.PowerUserPeriod;
 import com.part3_team4.deokhoogam.domain.user.repository.PowerUserRankingRepository;
 import java.math.BigDecimal;
+import java.time.Duration;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
@@ -17,19 +20,47 @@ import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+
 @Service
+@Slf4j
 @RequiredArgsConstructor
 public class PowerUserRankingService {
 
   private final UserService userService;
   private final PowerUserRankingRepository powerUserRankingRepository;
 
+  private final StringRedisTemplate redisTemplate;
+  private final ObjectMapper redisObjectMapper;
+
+  @Value("${cache.ranking.enabled:true}")
+  private boolean cacheEnabled;
+
   public record UserScore(UUID userId, BigDecimal score) {}
 
   public List<PowerUserRankingResponseDto> getRankingWithNickname(PowerUserPeriod period, int limit) {
+    String key = "ranking:user:" + period;
+
+    // 캐시 조회
+    if (cacheEnabled) {
+      try {
+        String cached = redisTemplate.opsForValue().get(key);
+        if (cached != null) {
+          log.debug("파워유저 랭킹 캐시 히트: key={}", key);
+          return redisObjectMapper.readValue(
+              cached, new TypeReference<>() {}
+          );
+        }
+        log.debug("파워유저 랭킹 캐시 미스: key={}", key);
+      } catch (Exception e) {
+        log.warn("파워유저 랭킹 캐시 읽기 실패, DB 폴백: key={}", key, e);
+      }
+    }
 
     // PageRequest를 생성하여 최대 limit 개수만큼만 가져오도록 설정
     Pageable pageable = PageRequest.of(0, limit);
@@ -47,8 +78,7 @@ public class PowerUserRankingService {
     // IN 절 쿼리 단 1번으로 닉네임 일괄 매핑 (N+1 최적화)
     Map<UUID, String> nicknameMap = userService.getUserNicknames(userIds);
 
-    return rankings.stream().map(ranking -> {
-      // Map에 없으면 삭제된 유저이므로 "알수없음" fallback
+    List<PowerUserRankingResponseDto> result = rankings.stream().map(ranking -> {
       String nickname = nicknameMap.getOrDefault(ranking.getUserId(), "알수없음");
       double flooredScore = Math.floor(ranking.getScore().doubleValue());
 
@@ -56,6 +86,18 @@ public class PowerUserRankingService {
           ranking.getUserId(), nickname, ranking.getRanking(), flooredScore
       );
     }).collect(Collectors.toList());
+
+    // 캐시 저장
+    if (cacheEnabled) {
+      try {
+        redisTemplate.opsForValue().set(
+            key, redisObjectMapper.writeValueAsString(result), java.time.Duration.ofHours(2));
+      } catch (Exception e) {
+        log.warn("파워유저 랭킹 캐시 저장 실패: key={}", key, e);
+      }
+    }
+
+    return result;
   }
 
   @Transactional
@@ -66,6 +108,12 @@ public class PowerUserRankingService {
     calculateAndSaveForPeriod(PowerUserPeriod.WEEKLY, now.minus(7, ChronoUnit.DAYS), now);
     calculateAndSaveForPeriod(PowerUserPeriod.MONTHLY, now.minus(30, ChronoUnit.DAYS), now);
     calculateAndSaveForPeriod(PowerUserPeriod.ALL_TIME, Instant.EPOCH, now);
+
+    try {
+      for (PowerUserPeriod period : PowerUserPeriod.values()) {
+        redisTemplate.delete("ranking:user:" + period);
+      }
+    } catch (Exception e) { }
   }
 
   private void calculateAndSaveForPeriod(PowerUserPeriod period, Instant startDate, Instant endDate) {

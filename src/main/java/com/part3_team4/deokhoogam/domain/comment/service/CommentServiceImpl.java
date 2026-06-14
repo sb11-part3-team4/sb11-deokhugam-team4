@@ -5,6 +5,8 @@ import com.part3_team4.deokhoogam.domain.comment.entity.Comment;
 import com.part3_team4.deokhoogam.domain.comment.entity.DeletedComment;
 import com.part3_team4.deokhoogam.domain.comment.exception.CommentNotFoundException;
 import com.part3_team4.deokhoogam.domain.comment.exception.CommentNotOwnerException;
+import com.part3_team4.deokhoogam.global.exception.ErrorCode;
+import com.part3_team4.deokhoogam.global.exception.InvalidRequestException;
 import com.part3_team4.deokhoogam.domain.comment.repository.CommentRepository;
 import com.part3_team4.deokhoogam.domain.comment.repository.DeletedCommentRepository;
 import com.part3_team4.deokhoogam.domain.review.entity.Review;
@@ -99,21 +101,25 @@ public class CommentServiceImpl implements CommentService {
     }
 
     @Override
-    public CommentDto.CommentsResponse getComments(UUID reviewId, String direction, Instant cursor, Instant after, int limit) {
+    public CommentDto.CommentsResponse getComments(UUID reviewId, String direction, UUID cursor, Instant after, int limit) {
         if (!reviewRepository.existsById(reviewId)) {
             throw ReviewNotFoundException.withId(reviewId);
+        }
+        // 복합 커서는 cursor와 after가 함께 제공되어야 함
+        if ((cursor == null) != (after == null)) {
+            throw new InvalidRequestException(ErrorCode.INVALID_INPUT_VALUE);
         }
         PageRequest pageable = PageRequest.of(0, limit + 1);
         boolean isAsc = "ASC".equalsIgnoreCase(direction);
         List<Comment> comments;
-        if (isAsc) {
-            comments = (after == null)
+        if (cursor == null && after == null) {
+            comments = isAsc
                     ? commentRepository.findByReviewIdOrderByCreatedAtAsc(reviewId, pageable)
-                    : commentRepository.findByReviewIdAndCreatedAtAfterOrderByCreatedAtAsc(reviewId, after, pageable);
+                    : commentRepository.findByReviewIdOrderByCreatedAtDesc(reviewId, pageable);
         } else {
-            comments = (cursor == null)
-                    ? commentRepository.findByReviewIdOrderByCreatedAtDesc(reviewId, pageable)
-                    : commentRepository.findByReviewIdAndCreatedAtBeforeOrderByCreatedAtDesc(reviewId, cursor, pageable);
+            comments = isAsc
+                    ? commentRepository.findNextPageAsc(reviewId, after, cursor, pageable)
+                    : commentRepository.findNextPageDesc(reviewId, after, cursor, pageable);
         }
 
         boolean hasNext = comments.size() > limit;
@@ -137,9 +143,9 @@ public class CommentServiceImpl implements CommentService {
         String nextCursor = null;
         Instant nextAfter = null;
         if (hasNext) {
-            Instant lastCreatedAt = pagedComments.get(size - 1).getCreatedAt();
-            nextCursor = lastCreatedAt.toString();
-            nextAfter = lastCreatedAt;
+            Comment last = pagedComments.get(size - 1);
+            nextCursor = last.getId().toString();
+            nextAfter = last.getCreatedAt();
         }
 
         return new CommentDto.CommentsResponse(content, nextCursor, nextAfter, size, totalElements, hasNext);

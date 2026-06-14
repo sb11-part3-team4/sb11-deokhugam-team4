@@ -9,6 +9,7 @@ import com.part3_team4.deokhoogam.domain.book.dto.NaverBookDto;
 import com.part3_team4.deokhoogam.domain.book.entity.Book;
 import com.part3_team4.deokhoogam.domain.book.entity.BookDeletedEvent;
 import com.part3_team4.deokhoogam.domain.book.entity.DeletedBook;
+import com.part3_team4.deokhoogam.domain.book.entity.SortType;
 import com.part3_team4.deokhoogam.domain.book.exception.BookNotFoundException;
 import com.part3_team4.deokhoogam.domain.book.exception.InvalidIsbnException;
 import com.part3_team4.deokhoogam.domain.book.exception.IsbnAlreadyExistsException;
@@ -168,7 +169,7 @@ public class BookServiceImpl implements BookService {
 
     return new PageResponse<>(
         dtoList,
-        generateNextCursor(books),
+        generateNextCursor(books, request.orderBy()),
         books.hasNext() && !books.getContent().isEmpty()
             ? books.getContent().get(books.getContent().size() - 1).getCreatedAt().toString()
             : null,
@@ -179,7 +180,7 @@ public class BookServiceImpl implements BookService {
   }
 
   //다음 커서 만들기
-  private String generateNextCursor(Slice<Book> books) {
+  private String generateNextCursor(Slice<Book> books, SortType sortType) {
     if (!books.hasNext() || books.getContent().isEmpty()) {
       return null; // 다음 페이지가 없으면 null 반환
     }
@@ -187,9 +188,17 @@ public class BookServiceImpl implements BookService {
     // 현재 슬라이스의 마지막 데이터 추출
     Book lastBook = books.getContent().get(books.getContent().size() - 1);
 
+    //커서 메인 값 정하기
+    String mainValue = switch (sortType) {
+      case TITLE -> lastBook.getTitle();
+      case RATING -> lastBook.getRating().toString();
+      case PUBLISHED_DATE -> lastBook.getPublishedDate().toString();
+      case REVIEW_COUNT -> String.valueOf(lastBook.getReviewCount());
+    };
+
     // 마지막 데이터의 값으로 다음 커서 객체 생성
     BookCursor newCursorObj = new BookCursor(
-        lastBook.getTitle(),
+        mainValue,
         lastBook.getId(),
         lastBook.getCreatedAt()
     );
