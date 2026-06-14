@@ -12,6 +12,11 @@ import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
+import java.time.Instant;
+import java.util.List;
+import java.util.Optional;
+import java.util.UUID;
+import java.math.BigDecimal;
 
 public interface ReviewRepository extends JpaRepository<Review, UUID> {
 
@@ -67,5 +72,9 @@ public interface ReviewRepository extends JpaRepository<Review, UUID> {
   // 원자적 업데이트 후 클라이언트에게 내려줄 최신 카운트 단건 조회용
   @Query("SELECT r.likeCount FROM Review r WHERE r.id = :reviewId")
   int getLikeCount(@Param("reviewId") UUID reviewId);
+         
+  @Query("SELECT r FROM Review r WHERE r.createdAt >= :start AND r.createdAt <= :end")
+  List<Review> findByCreatedAtBetween(@Param("start")Instant start, @Param("end") Instant end);
+
 
 }
