@@ -687,8 +687,7 @@ public class ReviewServiceTest {
     assertThat(response.content()).hasSize(1);
     verify(reviewRepository).findReviewsWithCursorRatingDesc(any(), any(),
         any(), any(BigDecimal.class), any(UUID.class), any(Pageable.class));
-    verify(reviewRepository, never()).findReviews(any(), any(), any(),
-        any(Pageable.class));
+    verify(reviewRepository, never()).findReviews(any(), any(), any(), any(Pageable.class));
 
   }
 
@@ -702,8 +701,8 @@ public class ReviewServiceTest {
     ReviewListRequest request = new ReviewListRequest(null, null, null,
         "rating", "ASC", "4.0", afterId.toString(), 10);
 
-    given(reviewRepository.findReviewsWithCursorRatingAsc(any(), any(), any(),
-        any(BigDecimal.class), any(UUID.class), any(Pageable.class)))
+    given(reviewRepository.findReviewsWithCursorRatingAsc(any(), any(),
+        any(), any(BigDecimal.class), any(UUID.class), any(Pageable.class)))
         .willReturn(List.of(review1));
     given(reviewLikeRepository.findLikedReviewIds(any(), any()))
         .willReturn(List.of());
@@ -711,8 +710,8 @@ public class ReviewServiceTest {
     PageResponse<ReviewResponse> response = reviewService.getReviews(requestUserId, request);
 
     assertThat(response.content()).hasSize(1);
-    verify(reviewRepository).findReviewsWithCursorRatingAsc(any(), any(), any(),
-        any(BigDecimal.class), any(UUID.class), any(Pageable.class));
+    verify(reviewRepository).findReviewsWithCursorRatingAsc(any(), any(),
+        any(), any(BigDecimal.class), any(UUID.class), any(Pageable.class));
     verify(reviewRepository, never()).findReviews(any(), any(), any(), any(Pageable.class));
   }
 
@@ -727,8 +726,8 @@ public class ReviewServiceTest {
     ReviewListRequest request = new ReviewListRequest(null, null, null,
         "createdAt", "ASC", cursorInstant.toString(), afterId.toString(), 10);
 
-    given(reviewRepository.findReviewsWithCursorCreatedAtAsc(any(), any(), any(),
-        any(Instant.class), any(UUID.class), any(Pageable.class)))
+    given(reviewRepository.findReviewsWithCursorCreatedAtAsc(any(), any(),
+        any(), any(Instant.class), any(UUID.class), any(Pageable.class)))
         .willReturn(List.of(review1));
     given(reviewLikeRepository.findLikedReviewIds(any(), any()))
         .willReturn(List.of());
@@ -736,8 +735,8 @@ public class ReviewServiceTest {
     PageResponse<ReviewResponse> response = reviewService.getReviews(requestUserId, request);
 
     assertThat(response.content()).hasSize(1);
-    verify(reviewRepository).findReviewsWithCursorCreatedAtAsc(any(), any(), any(),
-        any(Instant.class), any(UUID.class), any(Pageable.class));
+    verify(reviewRepository).findReviewsWithCursorCreatedAtAsc(any(), any(),
+        any(), any(Instant.class), any(UUID.class), any(Pageable.class));
     verify(reviewRepository, never()).findReviews(any(), any(), any(), any(Pageable.class));
   }
 
