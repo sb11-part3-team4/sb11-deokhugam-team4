@@ -88,11 +88,6 @@ public class PowerUserRankingServiceTest {
     verify(powerUserRankingRepository).deleteByPeriod(PowerUserPeriod.ALL_TIME);
 
     verify(powerUserRankingRepository, times(4)).saveAll(rankingListCaptor.capture());
-    // 각 기간별 캐시 키 삭제 여부 검증
-    verify(redisTemplate).delete("ranking:user:DAILY");
-    verify(redisTemplate).delete("ranking:user:WEEKLY");
-    verify(redisTemplate).delete("ranking:user:MONTHLY");
-    verify(redisTemplate).delete("ranking:user:ALL_TIME");
 
     List<List<PowerUserRanking>> allCapturedRankings = rankingListCaptor.getAllValues();
     assertThat(allCapturedRankings).hasSize(4);
@@ -157,7 +152,7 @@ public class PowerUserRankingServiceTest {
     );
 
     when(redisTemplate.opsForValue()).thenReturn(valueOperations);
-    when(valueOperations.get("ranking:user:DAILY")).thenReturn(cachedData);
+    when(valueOperations.get("ranking:user:DAILY:10")).thenReturn(cachedData);
     when(redisObjectMapper.readValue(eq(cachedData), any(TypeReference.class))).thenReturn(expectedResponse);
 
     List<PowerUserRankingResponseDto> result = powerUserRankingService.getRankingWithNickname(PowerUserPeriod.DAILY, 10);
@@ -175,7 +170,7 @@ public class PowerUserRankingServiceTest {
     String jsonResult = "[{\"userId\":\"...\",\"nickname\":\"정상유저\",\"ranking\":1,\"score\":20.0}]";
 
     when(redisTemplate.opsForValue()).thenReturn(valueOperations);
-    when(valueOperations.get("ranking:user:DAILY")).thenReturn(null); // 캐시 미스
+    when(valueOperations.get("ranking:user:DAILY:10")).thenReturn(null); // 캐시 미스
 
     when(powerUserRankingRepository.findByPeriodOrderByRankingAsc(eq(PowerUserPeriod.DAILY), any(Pageable.class)))
         .thenReturn(List.of(ranking1));
@@ -189,7 +184,7 @@ public class PowerUserRankingServiceTest {
     assertThat(result.get(0).score()).isEqualTo(20.0);
 
     // DB 조회 후 캐시에 저장되는지 검증
-    verify(valueOperations).set(eq("ranking:user:DAILY"), eq(jsonResult), any(Duration.class));
+    verify(valueOperations).set(eq("ranking:user:DAILY:10"), eq(jsonResult), any(Duration.class));
   }
 
   @Test

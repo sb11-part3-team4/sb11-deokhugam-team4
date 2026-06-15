@@ -50,7 +50,7 @@ public class BatchScheduler {
         }
     }
 
-    @Scheduled(cron = "0 30 3 * * *")
+    @Scheduled(cron = "0/20 * * * * *")
     public void runPopularReviewJob() {
         try {
             JobParameters params = new JobParametersBuilder()
