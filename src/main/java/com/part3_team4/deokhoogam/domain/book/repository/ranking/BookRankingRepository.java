@@ -18,11 +18,7 @@ public interface BookRankingRepository extends JpaRepository<BookRanking, UUID>,
         SELECT CAST(book_id AS UUID) AS bookId,
                COUNT(*) AS reviewCount,
                AVG(CAST(rating AS DECIMAL(3,2))) AS avgRating
-        FROM (
-            SELECT book_id, rating, created_at FROM review
-            UNION ALL
-            SELECT book_id, rating, created_at FROM deleted_review
-        ) AS all_reviews
+        FROM review
         WHERE created_at >= :start AND created_at < :end
         GROUP BY book_id
         """, nativeQuery = true)
