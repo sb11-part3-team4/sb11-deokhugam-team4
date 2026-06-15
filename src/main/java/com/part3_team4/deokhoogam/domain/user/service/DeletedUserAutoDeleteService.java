@@ -28,9 +28,9 @@ public class DeletedUserAutoDeleteService {
   public void deleteExpiredUsers() {
     long startTime = System.currentTimeMillis();
 
-    Instant oneDayAgo = Instant.now(clock).minus(7, ChronoUnit.DAYS);
+    Instant sevenDayAgo = Instant.now(clock).minus(7, ChronoUnit.DAYS);
 
-    log.info("유저 물리 삭제 배치 작업 시작. 기준 시각: {}", oneDayAgo);
+    log.info("유저 물리 삭제 배치 작업 시작. 기준 시각: {}", sevenDayAgo);
 
     int pageSize = 100;
     long totalDeletedCount = 0;
@@ -38,7 +38,7 @@ public class DeletedUserAutoDeleteService {
     try {
       while (true) {
         Pageable pageable = PageRequest.of(0, pageSize);
-        List<DeletedUser> oldUsers = deletedUserRepository.findByDeletedAtBefore(oneDayAgo, pageable);
+        List<DeletedUser> oldUsers = deletedUserRepository.findByDeletedAtBefore(sevenDayAgo, pageable);
 
         if (oldUsers.isEmpty()) {
           break;
