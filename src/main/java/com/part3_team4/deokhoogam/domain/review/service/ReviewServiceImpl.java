@@ -72,9 +72,8 @@ public class ReviewServiceImpl implements ReviewService {
   private final StringRedisTemplate redisTemplate;
   private final ObjectMapper redisObjectMapper;
 
-  @Value("${cache.ranking.enabled:false}")    //캐싱 on/off(redis)
+  @Value("${cache.ranking.enabled:false}")
   private boolean cacheEnabled;
-
 
   @Override
   @Transactional
@@ -203,16 +202,13 @@ public class ReviewServiceImpl implements ReviewService {
       throw ReviewNotOwnerException.withUserId(userId);
     }
 
-    // 이벤트 발행 및 연관 데이터 선행 삭제 (EDA 적용)
     eventPublisher.publishEvent(new ReviewDeletedEvent(reviewId, false));
     popularReviewRepository.deleteAllByReviewId(reviewId);
     reviewLikeRepository.deleteAllByReviewId(reviewId);
 
-    // 원본 데이터 백업 및 삭제
     deletedReviewRepository.save(DeletedReview.from(review));
     reviewRepository.delete(review);
 
-    // 도서 통계 업데이트
     long reviewCount = reviewRepository.countByBookId(review.getBookId());
     BigDecimal avgRating = reviewRepository.averageRatingByBookId(review.getBookId())
         .setScale(2, RoundingMode.HALF_UP);
@@ -231,21 +227,20 @@ public class ReviewServiceImpl implements ReviewService {
 
     if (alreadyLiked) {
       reviewLikeRepository.deleteByReviewIdAndUserId(reviewId, userId);
-      reviewRepository.decrementLikeCount(reviewId); // DB 원자적 감소
+      reviewRepository.decrementLikeCount(reviewId);
     } else {
       User actor = userRepository.findById(userId)
           .orElseThrow(() -> UserNotFoundException.withId(userId));
 
-      reviewLikeRepository.save(ReviewLike.create(reviewId, userId));
-      reviewRepository.incrementLikeCount(reviewId); // DB 원자적 증가
+      reviewLikeRepository.saveAndFlush(ReviewLike.create(reviewId, userId));
+      reviewRepository.incrementLikeCount(reviewId);
 
       notificationService.createLikeNotification(
           review.getUserId(), reviewId, review.getContent(), actor.getName(), userId);
     }
+
     int updatedCount = reviewRepository.getLikeCount(reviewId);
-
     log.info("[ReviewService] toggleLike 완료 - reviewId: {}, liked: {}", reviewId, !alreadyLiked);
-
     return new ReviewLikeResponse(reviewId, !alreadyLiked, updatedCount);
   }
 
@@ -348,7 +343,6 @@ public class ReviewServiceImpl implements ReviewService {
   public PageResponse<PopularReviewResponse> getPopularReviews(String period, String direction,
       String cursor, String after, int limit) {
 
-    // 첫 페이지(cursor 없음)만 캐싱
     boolean cacheable = (cursor == null && cacheEnabled);
     String key = "ranking:review:" + period + ":" + direction + ":" + limit;
 
@@ -438,7 +432,6 @@ public class ReviewServiceImpl implements ReviewService {
     PageResponse<PopularReviewResponse> result =
         new PageResponse<>(content, nextCursor, nextAfter, content.size(), null, hasNext);
 
-    // 캐시 저장
     if (cacheable) {
       try {
         redisTemplate.opsForValue().set(
