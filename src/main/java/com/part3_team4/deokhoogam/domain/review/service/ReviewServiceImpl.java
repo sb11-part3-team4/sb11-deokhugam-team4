@@ -1,11 +1,19 @@
 package com.part3_team4.deokhoogam.domain.review.service;
 
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.part3_team4.deokhoogam.domain.book.entity.Book;
 import com.part3_team4.deokhoogam.domain.book.exception.BookNotFoundException;
 import com.part3_team4.deokhoogam.domain.book.repository.BookRepository;
 import com.part3_team4.deokhoogam.domain.book.service.BookService;
 import com.part3_team4.deokhoogam.domain.notification.service.NotificationService;
-import com.part3_team4.deokhoogam.domain.review.dto.*;
+import com.part3_team4.deokhoogam.domain.review.dto.PopularReviewResponse;
+import com.part3_team4.deokhoogam.domain.review.dto.ReviewCreateRequest;
+import com.part3_team4.deokhoogam.domain.review.dto.ReviewLikeResponse;
+import com.part3_team4.deokhoogam.domain.review.dto.ReviewListRequest;
+import com.part3_team4.deokhoogam.domain.review.dto.ReviewResponse;
+import com.part3_team4.deokhoogam.domain.review.dto.ReviewUpdateRequest;
+import com.part3_team4.deokhoogam.domain.review.dto.ReviewWithLiked;
 import com.part3_team4.deokhoogam.domain.review.entity.DeletedReview;
 import com.part3_team4.deokhoogam.domain.review.entity.PopularReview;
 import com.part3_team4.deokhoogam.domain.review.entity.Review;
@@ -21,25 +29,27 @@ import com.part3_team4.deokhoogam.domain.review.repository.ReviewRepository;
 import com.part3_team4.deokhoogam.domain.user.entity.User;
 import com.part3_team4.deokhoogam.domain.user.exception.UserNotFoundException;
 import com.part3_team4.deokhoogam.domain.user.repository.UserRepository;
-import com.part3_team4.deokhoogam.domain.review.dto.ReviewWithLiked;
-
-import java.math.BigDecimal;
-import java.math.RoundingMode;
-import java.time.Instant;
-import java.util.*;
-import java.util.stream.Collectors;
-import java.util.Objects;
-
 import com.part3_team4.deokhoogam.global.common.PageResponse;
 import com.part3_team4.deokhoogam.global.exception.ErrorKey;
-
+import java.math.BigDecimal;
+import java.math.RoundingMode;
+import java.time.Duration;
+import java.time.Instant;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.Set;
+import java.util.UUID;
+import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
+import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -57,6 +67,11 @@ public class ReviewServiceImpl implements ReviewService {
     private final UserRepository userRepository;
     private final BookService bookService;
     private final NotificationService notificationService;
+    private final StringRedisTemplate redisTemplate;
+    private final ObjectMapper redisObjectMapper;
+
+    @Value("${cache.ranking.enabled:false}")    //캐싱 on/off(redis)
+    private boolean cacheEnabled;
 
 
     @Override
@@ -327,6 +342,28 @@ public class ReviewServiceImpl implements ReviewService {
     @Override
     @Transactional(readOnly = true)
     public PageResponse<PopularReviewResponse> getPopularReviews(String period, String direction, String cursor, String after, int limit) {
+
+
+        // 첫 페이지(cursor 없음)만 캐싱
+        boolean cacheable = (cursor == null && cacheEnabled);
+        String key = "ranking:review:" + period + ":" + direction + ":" + limit;
+
+        if (cacheable) {
+            try {
+                String cached = redisTemplate.opsForValue().get(key);
+                if (cached != null) {
+                    log.debug("인기 리뷰 캐시 히트: key={}", key);
+                    return redisObjectMapper.readValue(
+                        cached, new TypeReference<PageResponse<PopularReviewResponse>>() {});
+                }
+                log.debug("인기 리뷰 캐시 미스: key={}", key);
+            } catch (Exception e) {
+                log.warn("인기 리뷰 캐시 읽기 실패, DB 폴백: key={}", key, e);
+            }
+        }
+
+
+
         Pageable pageable = PageRequest.of(0, limit + 1, Sort.by(Sort.Direction.fromString(direction), "rank"));
         List<PopularReview> popularReviews;
         if (cursor != null) {
@@ -388,7 +425,20 @@ public class ReviewServiceImpl implements ReviewService {
             nextAfter = last.createdAt().toString();
         }
 
-        return new PageResponse<>(content, nextCursor, nextAfter, content.size(), null, hasNext);
+        PageResponse<PopularReviewResponse> result =
+            new PageResponse<>(content, nextCursor, nextAfter, content.size(), null, hasNext);
+
+        // 캐시 저장
+        if (cacheable) {
+            try {
+                redisTemplate.opsForValue().set(
+                    key, redisObjectMapper.writeValueAsString(result), Duration.ofHours(2));
+            } catch (Exception e) {
+                log.warn("인기 리뷰 캐시 저장 실패: key={}", key, e);
+            }
+        }
+
+        return result;
     }
 
     private PopularReviewResponse toPopularReviewResponse(PopularReview pr, Review review, Book book, User user) {
