@@ -29,6 +29,7 @@ public class JobLoggingListener implements JobExecutionListener {
   @Override
   public void afterJob(JobExecution jobExecution) {
     String jobName = jobExecution.getJobInstance().getJobName();
+    BatchStatus status = jobExecution.getStatus();
 
     long writeCount = jobExecution.getStepExecutions().stream()
         .mapToLong(StepExecution::getWriteCount)
@@ -38,12 +39,16 @@ public class JobLoggingListener implements JobExecutionListener {
         ? Duration.between(jobExecution.getStartTime(), jobExecution.getEndTime()).toMillis()
         : -1L;
 
-    if (jobExecution.getStatus() == BatchStatus.FAILED) {
+    if (status == BatchStatus.COMPLETED) {
+      log.info("배치 완료 - Job: {}, 처리 건수: {}건, 소요시간: {}ms", jobName, writeCount, durationMs);
+
+    } else if (status == BatchStatus.FAILED) {
       log.error("배치 실패 - Job: {}, 메인 예외 발생", jobName);
       jobExecution.getAllFailureExceptions()
           .forEach(e -> log.error("배치 실패 예외 내용: ", e));
+      
     } else {
-      log.info("배치 완료 - Job: {}, 처리 건수: {}건, 소요시간: {}ms", jobName, writeCount, durationMs);
+      log.warn("배치 비정상 종료 - Job: {}, 상태: {}", jobName, status);
     }
   }
 }
