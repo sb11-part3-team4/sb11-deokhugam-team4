@@ -26,6 +26,8 @@ import org.springframework.data.redis.core.ScanOptions;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.TransactionSynchronization;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
 
 
 @Service
@@ -110,21 +112,29 @@ public class PowerUserRankingService {
     calculateAndSaveForPeriod(PowerUserPeriod.MONTHLY, now.minus(30, ChronoUnit.DAYS), now);
     calculateAndSaveForPeriod(PowerUserPeriod.ALL_TIME, Instant.EPOCH, now);
 
-    for (PowerUserPeriod period : PowerUserPeriod.values()) {
-      try {
-        String pattern = "ranking:user:" + period + ":*";
-        ScanOptions options = ScanOptions.scanOptions().match(pattern).count(100).build();
-        List<String> keysToDelete = new ArrayList<>();
-        try (Cursor<String> cursor = redisTemplate.scan(options)) {
-          cursor.forEachRemaining(keysToDelete::add);
+    TransactionSynchronizationManager.registerSynchronization(
+        new TransactionSynchronization() {
+          @Override
+          public void afterCommit() {
+            for (PowerUserPeriod period : PowerUserPeriod.values()) {
+              try {
+                String pattern = "ranking:user:" + period + ":*";
+                ScanOptions options = ScanOptions.scanOptions().match(pattern).count(100).build();
+                List<String> keysToDelete = new ArrayList<>();
+                try (Cursor<String> cursor = redisTemplate.scan(options)) {
+                  cursor.forEachRemaining(keysToDelete::add);
+                }
+                if (!keysToDelete.isEmpty()) {
+                  redisTemplate.delete(keysToDelete);
+                }
+              } catch (Exception e) {
+                log.warn("Redis 캐시 삭제 실패 (파워유저): period={}", period, e);
+              }
+            }
+          }
         }
-        if (!keysToDelete.isEmpty()) {
-          redisTemplate.delete(keysToDelete);
-        }
-      } catch (Exception e) {
-        log.warn("파워유저 캐시 삭제 실패: period={}", period, e);
-      }
-    }
+    );
+
   }
 
   private void calculateAndSaveForPeriod(PowerUserPeriod period, Instant startDate, Instant endDate) {

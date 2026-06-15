@@ -18,6 +18,8 @@ import org.springframework.data.redis.core.ScanOptions;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.TransactionSynchronization;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
 
 @Component
 @RequiredArgsConstructor
@@ -60,22 +62,27 @@ public class PopularReviewCalculator {
         }
         popularReviewRepository.saveAll(results);
 
-        // 기존 캐시 삭제 (SCAN으로 키 찾아서 삭제)
-        try {
-            String pattern = "ranking:review:" + period + ":*";
-            ScanOptions options = ScanOptions.scanOptions().match(pattern).count(100).build();
-
-            List<String> keysToDelete = new ArrayList<>();
-            try (Cursor<String> cursor = redisTemplate.scan(options)) {
-                cursor.forEachRemaining(keysToDelete::add);
+        // 커밋 후 캐시 삭제
+        TransactionSynchronizationManager.registerSynchronization(
+            new TransactionSynchronization() {
+                @Override
+                public void afterCommit() {
+                    try {
+                        String pattern = "ranking:review:" + period + ":*";
+                        ScanOptions options = ScanOptions.scanOptions().match(pattern).count(100).build();
+                        List<String> keysToDelete = new ArrayList<>();
+                        try (Cursor<String> cursor = redisTemplate.scan(options)) {
+                            cursor.forEachRemaining(keysToDelete::add);
+                        }
+                        if (!keysToDelete.isEmpty()) {
+                            redisTemplate.delete(keysToDelete);
+                        }
+                    } catch (Exception e) {
+                        log.warn("Redis 캐시 삭제 실패 (인기 리뷰): period={}", period, e);
+                    }
+                }
             }
-
-            if (!keysToDelete.isEmpty()) {
-                redisTemplate.delete(keysToDelete);
-            }
-        } catch (Exception e) {
-            log.warn("Redis 캐시 삭제 실패 (배치는 계속 진행): period={}", period, e);
-        }
+        );
     }
     private record Scored(Review review, BigDecimal score) {}
 
