@@ -230,8 +230,6 @@ public class ReviewServiceImpl implements ReviewService {
       User actor = userRepository.findById(userId)
           .orElseThrow(() -> UserNotFoundException.withId(userId));
 
-      reviewLikeRepository.saveAndFlush(ReviewLike.create(reviewId, userId));
-      reviewRepository.incrementLikeCount(reviewId);
       try {
         reviewLikeRepository.saveAndFlush(ReviewLike.create(reviewId, userId));
       } catch (DataIntegrityViolationException e) {

@@ -89,7 +89,7 @@ class BookRankingRepositoryTest {
   }
 
   @Test
-  @DisplayName("review 1개 + deleted_review 1개 → 개수 2가 잘 나온다)")
+  @DisplayName("review 1개 + deleted_review 1개 → 개수 1이 잘 나온다 (삭제된 리뷰 제외)")
   void aggregate_includesDeleted() {
     UUID bookId = UUID.randomUUID();
     saveReview(bookId, 4, YESTERDAY.plus(1, ChronoUnit.HOURS));
@@ -98,8 +98,10 @@ class BookRankingRepositoryTest {
     List<BookScoreProjection> result = bookRankingRepository.aggregateScores(YESTERDAY, TODAY);
 
     assertThat(result).hasSize(1);
-    assertThat(result.get(0).getReviewCount()).isEqualTo(2);
-    assertThat(result.get(0).getAvgRating()).isEqualByComparingTo("3.0");
+    // 2개가 아니라 살아있는 리뷰 1개만 집계
+    assertThat(result.get(0).getReviewCount()).isEqualTo(1);
+    // 평점 평균 3.0이 아니라 살아있는 리뷰의 4.0이어야 함
+    assertThat(result.get(0).getAvgRating()).isEqualByComparingTo("4.0");
   }
 
   @Test
