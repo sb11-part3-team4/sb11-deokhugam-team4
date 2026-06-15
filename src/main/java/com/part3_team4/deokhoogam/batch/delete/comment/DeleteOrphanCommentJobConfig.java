@@ -7,7 +7,6 @@ import com.part3_team4.deokhoogam.domain.comment.repository.DeletedCommentReposi
 import jakarta.persistence.EntityManagerFactory;
 import java.time.Duration;
 import java.util.List;
-import java.util.List;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.batch.core.BatchStatus;

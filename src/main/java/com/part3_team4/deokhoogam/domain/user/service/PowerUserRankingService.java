@@ -21,9 +21,13 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.redis.core.Cursor;
+import org.springframework.data.redis.core.ScanOptions;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.TransactionSynchronization;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
 
 
 @Service
@@ -132,10 +136,23 @@ public class PowerUserRankingService {
       case ALL_TIME -> Instant.EPOCH;
     };
     int saved = calculateAndSaveForPeriod(period, start, now);
-    redisTemplate.delete("ranking:user:" + period);
+
+    // 커밋 후 캐시 무효화 (limit별 키 전부 패턴 삭제)
+    if (TransactionSynchronizationManager.isSynchronizationActive()) {
+      TransactionSynchronizationManager.registerSynchronization(
+          new TransactionSynchronization() {
+            @Override
+            public void afterCommit() {
+              evictRankingCache(period);
+            }
+          }
+      );
+    } else {
+      evictRankingCache(period);
+    }
+
     return saved;
   }
-
   public List<UserScore> calculateScores(Map<UUID, BigDecimal> reviewScores, Map<UUID, Long> likeCounts, Map<UUID, Long> commentCounts) {
     Set<UUID> activeUserIds = new HashSet<>();
     activeUserIds.addAll(reviewScores.keySet());
@@ -176,5 +193,21 @@ public class PowerUserRankingService {
           .build());
     }
     return rankings;
+  }
+  private void evictRankingCache(PowerUserPeriod period) {
+    try {
+      String pattern = "ranking:user:" + period + ":*";
+      ScanOptions options = ScanOptions.scanOptions().match(pattern).count(100).build();
+
+      List<String> keysToDelete = new ArrayList<>();
+      try (Cursor<String> cursor = redisTemplate.scan(options)) {
+        cursor.forEachRemaining(keysToDelete::add);
+      }
+      if (!keysToDelete.isEmpty()) {
+        redisTemplate.delete(keysToDelete);
+      }
+    } catch (Exception e) {
+      log.warn("파워유저 랭킹 캐시 삭제 실패 (무시): period={}", period, e);
+    }
   }
 }

@@ -89,23 +89,30 @@ public class RankingCalculator {
     // 6. 메트릭 기록
     customMetrics.recordCount("popularBookRankingJob", period.name(), rankings.size());
 
+    // 트랜잭션 커밋 후 Redis 캐시 삭제
+    if (TransactionSynchronizationManager.isSynchronizationActive()) {
+      TransactionSynchronizationManager.registerSynchronization(
+          new TransactionSynchronization() {
+            @Override
+            public void afterCommit() {
+              try {
+                String pattern = "ranking:book:" + period + ":*";
+                ScanOptions options = ScanOptions.scanOptions().match(pattern).count(100).build();
 
+                List<String> keysToDelete = new ArrayList<>();
+                try (Cursor<String> cursor = redisTemplate.scan(options)) {
+                  cursor.forEachRemaining(keysToDelete::add);
+                }
 
-    //기존 캐시 삭제
-    try {
-      String pattern = "ranking:book:" + period + ":*";
-      ScanOptions options = ScanOptions.scanOptions().match(pattern).count(100).build();
-
-      List<String> keysToDelete = new ArrayList<>();
-      try (Cursor<String> cursor = redisTemplate.scan(options)) {
-        cursor.forEachRemaining(keysToDelete::add);
-      }
-
-      if (!keysToDelete.isEmpty()) {
-        redisTemplate.delete(keysToDelete);
-      }
-    } catch (Exception e) {
-      log.warn("Redis 캐시 삭제 실패 (무시): period={}", period, e);
+                if (!keysToDelete.isEmpty()) {
+                  redisTemplate.delete(keysToDelete);
+                }
+              } catch (Exception e) {
+                log.warn("Redis 캐시 삭제 실패 (무시): period={}", period, e);
+              }
+            }
+          }
+      );
     }
 
     log.info("기간별 랭킹 산출 완료: period={}, 대상도서={}건", period, rankings.size());
