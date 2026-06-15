@@ -5,13 +5,7 @@ import com.part3_team4.deokhoogam.domain.book.exception.BookNotFoundException;
 import com.part3_team4.deokhoogam.domain.book.repository.BookRepository;
 import com.part3_team4.deokhoogam.domain.book.service.BookService;
 import com.part3_team4.deokhoogam.domain.notification.service.NotificationService;
-import com.part3_team4.deokhoogam.domain.review.dto.PopularReviewResponse;
-import com.part3_team4.deokhoogam.domain.review.dto.ReviewCreateRequest;
-import com.part3_team4.deokhoogam.domain.review.dto.ReviewLikeResponse;
-import com.part3_team4.deokhoogam.domain.review.dto.ReviewListRequest;
-import com.part3_team4.deokhoogam.domain.review.dto.ReviewResponse;
-import com.part3_team4.deokhoogam.domain.review.dto.ReviewUpdateRequest;
-import com.part3_team4.deokhoogam.domain.review.dto.ReviewWithLiked;
+import com.part3_team4.deokhoogam.domain.review.dto.*;
 import com.part3_team4.deokhoogam.domain.review.entity.DeletedReview;
 import com.part3_team4.deokhoogam.domain.review.entity.PopularReview;
 import com.part3_team4.deokhoogam.domain.review.entity.Review;
@@ -28,19 +22,20 @@ import com.part3_team4.deokhoogam.domain.review.repository.ReviewRepository;
 import com.part3_team4.deokhoogam.domain.user.entity.User;
 import com.part3_team4.deokhoogam.domain.user.exception.UserNotFoundException;
 import com.part3_team4.deokhoogam.domain.user.repository.UserRepository;
-import com.part3_team4.deokhoogam.global.common.PageResponse;
-import com.part3_team4.deokhoogam.global.exception.ErrorKey;
+
 import java.math.BigDecimal;
 import java.math.RoundingMode;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.UUID;
+import java.time.Instant;
+import java.util.*;
 import java.util.stream.Collectors;
+
+import com.part3_team4.deokhoogam.global.common.PageResponse;
+import com.part3_team4.deokhoogam.global.exception.ErrorKey;
+
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.ApplicationEventPublisher;
 import lombok.extern.slf4j.Slf4j;
+
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -242,7 +237,35 @@ public class ReviewServiceImpl implements ReviewService {
 
         Sort sort = Sort.by(Sort.Direction.fromString(request.direction()), request.orderBy());
         Pageable pageable = PageRequest.of(0, request.limit() + 1, sort);
-        List<Review> reviews = reviewRepository.findReviews(request.userId(), request.bookId(), request.keyword(), pageable);
+
+        List<Review> reviews;
+        String cursor = request.cursor();
+        String after = request.after();
+
+        if (cursor != null && after != null) {
+            UUID afterId = UUID.fromString(after);
+            if ("rating".equals(request.orderBy())) {
+                BigDecimal cursorRating = new BigDecimal(cursor);
+                if ("DESC".equalsIgnoreCase(request.direction())) {
+                    reviews = reviewRepository.findReviewsWithCursorRatingDesc(
+                            request.userId(), request.bookId(), request.keyword(), cursorRating, afterId, pageable);
+                } else {
+                    reviews = reviewRepository.findReviewsWithCursorRatingAsc(
+                            request.userId(), request.bookId(), request.keyword(), cursorRating, afterId, pageable);
+                }
+            } else {
+                Instant cursorInstant = Instant.parse(cursor);
+                if ("DESC".equalsIgnoreCase(request.direction())) {
+                    reviews = reviewRepository.findReviewsWithCursorCreatedAtDesc(
+                            request.userId(), request.bookId(), request.keyword(), cursorInstant, afterId, pageable);
+                } else {
+                    reviews = reviewRepository.findReviewsWithCursorCreatedAtAsc(
+                            request.userId(), request.bookId(), request.keyword(), cursorInstant, afterId, pageable);
+                }
+            }
+        } else {
+            reviews = reviewRepository.findReviews(request.userId(), request.bookId(), request.keyword(), pageable);
+        }
 
         boolean hasNext = reviews.size() > request.limit();
         if (hasNext) {
@@ -250,10 +273,13 @@ public class ReviewServiceImpl implements ReviewService {
         }
 
         List<UUID> reviewIds = reviews.stream().map(Review::getId).toList();
-        Set<UUID> likedReviewIds = new HashSet<>(reviewLikeRepository.findLikedReviewIds(userId, reviewIds));
+        Set<UUID> likedReviewIds = new HashSet<>(
+                reviewLikeRepository.findLikedReviewIds(userId, reviewIds));
 
-        List<UUID> bookIds = reviews.stream().map(Review::getBookId).distinct().toList();
-        List<UUID> userIds = reviews.stream().map(Review::getUserId).distinct().toList();
+        List<UUID> bookIds =
+                reviews.stream().map(Review::getBookId).distinct().toList();
+        List<UUID> userIds =
+                reviews.stream().map(Review::getUserId).distinct().toList();
         Map<UUID, Book> bookMap = bookRepository.findAllById(bookIds).stream()
                 .collect(Collectors.toMap(Book::getId, b -> b));
         Map<UUID, User> userMap = userRepository.findAllById(userIds).stream()
@@ -296,11 +322,9 @@ public class ReviewServiceImpl implements ReviewService {
 
     @Override
     @Transactional(readOnly = true)
-    public PageResponse<PopularReviewResponse> getPopularReviews(String period, String direction,
-                                                                 String cursor, String after, int limit) {
+    public PageResponse<PopularReviewResponse> getPopularReviews(String period, String direction, String cursor, String after, int limit) {
         Pageable pageable = PageRequest.of(0, limit + 1, Sort.by(Sort.Direction.fromString(direction), "rank"));
         List<PopularReview> popularReviews;
-        
         if (cursor != null) {
             int cursorRank;
             try {
@@ -326,11 +350,14 @@ public class ReviewServiceImpl implements ReviewService {
             popularReviews = popularReviews.subList(0, limit);
         }
 
-        List<UUID> reviewIds = popularReviews.stream().map(PopularReview::getReviewId).toList();
+        List<UUID> reviewIds =
+        popularReviews.stream().map(PopularReview::getReviewId).toList();
         Map<UUID, Review> reviewMap = reviewRepository.findAllById(reviewIds)
                 .stream().collect(Collectors.toMap(Review::getId, r -> r));
-        List<UUID> bookIds = reviewMap.values().stream().map(Review::getBookId).distinct().toList();
-        List<UUID> userIds = reviewMap.values().stream().map(Review::getUserId).distinct().toList();
+        List<UUID> bookIds =
+                reviewMap.values().stream().map(Review::getBookId).distinct().toList();
+        List<UUID> userIds =
+                reviewMap.values().stream().map(Review::getUserId).distinct().toList();
         Map<UUID, Book> bookMap = bookRepository.findAllById(bookIds)
                 .stream().collect(Collectors.toMap(Book::getId, b -> b));
         Map<UUID, User> userMap = userRepository.findAllById(userIds)
@@ -339,10 +366,13 @@ public class ReviewServiceImpl implements ReviewService {
         List<PopularReviewResponse> content = popularReviews.stream()
                 .map(pr -> {
                     Review rev = reviewMap.get(pr.getReviewId());
+                    if (rev == null) return null;
                     Book book = bookMap.get(rev.getBookId());
                     User user = userMap.get(rev.getUserId());
+                    if (book == null || user == null) return null;
                     return toPopularReviewResponse(pr, rev, book, user);
                 })
+                .filter(Objects::nonNull)
                 .toList();
 
         String nextCursor = null;
@@ -372,9 +402,7 @@ public class ReviewServiceImpl implements ReviewService {
     @Transactional
     public void incrementCommentCount(UUID reviewId) {
         int updated = reviewRepository.incrementCommentCount(reviewId);
-        if (updated == 0) {
-            throw ReviewNotFoundException.withId(reviewId);
-        }
+        if (updated == 0) throw ReviewNotFoundException.withId(reviewId);
         log.info("[ReviewService] incrementCommentCount 완료 - reviewId: {}", reviewId);
     }
 
