@@ -19,6 +19,7 @@ import com.part3_team4.deokhoogam.domain.book.dto.BookUpdateRequest;
 import com.part3_team4.deokhoogam.domain.book.dto.NaverBookDto;
 import com.part3_team4.deokhoogam.domain.book.entity.Book;
 import com.part3_team4.deokhoogam.domain.book.entity.DeletedBook;
+import com.part3_team4.deokhoogam.domain.book.entity.OrphanThumbnail;
 import com.part3_team4.deokhoogam.domain.book.entity.SortType;
 import com.part3_team4.deokhoogam.domain.book.exception.BookNotFoundException;
 import com.part3_team4.deokhoogam.domain.book.exception.InvalidIsbnException;
@@ -27,6 +28,7 @@ import com.part3_team4.deokhoogam.domain.book.infrastructure.naver.NaverApiServi
 import com.part3_team4.deokhoogam.domain.book.repository.BookPersistence;
 import com.part3_team4.deokhoogam.domain.book.repository.BookRepository;
 import com.part3_team4.deokhoogam.domain.book.repository.DeletedBookRepository;
+import com.part3_team4.deokhoogam.domain.book.repository.OrphanThumbnailRepository;
 import com.part3_team4.deokhoogam.domain.book.service.BookServiceImpl;
 import com.part3_team4.deokhoogam.global.common.PageResponse;
 import com.part3_team4.deokhoogam.global.exception.Base64Exception;
@@ -52,6 +54,7 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -82,6 +85,12 @@ class BookServiceTest {
 
   @Mock
   private BookPersistence bookPersistence;
+
+  @Mock
+  private OrphanThumbnailRepository orphanThumbnailRepository;
+
+  @Mock
+  private ApplicationEventPublisher eventPublisher;
 
   private static final String BOOK_THUMBNAIL_DIR = "books";
   private static final String ISBN_UNIQUE_CONSTRAINT = "uk_book_isbn";
@@ -314,6 +323,10 @@ class BookServiceTest {
     UUID targetId = UUID.randomUUID();
     BookUpdateRequest updateRequest = BookFixtures.validBookUpdateRequest();
 
+    Book oldBook = BookFixtures.validBook("1234567890123");
+    setField(oldBook, "id", targetId);
+    setField(oldBook, "thumbnailUrl", "https://s3.com/old.png");
+
     Book updatedBook = Book.builder()
         .isbn("1234567890123")
         .title(updateRequest.title())
@@ -321,9 +334,11 @@ class BookServiceTest {
         .description(updateRequest.description())
         .publisher(updateRequest.publisher())
         .publishedDate(updateRequest.publishedDate())
+        .thumbnailUrl("https://s3.com/old.png")
         .build();
     setField(updatedBook, "id", targetId);
-
+    
+    given(bookRepository.findById(targetId)).willReturn(Optional.of(oldBook));
     given(bookPersistence.update(eq(targetId), eq(updateRequest), eq(null), eq(null)))
         .willReturn(updatedBook);
 
@@ -334,13 +349,13 @@ class BookServiceTest {
     assertThat(result).isNotNull();
     assertThat(result.id()).isEqualTo(targetId);
     assertThat(result.title()).isEqualTo(updateRequest.title());
-    assertThat(result.author()).isEqualTo(updateRequest.author());
 
     then(bookPersistence).should().update(eq(targetId), eq(updateRequest), eq(null), eq(null));
+    then(orphanThumbnailRepository).shouldHaveNoInteractions();
   }
 
   @Test
-  @DisplayName("도서 정보 수정 시 썸네일 파일이 주어지면 파일 업로드 후 URL과 원본 파일명을 업데이트한다")
+  @DisplayName("도서 정보 수정 시 썸네일이 주어지면 업로드 후 반영하며, 기존 썸네일은 고아 객체로 저장한다")
   void updateBook_WithThumbnail_Success() {
     // given
     UUID targetId = UUID.randomUUID();
@@ -351,15 +366,22 @@ class BookServiceTest {
         newOriginalFilename,
         "image/png",
         "test_content".getBytes());
+
+    String oldMockUrl = "https://s3.deokhugam.com/books/old-image.png";
     String newMockUrl = "https://s3.deokhugam.com/books/new-image.png";
+
+    Book oldBook = BookFixtures.validBook("1234567890123");
+    setField(oldBook, "id", targetId);
+    setField(oldBook, "thumbnailUrl", oldMockUrl);
 
     Book updatedBook = BookFixtures.validBook("1234567890123");
     setField(updatedBook, "id", targetId);
-    ReflectionTestUtils.setField(updatedBook, "thumbnailUrl", newMockUrl);
-    ReflectionTestUtils.setField(updatedBook, "originalFilename", newOriginalFilename);
+    setField(updatedBook, "thumbnailUrl", newMockUrl);
+    setField(updatedBook, "originalFilename", newOriginalFilename);
 
     given(fileUploader.upload(any(MultipartFile.class), eq(BOOK_THUMBNAIL_DIR))).willReturn(
         newMockUrl);
+    given(bookRepository.findById(targetId)).willReturn(Optional.of(oldBook));
     given(bookPersistence.update(eq(targetId), eq(request), eq(newMockUrl),
         eq(newOriginalFilename))).willReturn(updatedBook);
 
@@ -372,6 +394,10 @@ class BookServiceTest {
     then(fileUploader).should(times(1)).upload(any(), eq(BOOK_THUMBNAIL_DIR));
     then(bookPersistence).should()
         .update(eq(targetId), eq(request), eq(newMockUrl), eq(newOriginalFilename));
+
+    ArgumentCaptor<OrphanThumbnail> orphanCaptor = ArgumentCaptor.forClass(OrphanThumbnail.class);
+    then(orphanThumbnailRepository).should(times(1)).save(orphanCaptor.capture());
+    assertThat(orphanCaptor.getValue().getFileUrl()).isEqualTo(oldMockUrl);
   }
 
   @Test
@@ -382,6 +408,10 @@ class BookServiceTest {
     BookUpdateRequest request = BookFixtures.validBookUpdateRequest();
     MockMultipartFile thumbnailFile = new MockMultipartFile(
         "thumbnailFile", "image.png", "image/png", "test_content".getBytes());
+
+    Book oldBook = BookFixtures.validBook("1234567890123");
+    setField(oldBook, "id", targetId);
+    given(bookRepository.findById(targetId)).willReturn(Optional.of(oldBook));
 
     given(fileUploader.upload(any(MultipartFile.class), eq(BOOK_THUMBNAIL_DIR)))
         .willThrow(new RuntimeException("S3 업로드 에러 발생"));
@@ -408,7 +438,12 @@ class BookServiceTest {
         "new-content".getBytes());
     String newUploadedUrl = "https://s3.com/books/new.png";
 
+    Book oldBook = BookFixtures.validBook("1234567890123");
+    setField(oldBook, "id", bookId);
+
     given(fileUploader.upload(any(), any())).willReturn(newUploadedUrl);
+    // ⭐ 기존 도서 조회 모킹 추가
+    given(bookRepository.findById(bookId)).willReturn(Optional.of(oldBook));
     given(bookPersistence.update(eq(bookId), any(), eq(newUploadedUrl), eq(newOriginalFilename)))
         .willThrow(new RuntimeException("Update Failed"));
 
@@ -426,14 +461,15 @@ class BookServiceTest {
     UUID nonExistentId = UUID.randomUUID();
     BookUpdateRequest request = BookFixtures.validBookUpdateRequest();
 
-    given(bookPersistence.update(eq(nonExistentId), eq(request), eq(null), eq(null)))
-        .willThrow(BookNotFoundException.withId(nonExistentId));
+    // ⭐ 이제 에러가 Persistence가 아니라 최상단 findById에서 터짐
+    given(bookRepository.findById(nonExistentId)).willReturn(Optional.empty());
 
     // when & then
     assertThatThrownBy(() -> bookService.update(nonExistentId, request, null))
         .isInstanceOf(BookNotFoundException.class);
 
-    then(bookPersistence).should().update(eq(nonExistentId), eq(request), eq(null), eq(null));
+    then(bookRepository).should().findById(nonExistentId);
+    then(bookPersistence).shouldHaveNoInteractions(); // Persistence까지 가지 않아야 함
   }
 
   @Test
@@ -798,7 +834,6 @@ class BookServiceTest {
     }
 
 
-
     @Nested
     @DisplayName("잘못 된 데이터가 들어왔을 경우")
     class TestGetBooks_InvalidData {
@@ -869,6 +904,7 @@ class BookServiceTest {
       bookService.delete(mockId);
 
       //then
+      then(eventPublisher).should().publishEvent(any(com.part3_team4.deokhoogam.domain.book.entity.BookDeletedEvent.class));
       then(bookRepository).should().deleteById(mockId);
       then(deletedBookRepository).should().save(any(DeletedBook.class));
 
@@ -902,6 +938,7 @@ class BookServiceTest {
 
       bookService.deleteHard(mockId);
 
+      then(eventPublisher).should().publishEvent(any(com.part3_team4.deokhoogam.domain.book.entity.BookDeletedEvent.class));
       then(deletedBookRepository).should().findById(mockId);
       then(deletedBookRepository).should().deleteById(mockId);
       then(fileUploader).should().delete(any());

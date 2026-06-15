@@ -54,6 +54,18 @@ CREATE TABLE deleted_book
     deleted_at        TIMESTAMPTZ   NOT NULL
 );
 
+-- 썸네일 고아파일
+CREATE TABLE orphan_thumbnail
+(
+    id         UUID PRIMARY KEY,
+    created_at TIMESTAMPTZ  NOT NULL,
+    updated_at TIMESTAMPTZ,
+    file_url   VARCHAR(512) NOT NULL
+);
+
+-- 배치 조회
+CREATE INDEX idx_orphan_thumbnail_created_at ON orphan_thumbnail (created_at);
+
 -- User
 CREATE TABLE "user"
 (

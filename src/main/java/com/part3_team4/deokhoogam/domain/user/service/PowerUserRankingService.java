@@ -7,7 +7,6 @@ import com.part3_team4.deokhoogam.domain.user.entity.PowerUserRanking;
 import com.part3_team4.deokhoogam.domain.user.enums.PowerUserPeriod;
 import com.part3_team4.deokhoogam.domain.user.repository.PowerUserRankingRepository;
 import java.math.BigDecimal;
-import java.time.Duration;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
@@ -20,9 +19,15 @@ import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.redis.core.Cursor;
+import org.springframework.data.redis.core.ScanOptions;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.TransactionSynchronization;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
 
 
 @Service
@@ -41,9 +46,8 @@ public class PowerUserRankingService {
 
   public record UserScore(UUID userId, BigDecimal score) {}
 
-  public List<PowerUserRankingResponseDto> getRankingWithNickname(PowerUserPeriod period) {
-
-    String key = "ranking:user:" + period;
+  public List<PowerUserRankingResponseDto> getRankingWithNickname(PowerUserPeriod period, int limit) {
+    String key = "ranking:user:" + period + ":" + limit;
 
     // 캐시 조회
     if (cacheEnabled) {
@@ -52,8 +56,8 @@ public class PowerUserRankingService {
         if (cached != null) {
           log.debug("파워유저 랭킹 캐시 히트: key={}", key);
           return redisObjectMapper.readValue(
-              cached, new TypeReference<>() {
-              });
+              cached, new TypeReference<>() {}
+          );
         }
         log.debug("파워유저 랭킹 캐시 미스: key={}", key);
       } catch (Exception e) {
@@ -61,10 +65,9 @@ public class PowerUserRankingService {
       }
     }
 
-
-
-
-    List<PowerUserRanking> rankings = powerUserRankingRepository.findByPeriodOrderByRankingAsc(period);
+    // PageRequest를 생성하여 최대 limit 개수만큼만 가져오도록 설정
+    Pageable pageable = PageRequest.of(0, limit);
+    List<PowerUserRanking> rankings = powerUserRankingRepository.findByPeriodOrderByRankingAsc(period, pageable);
 
     if (rankings.isEmpty()) {
       return List.of();
@@ -81,15 +84,17 @@ public class PowerUserRankingService {
     List<PowerUserRankingResponseDto> result = rankings.stream().map(ranking -> {
       String nickname = nicknameMap.getOrDefault(ranking.getUserId(), "알수없음");
       double flooredScore = Math.floor(ranking.getScore().doubleValue());
+
       return new PowerUserRankingResponseDto(
-          ranking.getUserId(), nickname, ranking.getRanking(), flooredScore);
+          ranking.getUserId(), nickname, ranking.getRanking(), flooredScore
+      );
     }).collect(Collectors.toList());
 
     // 캐시 저장
     if (cacheEnabled) {
       try {
         redisTemplate.opsForValue().set(
-            key, redisObjectMapper.writeValueAsString(result), Duration.ofHours(2));
+            key, redisObjectMapper.writeValueAsString(result), java.time.Duration.ofHours(2));
       } catch (Exception e) {
         log.warn("파워유저 랭킹 캐시 저장 실패: key={}", key, e);
       }
@@ -107,11 +112,31 @@ public class PowerUserRankingService {
     calculateAndSaveForPeriod(PowerUserPeriod.MONTHLY, now.minus(30, ChronoUnit.DAYS), now);
     calculateAndSaveForPeriod(PowerUserPeriod.ALL_TIME, Instant.EPOCH, now);
 
-    try {
-      for (PowerUserPeriod period : PowerUserPeriod.values()) {
-        redisTemplate.delete("ranking:user:" + period);
-      }
-    } catch (Exception e) { }
+    if (TransactionSynchronizationManager.isSynchronizationActive()) {
+      TransactionSynchronizationManager.registerSynchronization(
+          new TransactionSynchronization() {
+            @Override
+            public void afterCommit() {
+              for (PowerUserPeriod period : PowerUserPeriod.values()) {
+                try {
+                  String pattern = "ranking:user:" + period + ":*";
+                  ScanOptions options = ScanOptions.scanOptions().match(pattern).count(100).build();
+                  List<String> keysToDelete = new ArrayList<>();
+                  try (Cursor<String> cursor = redisTemplate.scan(options)) {
+                    cursor.forEachRemaining(keysToDelete::add);
+                  }
+                  if (!keysToDelete.isEmpty()) {
+                    redisTemplate.delete(keysToDelete);
+                  }
+                } catch (Exception e) {
+                  log.warn("Redis 캐시 삭제 실패 (파워유저): period={}", period, e);
+                }
+              }
+            }
+          }
+      );
+    }
+
   }
 
   private void calculateAndSaveForPeriod(PowerUserPeriod period, Instant startDate, Instant endDate) {

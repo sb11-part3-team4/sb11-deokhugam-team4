@@ -7,7 +7,9 @@ import com.part3_team4.deokhoogam.domain.book.dto.BookGetListRequest;
 import com.part3_team4.deokhoogam.domain.book.dto.BookUpdateRequest;
 import com.part3_team4.deokhoogam.domain.book.dto.NaverBookDto;
 import com.part3_team4.deokhoogam.domain.book.entity.Book;
+import com.part3_team4.deokhoogam.domain.book.entity.BookDeletedEvent;
 import com.part3_team4.deokhoogam.domain.book.entity.DeletedBook;
+import com.part3_team4.deokhoogam.domain.book.entity.OrphanThumbnail;
 import com.part3_team4.deokhoogam.domain.book.entity.SortType;
 import com.part3_team4.deokhoogam.domain.book.exception.BookNotFoundException;
 import com.part3_team4.deokhoogam.domain.book.exception.InvalidIsbnException;
@@ -16,6 +18,7 @@ import com.part3_team4.deokhoogam.domain.book.infrastructure.naver.NaverApiServi
 import com.part3_team4.deokhoogam.domain.book.repository.BookPersistence;
 import com.part3_team4.deokhoogam.domain.book.repository.BookRepository;
 import com.part3_team4.deokhoogam.domain.book.repository.DeletedBookRepository;
+import com.part3_team4.deokhoogam.domain.book.repository.OrphanThumbnailRepository;
 import com.part3_team4.deokhoogam.global.common.PageResponse;
 import com.part3_team4.deokhoogam.global.exception.ErrorCode;
 import com.part3_team4.deokhoogam.global.exception.InvalidRequestException;
@@ -27,6 +30,7 @@ import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.hibernate.exception.ConstraintViolationException;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.data.domain.Slice;
 import org.springframework.stereotype.Service;
@@ -43,12 +47,15 @@ public class BookServiceImpl implements BookService {
 
   private final BookRepository bookRepository;
   private final DeletedBookRepository deletedBookRepository;
+  private final OrphanThumbnailRepository orphanThumbnailRepository;
 
   private final FileUploader fileUploader;
 
   private final NaverApiService naverApiService;
 
   private final BookPersistence bookPersistence;
+
+  private final ApplicationEventPublisher eventPublisher;
 
   @Override
   public BookDto create(BookCreateRequest request, MultipartFile thumbnailFile) {
@@ -95,12 +102,21 @@ public class BookServiceImpl implements BookService {
 
   @Override
   public BookDto update(UUID id, BookUpdateRequest request, MultipartFile thumbnailFile) {
+    Book oldBook = bookRepository.findById(id).orElseThrow(() -> BookNotFoundException.withId(id));
+    String oldThumbnailUrl = oldBook.getThumbnailUrl();
+
     String newThumbnailUrl = uploadThumbnail(thumbnailFile);
     String originalFilename = extractOriginalFilename(thumbnailFile);
 
     try {
-      // TODO: 기존 썸네일 삭제 정책은 추후 Reconciliation를 도입하여 고도화 예정
       Book updatedBook = bookPersistence.update(id, request, newThumbnailUrl, originalFilename);
+
+      if (newThumbnailUrl != null && oldThumbnailUrl != null
+          && !oldThumbnailUrl.equals(newThumbnailUrl)) {
+        orphanThumbnailRepository.save(new OrphanThumbnail(oldThumbnailUrl));
+        log.info("고아 썸네일 등록: {}", oldThumbnailUrl);
+      }
+
       log.info("도서 수정 완료: bookId={}", id);
       return BookDto.from(updatedBook);
 
@@ -210,6 +226,9 @@ public class BookServiceImpl implements BookService {
     Book book = bookRepository.findById(bookId)
         .orElseThrow(() -> BookNotFoundException.withId(bookId));
 
+    //삭제 전 이벤트 발행
+    eventPublisher.publishEvent(new BookDeletedEvent(bookId, false));
+
     //삭제
     bookRepository.deleteById(bookId);
 
@@ -231,6 +250,9 @@ public class BookServiceImpl implements BookService {
     //S3 삭제 및 URL 가져오기
     DeletedBook deletedBook = deletedBookRepository.findById(bookId)
         .orElseThrow(() -> BookNotFoundException.withId(bookId));
+
+    //물리 삭제 전 이벤트 발행
+    eventPublisher.publishEvent(new BookDeletedEvent(bookId, true));
 
     deletedBookRepository.deleteById(bookId);
 

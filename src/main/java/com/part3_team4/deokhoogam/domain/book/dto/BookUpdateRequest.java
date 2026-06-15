@@ -1,6 +1,7 @@
 package com.part3_team4.deokhoogam.domain.book.dto;
 
 import com.fasterxml.jackson.annotation.JsonFormat;
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import java.time.LocalDate;
@@ -8,6 +9,7 @@ import lombok.Builder;
 import org.hibernate.validator.constraints.Length;
 
 @Builder(toBuilder = true)
+@JsonIgnoreProperties(ignoreUnknown = true)
 public record BookUpdateRequest(
 
     @NotBlank(message = "제목은 필수입니다")
