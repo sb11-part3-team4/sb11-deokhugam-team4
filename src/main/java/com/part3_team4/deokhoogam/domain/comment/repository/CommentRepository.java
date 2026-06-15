@@ -61,4 +61,10 @@ public interface CommentRepository extends JpaRepository<Comment, UUID> {
 
     @Query("SELECT COUNT(c) FROM Comment c WHERE c.user.id = :userId")
     long countByUserId(@Param("userId") UUID userId);
+
+    // 이벤트 리스너용 다건 조회 메서드 추가
+    @Query("SELECT c FROM Comment c WHERE c.user.id = :userId")
+    List<Comment> findAllByUserId(@Param("userId") UUID userId);
+    @Query("SELECT c FROM Comment c WHERE c.review.id = :reviewId")
+    List<Comment> findAllByReviewId(@Param("reviewId") UUID reviewId);
 }

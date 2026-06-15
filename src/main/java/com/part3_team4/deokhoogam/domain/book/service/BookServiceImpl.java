@@ -7,6 +7,7 @@ import com.part3_team4.deokhoogam.domain.book.dto.BookGetListRequest;
 import com.part3_team4.deokhoogam.domain.book.dto.BookUpdateRequest;
 import com.part3_team4.deokhoogam.domain.book.dto.NaverBookDto;
 import com.part3_team4.deokhoogam.domain.book.entity.Book;
+import com.part3_team4.deokhoogam.domain.book.entity.BookDeletedEvent;
 import com.part3_team4.deokhoogam.domain.book.entity.DeletedBook;
 import com.part3_team4.deokhoogam.domain.book.entity.OrphanThumbnail;
 import com.part3_team4.deokhoogam.domain.book.entity.SortType;
@@ -29,6 +30,7 @@ import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.hibernate.exception.ConstraintViolationException;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.data.domain.Slice;
 import org.springframework.stereotype.Service;
@@ -52,6 +54,8 @@ public class BookServiceImpl implements BookService {
   private final NaverApiService naverApiService;
 
   private final BookPersistence bookPersistence;
+
+  private final ApplicationEventPublisher eventPublisher;
 
   @Override
   public BookDto create(BookCreateRequest request, MultipartFile thumbnailFile) {
@@ -222,6 +226,9 @@ public class BookServiceImpl implements BookService {
     Book book = bookRepository.findById(bookId)
         .orElseThrow(() -> BookNotFoundException.withId(bookId));
 
+    //삭제 전 이벤트 발행
+    eventPublisher.publishEvent(new BookDeletedEvent(bookId, false));
+
     //삭제
     bookRepository.deleteById(bookId);
 
@@ -243,6 +250,9 @@ public class BookServiceImpl implements BookService {
     //S3 삭제 및 URL 가져오기
     DeletedBook deletedBook = deletedBookRepository.findById(bookId)
         .orElseThrow(() -> BookNotFoundException.withId(bookId));
+
+    //물리 삭제 전 이벤트 발행
+    eventPublisher.publishEvent(new BookDeletedEvent(bookId, true));
 
     deletedBookRepository.deleteById(bookId);
 
