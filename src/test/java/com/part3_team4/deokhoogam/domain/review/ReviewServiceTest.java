@@ -345,7 +345,7 @@ public class ReviewServiceTest {
     assertThat(response.liked()).isTrue();
     assertThat(response.likeCount()).isEqualTo(1);
 
-    then(reviewLikeRepository).should().save(any());
+    then(reviewLikeRepository).should().saveAndFlush(any());
     then(reviewRepository).should().incrementLikeCount(review.getId());
   }
 
@@ -360,8 +360,8 @@ public class ReviewServiceTest {
     given(reviewRepository.findById(review.getId())).willReturn(Optional.of(review));
     given(reviewLikeRepository.existsByReviewIdAndUserId(review.getId(), userId)).willReturn(false);
     given(userRepository.findById(userId)).willReturn(Optional.of(actor));
-    given(reviewLikeRepository.save(any()))
-            .willThrow(new DataIntegrityViolationException("idx_review_like_user_review_unique"));
+    given(reviewLikeRepository.saveAndFlush(any()))
+        .willThrow(new DataIntegrityViolationException("idx_review_like_user_review_unique"));
 
     assertThatThrownBy(() -> reviewService.toggleLike(review.getId(), userId))
             .isInstanceOf(ReviewLikeAlreadyExistsException.class);

@@ -1,6 +1,7 @@
 package com.part3_team4.deokhoogam.domain.user.service;
 
 import com.part3_team4.deokhoogam.domain.user.entity.DeletedUser;
+import com.part3_team4.deokhoogam.domain.user.entity.UserDeletedEvent;
 import com.part3_team4.deokhoogam.domain.user.exception.BatchInfiniteLoopException;
 import com.part3_team4.deokhoogam.domain.user.repository.DeletedUserRepository;
 import java.time.Clock;
@@ -9,6 +10,7 @@ import java.time.temporal.ChronoUnit;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
@@ -20,13 +22,15 @@ import org.springframework.transaction.annotation.Transactional;
 public class DeletedUserAutoDeleteService {
   private final DeletedUserRepository deletedUserRepository;
   private final Clock clock;
+  private final ApplicationEventPublisher eventPublisher;
 
   @Transactional
   public void deleteExpiredUsers() {
     long startTime = System.currentTimeMillis();
-    Instant oneDayAgo = Instant.now(clock).minus(1, ChronoUnit.DAYS);
 
-    log.info("유저 물리 삭제 배치 작업 시작. 기준 시각: {}", oneDayAgo);
+    Instant sevenDayAgo = Instant.now(clock).minus(7, ChronoUnit.DAYS);
+
+    log.info("유저 물리 삭제 배치 작업 시작. 기준 시각: {}", sevenDayAgo);
 
     int pageSize = 100;
     long totalDeletedCount = 0;
@@ -34,7 +38,7 @@ public class DeletedUserAutoDeleteService {
     try {
       while (true) {
         Pageable pageable = PageRequest.of(0, pageSize);
-        List<DeletedUser> oldUsers = deletedUserRepository.findByDeletedAtBefore(oneDayAgo, pageable);
+        List<DeletedUser> oldUsers = deletedUserRepository.findByDeletedAtBefore(sevenDayAgo, pageable);
 
         if (oldUsers.isEmpty()) {
           break;
@@ -44,6 +48,9 @@ public class DeletedUserAutoDeleteService {
 
         for (DeletedUser oldUser : oldUsers) {
           try {
+            //삭제 전에 물리 이벤트를 먼저 발행
+            eventPublisher.publishEvent(new UserDeletedEvent(oldUser.getId(), true));
+
             deletedUserRepository.delete(oldUser);
             totalDeletedCount++;
             deletedInThisRound++;
