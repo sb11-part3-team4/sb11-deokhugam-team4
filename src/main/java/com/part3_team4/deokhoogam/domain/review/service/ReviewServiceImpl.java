@@ -2,6 +2,7 @@ package com.part3_team4.deokhoogam.domain.review.service;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.part3_team4.deokhoogam.domain.review.exception.ReviewLikeAlreadyExistsException;
 import com.part3_team4.deokhoogam.domain.book.entity.Book;
 import com.part3_team4.deokhoogam.domain.book.exception.BookNotFoundException;
 import com.part3_team4.deokhoogam.domain.book.repository.BookRepository;
@@ -19,10 +20,7 @@ import com.part3_team4.deokhoogam.domain.review.entity.PopularReview;
 import com.part3_team4.deokhoogam.domain.review.entity.Review;
 import com.part3_team4.deokhoogam.domain.review.entity.ReviewDeletedEvent;
 import com.part3_team4.deokhoogam.domain.review.entity.ReviewLike;
-import com.part3_team4.deokhoogam.domain.review.exception.InvalidReviewException;
-import com.part3_team4.deokhoogam.domain.review.exception.ReviewAlreadyExistsException;
-import com.part3_team4.deokhoogam.domain.review.exception.ReviewNotFoundException;
-import com.part3_team4.deokhoogam.domain.review.exception.ReviewNotOwnerException;
+import com.part3_team4.deokhoogam.domain.review.exception.*;
 import com.part3_team4.deokhoogam.domain.review.repository.DeletedReviewRepository;
 import com.part3_team4.deokhoogam.domain.review.repository.PopularReviewRepository;
 import com.part3_team4.deokhoogam.domain.review.repository.ReviewLikeRepository;
@@ -234,6 +232,15 @@ public class ReviewServiceImpl implements ReviewService {
 
       reviewLikeRepository.saveAndFlush(ReviewLike.create(reviewId, userId));
       reviewRepository.incrementLikeCount(reviewId);
+      try {
+        reviewLikeRepository.saveAndFlush(ReviewLike.create(reviewId, userId));
+      } catch (DataIntegrityViolationException e) {
+        if (e.getMessage() != null && e.getMessage().contains("idx_review_like_user_review_unique")) {
+          throw ReviewLikeAlreadyExistsException.withReviewIdAndUserId(reviewId, userId);
+        }
+        throw e;
+      }
+      reviewRepository.incrementLikeCount(reviewId); // DB 원자적 증가
 
       notificationService.createLikeNotification(
           review.getUserId(), reviewId, review.getContent(), actor.getName(), userId);

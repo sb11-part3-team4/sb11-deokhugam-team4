@@ -109,7 +109,8 @@ CREATE TABLE review
 CREATE UNIQUE INDEX idx_review_user_book_unique ON review (user_id, book_id);
 
 -- 정렬
-CREATE INDEX idx_review_book_created ON review (book_id, created_at DESC);
+CREATE INDEX idx_review_cursor_created_at ON review (book_id, created_at DESC, id DESC);
+CREATE INDEX idx_review_cursor_rating ON review (book_id, rating DESC, created_at DESC, id DESC);
 
 -- DeletedReview
 CREATE TABLE deleted_review
