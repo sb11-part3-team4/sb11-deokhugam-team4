@@ -519,6 +519,4 @@ public class NotificationServiceImpl implements NotificationService {
         hasNext
     );
   }
-
-
 }
