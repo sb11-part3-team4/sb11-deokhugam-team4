@@ -22,9 +22,14 @@ public interface ReviewRepository extends JpaRepository<Review, UUID> {
 
   @Query("""
       SELECT r FROM Review r
+      JOIN User u ON u.id = r.userId
+      JOIN Book b ON b.id = r.bookId
       WHERE (:userId IS NULL OR r.userId = :userId)
       AND (:bookId IS NULL OR r.bookId = :bookId)
-      AND (:keyword IS NULL OR r.content LIKE CONCAT('%', CAST(:keyword AS String), '%'))
+      AND (:keyword IS NULL
+           OR r.content LIKE CONCAT('%', CAST(:keyword AS String), '%')
+           OR u.name LIKE CONCAT('%', CAST(:keyword AS String), '%')
+           OR b.title LIKE CONCAT('%', CAST(:keyword AS String), '%'))
       """)
   List<Review> findReviews(
       @Param("userId") UUID userId,
@@ -79,9 +84,14 @@ public interface ReviewRepository extends JpaRepository<Review, UUID> {
 
     @Query("""
       SELECT r FROM Review r
+      JOIN User u ON u.id = r.userId
+      JOIN Book b ON b.id = r.bookId
       WHERE (:userId IS NULL OR r.userId = :userId)
       AND (:bookId IS NULL OR r.bookId = :bookId)
-      AND (:keyword IS NULL OR r.content LIKE CONCAT('%', CAST(:keyword AS String), '%'))
+      AND (:keyword IS NULL 
+            OR r.content LIKE CONCAT('%', CAST(:keyword AS String), '%')
+            OR u.name LIKE CONCAT('%', CAST(:keyword AS String), '%')
+            OR b.title LIKE CONCAT('%', CAST(:keyword AS String), '%'))
       AND (r.createdAt < :cursor OR (r.createdAt = :cursor AND r.id < :after))
       """)
     List<Review> findReviewsWithCursorCreatedAtDesc(
@@ -89,38 +99,53 @@ public interface ReviewRepository extends JpaRepository<Review, UUID> {
             @Param("keyword") String keyword, @Param("cursor") Instant cursor,
             @Param("after") UUID after, Pageable pageable);
 
-    @Query("""
+  @Query("""
       SELECT r FROM Review r
+      JOIN User u ON u.id = r.userId
+      JOIN Book b ON b.id = r.bookId
       WHERE (:userId IS NULL OR r.userId = :userId)
       AND (:bookId IS NULL OR r.bookId = :bookId)
-      AND (:keyword IS NULL OR r.content LIKE CONCAT('%', CAST(:keyword AS String), '%'))
+      AND (:keyword IS NULL
+           OR r.content LIKE CONCAT('%', CAST(:keyword AS String), '%')
+           OR u.name LIKE CONCAT('%', CAST(:keyword AS String), '%')
+           OR b.title LIKE CONCAT('%', CAST(:keyword AS String), '%'))
       AND (r.createdAt > :cursor OR (r.createdAt = :cursor AND r.id > :after))
       """)
-    List<Review> findReviewsWithCursorCreatedAtAsc(
+  List<Review> findReviewsWithCursorCreatedAtAsc(
             @Param("userId") UUID userId, @Param("bookId") UUID bookId,
             @Param("keyword") String keyword, @Param("cursor") Instant cursor,
             @Param("after") UUID after, Pageable pageable);
 
-    @Query("""
+  @Query("""
       SELECT r FROM Review r
+      JOIN User u ON u.id = r.userId
+      JOIN Book b ON b.id = r.bookId
       WHERE (:userId IS NULL OR r.userId = :userId)
       AND (:bookId IS NULL OR r.bookId = :bookId)
-      AND (:keyword IS NULL OR r.content LIKE CONCAT('%', CAST(:keyword AS String), '%'))
+      AND (:keyword IS NULL
+           OR r.content LIKE CONCAT('%', CAST(:keyword AS String), '%')
+           OR u.name LIKE CONCAT('%', CAST(:keyword AS String), '%')
+           OR b.title LIKE CONCAT('%', CAST(:keyword AS String), '%'))
       AND (r.rating < :cursor OR (r.rating = :cursor AND r.id < :after))
       """)
-    List<Review> findReviewsWithCursorRatingDesc(
+  List<Review> findReviewsWithCursorRatingDesc(
             @Param("userId") UUID userId, @Param("bookId") UUID bookId,
             @Param("keyword") String keyword, @Param("cursor") BigDecimal cursor,
             @Param("after") UUID after, Pageable pageable);
 
-    @Query("""
+  @Query("""
       SELECT r FROM Review r
+      JOIN User u ON u.id = r.userId
+      JOIN Book b ON b.id = r.bookId
       WHERE (:userId IS NULL OR r.userId = :userId)
       AND (:bookId IS NULL OR r.bookId = :bookId)
-      AND (:keyword IS NULL OR r.content LIKE CONCAT('%', CAST(:keyword AS String), '%'))
+      AND (:keyword IS NULL
+           OR r.content LIKE CONCAT('%', CAST(:keyword AS String), '%')
+           OR u.name LIKE CONCAT('%', CAST(:keyword AS String), '%')
+           OR b.title LIKE CONCAT('%', CAST(:keyword AS String), '%'))
       AND (r.rating > :cursor OR (r.rating = :cursor AND r.id > :after))
       """)
-    List<Review> findReviewsWithCursorRatingAsc(
+  List<Review> findReviewsWithCursorRatingAsc(
             @Param("userId") UUID userId, @Param("bookId") UUID bookId,
             @Param("keyword") String keyword, @Param("cursor") BigDecimal cursor,
             @Param("after") UUID after, Pageable pageable);
