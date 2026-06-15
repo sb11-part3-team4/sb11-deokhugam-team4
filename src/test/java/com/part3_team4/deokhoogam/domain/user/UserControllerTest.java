@@ -1,6 +1,7 @@
 package com.part3_team4.deokhoogam.domain.user;
 
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.BDDMockito.then;
 import static org.mockito.BDDMockito.willThrow;
@@ -20,6 +21,7 @@ import com.part3_team4.deokhoogam.domain.user.dto.UserLoginRequestDto;
 import com.part3_team4.deokhoogam.domain.user.dto.UserLoginResultDto;
 import com.part3_team4.deokhoogam.domain.user.dto.UserUpdateRequestDto;
 import com.part3_team4.deokhoogam.domain.user.dto.response.UserResponse;
+import com.part3_team4.deokhoogam.domain.user.enums.PowerUserPeriod;
 import com.part3_team4.deokhoogam.domain.user.exception.PasswordMismatchException;
 import com.part3_team4.deokhoogam.domain.user.exception.UserNotFoundException;
 import com.part3_team4.deokhoogam.domain.user.service.PowerUserRankingService;
@@ -209,7 +211,7 @@ public class UserControllerTest {
         "test@deokhugam.com", "password123!");
 
     UserLoginResultDto mockResult = new UserLoginResultDto(
-        "", UUID.randomUUID(), "test@deokhugam.com", "testUser", java.time.Instant.now());
+        UUID.randomUUID(), "test@deokhugam.com", "testUser", java.time.Instant.now());
 
     given(userService.login(request.email(), request.password()))
         .willReturn(mockResult);
@@ -237,9 +239,8 @@ public class UserControllerTest {
   @Test
   @DisplayName("파워 유저 조회 성공 - 200 반환")
   void getPowerUsers_success() throws Exception {
-    given(powerUserRankingService.getDailyRankingWithNickname()).willReturn(List.of());
-
-    mockMvc.perform(get("/api/users/power"))
+    given(powerUserRankingService.getRankingWithNickname(any(PowerUserPeriod.class), anyInt())).willReturn(List.of());
+    mockMvc.perform(get("/api/users/power?period=DAILY"))
         .andExpect(status().isOk())
         .andExpect(jsonPath("$.content").isArray())
         .andExpect(jsonPath("$.content").isEmpty());

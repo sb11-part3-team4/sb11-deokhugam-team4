@@ -38,6 +38,8 @@ public class NaverApiService {
   public NaverBookDto getBookInfoByIsbn(String isbn) {
     String url = "https://openapi.naver.com/v1/search/book_adv.json?d_isbn={isbn}";
 
+    log.info("네이버 API 책 검색 요청: isbn={}", isbn);
+
     try {
       //Dto로 가져와서
       NaverApiResponse response = restClient.get()
@@ -51,9 +53,11 @@ public class NaverApiService {
       if (response != null && response.items() != null && !response.items().isEmpty()) {
         NaverBookDto bookDto = response.items().get(0);
         bookDto.setThumbnailImage(convertImageToBase64(bookDto.getThumbnailImage()));
+        log.info("네이버 API 책 검색 성공: isbn={}", isbn);
         return bookDto;
       }
-
+      
+      log.info("네이버 API 책 검색 결과 없음: isbn={}", isbn);
       return null;
 
     } catch (Exception e) {

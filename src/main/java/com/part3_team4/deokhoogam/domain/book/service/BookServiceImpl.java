@@ -7,7 +7,9 @@ import com.part3_team4.deokhoogam.domain.book.dto.BookGetListRequest;
 import com.part3_team4.deokhoogam.domain.book.dto.BookUpdateRequest;
 import com.part3_team4.deokhoogam.domain.book.dto.NaverBookDto;
 import com.part3_team4.deokhoogam.domain.book.entity.Book;
+import com.part3_team4.deokhoogam.domain.book.entity.BookDeletedEvent;
 import com.part3_team4.deokhoogam.domain.book.entity.DeletedBook;
+import com.part3_team4.deokhoogam.domain.book.entity.SortType;
 import com.part3_team4.deokhoogam.domain.book.exception.BookNotFoundException;
 import com.part3_team4.deokhoogam.domain.book.exception.InvalidIsbnException;
 import com.part3_team4.deokhoogam.domain.book.exception.IsbnAlreadyExistsException;
@@ -26,6 +28,7 @@ import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.hibernate.exception.ConstraintViolationException;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.data.domain.Slice;
 import org.springframework.stereotype.Service;
@@ -49,6 +52,8 @@ public class BookServiceImpl implements BookService {
 
   private final BookPersistence bookPersistence;
 
+  private final ApplicationEventPublisher eventPublisher;
+
   @Override
   public BookDto create(BookCreateRequest request, MultipartFile thumbnailFile) {
     validateDuplicateIsbn(request.isbn());
@@ -68,10 +73,13 @@ public class BookServiceImpl implements BookService {
           .originalFilename(originalFilename)
           .build();
 
-      return BookDto.from(bookPersistence.save(book));
+      Book saved = bookPersistence.save(book);
+      log.info("도서 등록 완료: bookId={}, isbn={}", saved.getId(), saved.getIsbn());
+      return BookDto.from(saved);
 
     } catch (DataIntegrityViolationException e) {
       if (thumbnailUrl != null) {
+        log.warn("도서 등록 실패로 업로드된 썸네일 롤백: url={}", thumbnailUrl);
         fileUploader.delete(thumbnailUrl);
       }
 
@@ -82,6 +90,7 @@ public class BookServiceImpl implements BookService {
 
     } catch (Exception e) {
       if (thumbnailUrl != null) {
+        log.warn("도서 등록 중 예외 발생으로 업로드된 썸네일 롤백: url={}", thumbnailUrl);
         fileUploader.delete(thumbnailUrl);
       }
       throw e;
@@ -96,10 +105,12 @@ public class BookServiceImpl implements BookService {
     try {
       // TODO: 기존 썸네일 삭제 정책은 추후 Reconciliation를 도입하여 고도화 예정
       Book updatedBook = bookPersistence.update(id, request, newThumbnailUrl, originalFilename);
+      log.info("도서 수정 완료: bookId={}", id);
       return BookDto.from(updatedBook);
 
     } catch (Exception e) {
       if (newThumbnailUrl != null) {
+        log.warn("도서 수정 실패로 업로드된 썸네일 롤백: bookId={}, url={}", id, newThumbnailUrl);
         fileUploader.delete(newThumbnailUrl);
       }
       throw e;
@@ -158,7 +169,7 @@ public class BookServiceImpl implements BookService {
 
     return new PageResponse<>(
         dtoList,
-        generateNextCursor(books),
+        generateNextCursor(books, request.orderBy()),
         books.hasNext() && !books.getContent().isEmpty()
             ? books.getContent().get(books.getContent().size() - 1).getCreatedAt().toString()
             : null,
@@ -169,7 +180,7 @@ public class BookServiceImpl implements BookService {
   }
 
   //다음 커서 만들기
-  private String generateNextCursor(Slice<Book> books) {
+  private String generateNextCursor(Slice<Book> books, SortType sortType) {
     if (!books.hasNext() || books.getContent().isEmpty()) {
       return null; // 다음 페이지가 없으면 null 반환
     }
@@ -177,9 +188,17 @@ public class BookServiceImpl implements BookService {
     // 현재 슬라이스의 마지막 데이터 추출
     Book lastBook = books.getContent().get(books.getContent().size() - 1);
 
+    //커서 메인 값 정하기
+    String mainValue = switch (sortType) {
+      case TITLE -> lastBook.getTitle();
+      case RATING -> lastBook.getRating().toString();
+      case PUBLISHED_DATE -> lastBook.getPublishedDate().toString();
+      case REVIEW_COUNT -> String.valueOf(lastBook.getReviewCount());
+    };
+
     // 마지막 데이터의 값으로 다음 커서 객체 생성
     BookCursor newCursorObj = new BookCursor(
-        lastBook.getTitle(),
+        mainValue,
         lastBook.getId(),
         lastBook.getCreatedAt()
     );
@@ -195,6 +214,9 @@ public class BookServiceImpl implements BookService {
     Book book = bookRepository.findById(bookId)
         .orElseThrow(() -> BookNotFoundException.withId(bookId));
 
+    //삭제 전 이벤트 발행
+    eventPublisher.publishEvent(new BookDeletedEvent(bookId, false));
+
     //삭제
     bookRepository.deleteById(bookId);
 
@@ -204,6 +226,8 @@ public class BookServiceImpl implements BookService {
     //저장
 
     deletedBookRepository.save(deletedBook);
+
+    log.info("도서 논리 삭제 완료: bookId={}", bookId);
 
   }
 
@@ -215,11 +239,15 @@ public class BookServiceImpl implements BookService {
     DeletedBook deletedBook = deletedBookRepository.findById(bookId)
         .orElseThrow(() -> BookNotFoundException.withId(bookId));
 
+    //물리 삭제 전 이벤트 발행
+    eventPublisher.publishEvent(new BookDeletedEvent(bookId, true));
+
     deletedBookRepository.deleteById(bookId);
 
     fileUploader.delete(deletedBook.getThumbnailUrl());
 
     //고아 파일 처리는 하위 도메인의 배치 연산으로 정리
+    log.info("도서 물리 삭제 완료: bookId={}, thumbnailUrl={}", bookId, deletedBook.getThumbnailUrl());
   }
 
 

@@ -4,6 +4,7 @@ package com.part3_team4.deokhoogam.batch.bookRanking;
 import com.part3_team4.deokhoogam.batch.listener.BatchJobMetricListener;
 import com.part3_team4.deokhoogam.domain.book.entity.PeriodType;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.batch.core.Job;
 import org.springframework.batch.core.Step;
 import org.springframework.batch.core.job.builder.JobBuilder;
@@ -15,6 +16,7 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.transaction.PlatformTransactionManager;
 
+@Slf4j
 @Configuration
 @RequiredArgsConstructor
 public class RankingBatchConfig {
@@ -45,9 +47,11 @@ public class RankingBatchConfig {
   @Bean
   public Tasklet rankingTasklet() {
     return (contribution, chunkContext) -> {
+      log.info("인기 도서 랭킹 산출 시작");
       for (PeriodType period : PeriodType.values()) {
         rankingCalculator.calculateAndSave(period);
       }
+      log.info("인기 도서 랭킹 산출 종료");
       return RepeatStatus.FINISHED;
     };
   }

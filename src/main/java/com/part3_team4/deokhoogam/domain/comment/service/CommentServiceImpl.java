@@ -5,11 +5,14 @@ import com.part3_team4.deokhoogam.domain.comment.entity.Comment;
 import com.part3_team4.deokhoogam.domain.comment.entity.DeletedComment;
 import com.part3_team4.deokhoogam.domain.comment.exception.CommentNotFoundException;
 import com.part3_team4.deokhoogam.domain.comment.exception.CommentNotOwnerException;
+import com.part3_team4.deokhoogam.global.exception.ErrorCode;
+import com.part3_team4.deokhoogam.global.exception.InvalidRequestException;
 import com.part3_team4.deokhoogam.domain.comment.repository.CommentRepository;
 import com.part3_team4.deokhoogam.domain.comment.repository.DeletedCommentRepository;
 import com.part3_team4.deokhoogam.domain.review.entity.Review;
 import com.part3_team4.deokhoogam.domain.review.exception.ReviewNotFoundException;
 import com.part3_team4.deokhoogam.domain.review.repository.ReviewRepository;
+import com.part3_team4.deokhoogam.domain.review.service.ReviewService;
 import com.part3_team4.deokhoogam.domain.user.entity.User;
 import com.part3_team4.deokhoogam.domain.notification.service.NotificationService;
 import com.part3_team4.deokhoogam.domain.user.exception.UserNotFoundException;
@@ -37,6 +40,7 @@ public class CommentServiceImpl implements CommentService {
     private final UserRepository userRepository;
     private final ReviewRepository reviewRepository;
     private final NotificationService notificationService;
+    private final ReviewService reviewService;
 
     @Override
     @Transactional
@@ -46,17 +50,15 @@ public class CommentServiceImpl implements CommentService {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> UserNotFoundException.withId(userId));
         Comment saved = commentRepository.save(Comment.create(review, user, content));
-        try {
-            notificationService.createNotification(
-                    review.getUserId(),
-                    review.getId(),
-                    review.getContent(),
-                    user.getName(),
-                    user.getId()
-            );
-        } catch (Exception e) {
-            log.warn("알림 생성 실패 - reviewId: {}, actorId: {}", review.getId(), user.getId(), e);
-        }
+        notificationService.createNotification(
+                review.getUserId(),
+                review.getId(),
+                review.getContent(),
+                user.getName(),
+                user.getId()
+        );
+        reviewService.incrementCommentCount(reviewId);
+        log.info("댓글 생성 완료 - commentId: {}, reviewId: {}, userId: {}", saved.getId(), reviewId, userId);
         return CommentDto.CommentResponse.from(saved, user.getName());
     }
 
@@ -69,6 +71,7 @@ public class CommentServiceImpl implements CommentService {
             throw CommentNotOwnerException.forUser(userId);
         }
         comment.updateContent(content);
+        log.info("댓글 수정 완료 - commentId: {}", commentId);
         return CommentDto.CommentResponse.from(comment, comment.getUser().getName());
     }
 
@@ -80,9 +83,12 @@ public class CommentServiceImpl implements CommentService {
         if (!comment.getUserId().equals(userId)) {
             throw CommentNotOwnerException.forUser(userId);
         }
+        UUID reviewId = comment.getReviewId();
         // deleted_comment 먼저 저장 후 원본 삭제 (반대 순서면 참조 무결성 문제)
         deletedCommentRepository.save(DeletedComment.from(comment));
         commentRepository.delete(comment);
+        reviewService.decrementCommentCount(reviewId);
+        log.info("댓글 삭제(soft) 완료 - commentId: {}, reviewId: {}", commentId, reviewId);
     }
 
     @Override
@@ -91,24 +97,29 @@ public class CommentServiceImpl implements CommentService {
         DeletedComment deletedComment = deletedCommentRepository.findById(commentId)
                 .orElseThrow(() -> CommentNotFoundException.withId(commentId));
         deletedCommentRepository.delete(deletedComment);
+        log.info("댓글 영구 삭제 완료 - commentId: {}", commentId);
     }
 
     @Override
-    public CommentDto.CommentsResponse getComments(UUID reviewId, String direction, Instant cursor, Instant after, int limit) {
+    public CommentDto.CommentsResponse getComments(UUID reviewId, String direction, UUID cursor, Instant after, int limit) {
         if (!reviewRepository.existsById(reviewId)) {
             throw ReviewNotFoundException.withId(reviewId);
+        }
+        // 복합 커서는 cursor와 after가 함께 제공되어야 함
+        if ((cursor == null) != (after == null)) {
+            throw new InvalidRequestException(ErrorCode.INVALID_INPUT_VALUE);
         }
         PageRequest pageable = PageRequest.of(0, limit + 1);
         boolean isAsc = "ASC".equalsIgnoreCase(direction);
         List<Comment> comments;
-        if (isAsc) {
-            comments = (after == null)
+        if (cursor == null && after == null) {
+            comments = isAsc
                     ? commentRepository.findByReviewIdOrderByCreatedAtAsc(reviewId, pageable)
-                    : commentRepository.findByReviewIdAndCreatedAtAfterOrderByCreatedAtAsc(reviewId, after, pageable);
+                    : commentRepository.findByReviewIdOrderByCreatedAtDesc(reviewId, pageable);
         } else {
-            comments = (cursor == null)
-                    ? commentRepository.findByReviewIdOrderByCreatedAtDesc(reviewId, pageable)
-                    : commentRepository.findByReviewIdAndCreatedAtBeforeOrderByCreatedAtDesc(reviewId, cursor, pageable);
+            comments = isAsc
+                    ? commentRepository.findNextPageAsc(reviewId, after, cursor, pageable)
+                    : commentRepository.findNextPageDesc(reviewId, after, cursor, pageable);
         }
 
         boolean hasNext = comments.size() > limit;
@@ -132,9 +143,9 @@ public class CommentServiceImpl implements CommentService {
         String nextCursor = null;
         Instant nextAfter = null;
         if (hasNext) {
-            Instant lastCreatedAt = pagedComments.get(size - 1).getCreatedAt();
-            nextCursor = lastCreatedAt.toString();
-            nextAfter = lastCreatedAt;
+            Comment last = pagedComments.get(size - 1);
+            nextCursor = last.getId().toString();
+            nextAfter = last.getCreatedAt();
         }
 
         return new CommentDto.CommentsResponse(content, nextCursor, nextAfter, size, totalElements, hasNext);

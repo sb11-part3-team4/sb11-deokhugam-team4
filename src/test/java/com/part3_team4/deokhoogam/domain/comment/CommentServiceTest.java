@@ -5,6 +5,7 @@ import com.part3_team4.deokhoogam.domain.comment.entity.Comment;
 import com.part3_team4.deokhoogam.domain.comment.entity.DeletedComment;
 import com.part3_team4.deokhoogam.domain.comment.exception.CommentNotFoundException;
 import com.part3_team4.deokhoogam.domain.comment.exception.CommentNotOwnerException;
+import com.part3_team4.deokhoogam.global.exception.InvalidRequestException;
 import com.part3_team4.deokhoogam.domain.comment.repository.CommentRepository;
 import com.part3_team4.deokhoogam.domain.comment.repository.DeletedCommentRepository;
 import com.part3_team4.deokhoogam.domain.comment.service.CommentServiceImpl;
@@ -12,6 +13,7 @@ import com.part3_team4.deokhoogam.domain.notification.service.NotificationServic
 import com.part3_team4.deokhoogam.domain.review.entity.Review;
 import com.part3_team4.deokhoogam.domain.review.exception.ReviewNotFoundException;
 import com.part3_team4.deokhoogam.domain.review.repository.ReviewRepository;
+import com.part3_team4.deokhoogam.domain.review.service.ReviewService;
 import com.part3_team4.deokhoogam.domain.user.entity.User;
 import com.part3_team4.deokhoogam.domain.user.exception.UserNotFoundException;
 import com.part3_team4.deokhoogam.domain.user.repository.UserRepository;
@@ -63,6 +65,9 @@ class CommentServiceTest {
     @Mock
     private NotificationService notificationService;
 
+    @Mock
+    private ReviewService reviewService;
+
     private static final UUID REVIEW_ID = UUID.randomUUID();
     private static final UUID USER_ID = UUID.randomUUID();
     private static final UUID COMMENT_ID = UUID.randomUUID();
@@ -105,8 +110,8 @@ class CommentServiceTest {
         }
 
         @Test
-        @DisplayName("알림 생성이 실패해도 댓글 등록은 성공한다")
-        void createComment_notificationFailure_commentStillCreated() {
+        @DisplayName("알림 생성이 실패하면 예외가 전파되고 트랜잭션이 롤백된다")
+        void createComment_notificationFailure_throwsAndRollsBack() {
             String content = "정말 좋은 리뷰입니다.";
             Review mockReview = mock(Review.class);
             given(mockReview.getId()).willReturn(REVIEW_ID);
@@ -118,16 +123,12 @@ class CommentServiceTest {
 
             given(reviewRepository.findById(REVIEW_ID)).willReturn(Optional.of(mockReview));
             given(userRepository.findById(USER_ID)).willReturn(Optional.of(mockUser));
-            Comment saved = Comment.create(mockReview, mockUser, content);
-            given(commentRepository.save(any(Comment.class))).willReturn(saved);
+            given(commentRepository.save(any(Comment.class))).willReturn(Comment.create(mockReview, mockUser, content));
             willThrow(new RuntimeException("알림 서버 오류"))
                     .given(notificationService).createNotification(any(), any(), any(), any(), any());
 
-            CommentDto.CommentResponse response = commentService.createComment(REVIEW_ID, USER_ID, content);
-
-            assertThat(response).isNotNull();
-            assertThat(response.content()).isEqualTo(content);
-            then(commentRepository).should().save(any(Comment.class));
+            assertThatThrownBy(() -> commentService.createComment(REVIEW_ID, USER_ID, content))
+                    .isInstanceOf(RuntimeException.class);
         }
 
         @Test
@@ -148,6 +149,49 @@ class CommentServiceTest {
 
             assertThatThrownBy(() -> commentService.createComment(REVIEW_ID, USER_ID, "내용"))
                     .isInstanceOf(UserNotFoundException.class);
+        }
+
+        @Test
+        @DisplayName("댓글 등록 성공 시 리뷰의 commentCount를 증가시킨다")
+        void createComment_success_incrementsCommentCount() {
+            String content = "정말 좋은 리뷰입니다.";
+            Review mockReview = mock(Review.class);
+            given(mockReview.getId()).willReturn(REVIEW_ID);
+            given(mockReview.getUserId()).willReturn(UUID.randomUUID());
+            given(mockReview.getContent()).willReturn("리뷰 내용");
+            User mockUser = mock(User.class);
+            given(mockUser.getId()).willReturn(USER_ID);
+            given(mockUser.getName()).willReturn("테스트유저");
+
+            given(reviewRepository.findById(REVIEW_ID)).willReturn(Optional.of(mockReview));
+            given(userRepository.findById(USER_ID)).willReturn(Optional.of(mockUser));
+            given(commentRepository.save(any(Comment.class))).willReturn(Comment.create(mockReview, mockUser, content));
+
+            commentService.createComment(REVIEW_ID, USER_ID, content);
+
+            then(reviewService).should().incrementCommentCount(REVIEW_ID);
+        }
+
+        @Test
+        @DisplayName("commentCount 증가 실패 시 예외가 전파되고 트랜잭션이 롤백된다")
+        void createComment_incrementCommentCountFails_throwsAndRollsBack() {
+            String content = "정말 좋은 리뷰입니다.";
+            Review mockReview = mock(Review.class);
+            given(mockReview.getId()).willReturn(REVIEW_ID);
+            given(mockReview.getUserId()).willReturn(UUID.randomUUID());
+            given(mockReview.getContent()).willReturn("리뷰 내용");
+            User mockUser = mock(User.class);
+            given(mockUser.getId()).willReturn(USER_ID);
+            given(mockUser.getName()).willReturn("테스트유저");
+
+            given(reviewRepository.findById(REVIEW_ID)).willReturn(Optional.of(mockReview));
+            given(userRepository.findById(USER_ID)).willReturn(Optional.of(mockUser));
+            given(commentRepository.save(any(Comment.class))).willReturn(Comment.create(mockReview, mockUser, content));
+            willThrow(new RuntimeException("카운트 업데이트 실패"))
+                    .given(reviewService).incrementCommentCount(REVIEW_ID);
+
+            assertThatThrownBy(() -> commentService.createComment(REVIEW_ID, USER_ID, content))
+                    .isInstanceOf(RuntimeException.class);
         }
     }
 
@@ -248,6 +292,22 @@ class CommentServiceTest {
             assertThatThrownBy(() -> commentService.softDeleteComment(COMMENT_ID, USER_ID))
                     .isInstanceOf(CommentNotFoundException.class);
         }
+
+        @Test
+        @DisplayName("댓글 논리 삭제 성공 시 리뷰의 commentCount를 감소시킨다")
+        void softDeleteComment_success_decrementsCommentCount() {
+            Review mockReview = mock(Review.class);
+            given(mockReview.getId()).willReturn(REVIEW_ID);
+            User mockUser = mock(User.class);
+            given(mockUser.getId()).willReturn(USER_ID);
+
+            Comment comment = Comment.create(mockReview, mockUser, "삭제할 댓글입니다.");
+            given(commentRepository.findById(COMMENT_ID)).willReturn(Optional.of(comment));
+
+            commentService.softDeleteComment(COMMENT_ID, USER_ID);
+
+            then(reviewService).should().decrementCommentCount(REVIEW_ID);
+        }
     }
 
     // ─────────────────────────────────────────────
@@ -327,7 +387,7 @@ class CommentServiceTest {
         }
 
         @Test
-        @DisplayName("조회 결과가 limit+1개이면 hasNext가 true이고 nextCursor/nextAfter가 채워진다")
+        @DisplayName("조회 결과가 limit+1개이면 hasNext가 true이고 nextCursor(댓글 id)/nextAfter(createdAt)가 채워진다")
         void getComments_moreThanLimit_hasNextTrue() {
             Instant createdAt = Instant.now().minusSeconds(5);
             // 비영속 엔티티는 @CreatedDate가 적용되지 않아 createdAt이 null이므로 mock 사용
@@ -355,7 +415,7 @@ class CommentServiceTest {
 
             assertThat(result.hasNext()).isTrue();
             assertThat(result.content()).hasSize(1);
-            assertThat(result.nextCursor()).isEqualTo(createdAt.toString());
+            assertThat(result.nextCursor()).isEqualTo(COMMENT_ID.toString());
             assertThat(result.nextAfter()).isEqualTo(createdAt);
         }
 
@@ -389,20 +449,21 @@ class CommentServiceTest {
         }
 
         @Test
-        @DisplayName("direction=DESC, cursor 있으면 해당 커서 이전 데이터를 반환한다")
-        void getComments_desc_withCursor_returnsPaginatedResults() {
-            Instant cursor = Instant.now().minusSeconds(1);
+        @DisplayName("direction=DESC, cursor+after 있으면 findNextPageDesc로 다음 페이지를 반환한다")
+        void getComments_desc_withCursorAndAfter_returnsNextPage() {
+            UUID cursor = UUID.randomUUID();
+            Instant after = Instant.now().minusSeconds(1);
             User mockUser = testUser();
             Review mockReview = testReview();
             Comment comment = Comment.create(mockReview, mockUser, "커서 이전 댓글");
             given(reviewRepository.existsById(REVIEW_ID)).willReturn(true);
-            given(commentRepository.findByReviewIdAndCreatedAtBeforeOrderByCreatedAtDesc(
-                    eq(REVIEW_ID), eq(cursor), any(Pageable.class)))
+            given(commentRepository.findNextPageDesc(
+                    eq(REVIEW_ID), eq(after), eq(cursor), any(Pageable.class)))
                     .willReturn(List.of(comment));
             given(userRepository.findAllById(anyCollection())).willReturn(List.of(mockUser));
             given(commentRepository.countByReviewId(REVIEW_ID)).willReturn(5L);
 
-            CommentDto.CommentsResponse result = commentService.getComments(REVIEW_ID, "DESC", cursor, null, 50);
+            CommentDto.CommentsResponse result = commentService.getComments(REVIEW_ID, "DESC", cursor, after, 50);
 
             assertThat(result.content()).hasSize(1);
             assertThat(result.content().get(0).content()).isEqualTo("커서 이전 댓글");
@@ -432,24 +493,43 @@ class CommentServiceTest {
         }
 
         @Test
-        @DisplayName("direction=ASC, after 있으면 해당 시간 이후 데이터를 반환한다")
-        void getComments_asc_withAfter_returnsPaginatedResults() {
+        @DisplayName("direction=ASC, cursor+after 있으면 findNextPageAsc로 다음 페이지를 반환한다")
+        void getComments_asc_withCursorAndAfter_returnsNextPage() {
+            UUID cursor = UUID.randomUUID();
             Instant after = Instant.now().minusSeconds(1);
             User mockUser = testUser();
             Review mockReview = testReview();
             Comment comment = Comment.create(mockReview, mockUser, "after 이후 댓글");
             given(reviewRepository.existsById(REVIEW_ID)).willReturn(true);
-            given(commentRepository.findByReviewIdAndCreatedAtAfterOrderByCreatedAtAsc(
-                    eq(REVIEW_ID), eq(after), any(Pageable.class)))
+            given(commentRepository.findNextPageAsc(
+                    eq(REVIEW_ID), eq(after), eq(cursor), any(Pageable.class)))
                     .willReturn(List.of(comment));
             given(userRepository.findAllById(anyCollection())).willReturn(List.of(mockUser));
             given(commentRepository.countByReviewId(REVIEW_ID)).willReturn(3L);
 
-            CommentDto.CommentsResponse result = commentService.getComments(REVIEW_ID, "ASC", null, after, 50);
+            CommentDto.CommentsResponse result = commentService.getComments(REVIEW_ID, "ASC", cursor, after, 50);
 
             assertThat(result.content()).hasSize(1);
             assertThat(result.content().get(0).content()).isEqualTo("after 이후 댓글");
             assertThat(result.content().get(0).userNickname()).isEqualTo("테스트유저");
+        }
+
+        @Test
+        @DisplayName("cursor만 제공하고 after가 없으면 InvalidRequestException이 발생한다")
+        void getComments_cursorOnly_throwsInvalidRequestException() {
+            given(reviewRepository.existsById(REVIEW_ID)).willReturn(true);
+
+            assertThatThrownBy(() -> commentService.getComments(REVIEW_ID, "DESC", UUID.randomUUID(), null, 50))
+                    .isInstanceOf(InvalidRequestException.class);
+        }
+
+        @Test
+        @DisplayName("after만 제공하고 cursor가 없으면 InvalidRequestException이 발생한다")
+        void getComments_afterOnly_throwsInvalidRequestException() {
+            given(reviewRepository.existsById(REVIEW_ID)).willReturn(true);
+
+            assertThatThrownBy(() -> commentService.getComments(REVIEW_ID, "ASC", null, Instant.now(), 50))
+                    .isInstanceOf(InvalidRequestException.class);
         }
 
         @Test

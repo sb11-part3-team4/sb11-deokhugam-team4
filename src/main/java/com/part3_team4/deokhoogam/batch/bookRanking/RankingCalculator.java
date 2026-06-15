@@ -17,15 +17,22 @@ import java.util.Map;
 import java.util.UUID;
 import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.redis.core.Cursor;
+import org.springframework.data.redis.core.ScanOptions;
+import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
+@Slf4j
 @Component
 @RequiredArgsConstructor
 public class RankingCalculator {
 
   private final BookRankingRepository bookRankingRepository;
   private final BookRepository bookRepository;
+  private final StringRedisTemplate redisTemplate;
+
 
   private final RankingScoreCalculator scoreCalculator;
 
@@ -47,7 +54,6 @@ public class RankingCalculator {
       BigDecimal score = scoreCalculator.calculate(s.getReviewCount(), s.getAvgRating());
       scored.add(new Scored(s, score));
     }
-
 
     // 4. 동점 정렬용: 책 createdAt 한 번에 조회
     List<UUID> bookIds = scored.stream().map(s -> s.projection().getBookId()).toList();
@@ -82,6 +88,25 @@ public class RankingCalculator {
     customMetrics.recordCount("RankingBookJob", period.name(), rankings.size());
     customMetrics.recordLastSuccess("RankingBookJob", period.name());
 
+
+    //기존 캐시 삭제
+    try {
+      String pattern = "ranking:book:" + period + ":*";
+      ScanOptions options = ScanOptions.scanOptions().match(pattern).count(100).build();
+
+      List<String> keysToDelete = new ArrayList<>();
+      try (Cursor<String> cursor = redisTemplate.scan(options)) {
+        cursor.forEachRemaining(keysToDelete::add);
+      }
+
+      if (!keysToDelete.isEmpty()) {
+        redisTemplate.delete(keysToDelete);
+      }
+    } catch (Exception e) {
+      log.warn("Redis 캐시 삭제 실패 (무시): period={}", period, e);
+    }
+
+    log.info("기간별 랭킹 산출 완료: period={}, 대상도서={}건", period, rankings.size());
   }
 
   // 점수 계산 중간 결과를 잠깐 담는 용도

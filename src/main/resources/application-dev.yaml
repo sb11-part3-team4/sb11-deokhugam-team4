@@ -28,6 +28,12 @@ spring:
     jdbc:
       initialize-schema: always
 
+
+  data:
+    redis:
+      host: localhost
+      port: 6379
+
 logging:
   level:
     com.sprint.mission.discodeit: DEBUG
@@ -35,6 +41,8 @@ logging:
     org.hibernate.orm.jdbc.bind: TRACE
     com.zaxxer.hikari: DEBUG
     com.zaxxer.hikari.HikariConfig: DEBUG
+
+
 
 
 springdoc:

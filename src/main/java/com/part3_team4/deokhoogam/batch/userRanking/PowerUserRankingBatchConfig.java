@@ -2,6 +2,7 @@ package com.part3_team4.deokhoogam.batch.userRanking;
 
 import com.part3_team4.deokhoogam.batch.listener.BatchJobMetricListener;
 import com.part3_team4.deokhoogam.domain.user.service.PowerUserRankingService;
+import java.time.Instant;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.batch.core.Job;
@@ -44,9 +45,20 @@ public class PowerUserRankingBatchConfig {
   @Bean
   public Tasklet powerUserRankingTasklet() {
     return (contribution, chunkContext) -> {
-      powerUserRankingService.calculateAndSaveDailyRanking();
+      long startTime = System.currentTimeMillis();
+      log.info("파워 유저 랭킹 산정 시작. 실행 시각: {}", Instant.now());
 
-      return RepeatStatus.FINISHED;
+      try {
+        powerUserRankingService.calculateAndSaveAllRankings();
+
+        long duration = System.currentTimeMillis() - startTime;
+        log.info("파워 유저 랭킹 산정 완료. 소요시간: {}ms", duration);
+
+        return RepeatStatus.FINISHED;
+      } catch (Exception e) {
+        log.error("파워 유저 랭킹 산정 실패", e);
+        throw e;
+      }
     };
   }
 }

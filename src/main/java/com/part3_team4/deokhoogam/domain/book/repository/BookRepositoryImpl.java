@@ -9,6 +9,7 @@ import com.part3_team4.deokhoogam.domain.book.entity.Direction;
 import com.part3_team4.deokhoogam.domain.book.entity.SortType;
 import com.querydsl.core.types.OrderSpecifier;
 import com.querydsl.core.types.dsl.BooleanExpression;
+import com.querydsl.core.types.dsl.Expressions;
 import com.querydsl.jpa.impl.JPAQueryFactory;
 import java.math.BigDecimal;
 import java.time.LocalDate;
@@ -160,8 +161,10 @@ public class BookRepositoryImpl implements BookRepositoryCustom {
     if (keyword == null || keyword.isBlank()) {
       return null;
     }
-    return book.title.contains(keyword)
-        .or(book.author.contains(keyword).or(book.isbn.contains(keyword)));
+    return Expressions.stringTemplate(
+        "(COALESCE({0}, '') || ' ' || COALESCE({1}, '') || ' ' || COALESCE({2}, ''))",
+        book.title, book.author, book.isbn
+    ).contains(keyword);
   }
 
   //동적 정렬 조건
