@@ -23,6 +23,7 @@ CREATE TABLE book
 );
 
 -- 검색
+CREATE INDEX idx_book_title_trgm ON book USING GIN (title gin_trgm_ops);
 CREATE INDEX idx_book_search_combined ON book USING GIN ((COALESCE(title, '') || ' ' ||
                                                           COALESCE(author, '') || ' ' ||
                                                           COALESCE(isbn, '')) gin_trgm_ops);
@@ -77,6 +78,9 @@ CREATE TABLE "user"
     updated_at TIMESTAMPTZ         NOT NULL
 );
 
+-- 검색
+CREATE INDEX idx_user_nickname_trgm ON "user" USING GIN (nickname gin_trgm_ops);
+
 -- DeletedUser
 CREATE TABLE deleted_user
 (
@@ -108,8 +112,13 @@ CREATE TABLE review
 -- 제약
 CREATE UNIQUE INDEX idx_review_user_book_unique ON review (user_id, book_id);
 
+-- 검색
+CREATE INDEX idx_review_content_trgm ON review USING GIN (content gin_trgm_ops);
+
 -- 정렬
-CREATE INDEX idx_review_book_created ON review (book_id, created_at DESC);
+CREATE INDEX idx_review_cursor_created_at ON review (book_id, created_at DESC, id DESC);
+CREATE INDEX idx_review_cursor_rating ON review (book_id, rating DESC, created_at DESC, id DESC);
+CREATE INDEX idx_review_list_created_at ON review (created_at DESC, id DESC);
 
 -- DeletedReview
 CREATE TABLE deleted_review
