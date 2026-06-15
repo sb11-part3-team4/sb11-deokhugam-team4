@@ -2,9 +2,11 @@ package com.part3_team4.deokhoogam.batch.delete.review;
 
 import com.part3_team4.deokhoogam.domain.review.repository.DeletedReviewRepository;
 import io.awspring.cloud.s3.S3Template;
+
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+
 import org.springframework.batch.core.BatchStatus;
 import org.springframework.batch.core.Job;
 import org.springframework.batch.core.JobExecution;
@@ -22,7 +24,9 @@ import java.math.BigDecimal;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.util.UUID;
+import java.time.temporal.ChronoUnit;
 
+import static org.assertj.core.api.Assertions.as;
 import static org.assertj.core.api.Assertions.assertThat;
 
 @SpringBatchTest
@@ -118,6 +122,13 @@ class DeleteOrphanReviewJobConfigTest {
         );
     }
 
+    private void insertDeletedReview(UUID id, UUID bookId, UUID userId, Instant deletedAt) {
+        jdbcTemplate.update(
+            "INSERT INTO deleted_review (id, user_id, book_id, rating, content, like_count, comment_count, created_at, updated_at, deleted_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+            id, userId, bookId, 5, "review content", 0, 0, Instant.now(), Instant.now(), deletedAt
+        );
+    }
+
     @Test
     @DisplayName("book이 book, deleted_book 어디에도 없으면 deleted_review가 삭제된다")
     void orphanByMissingBook_isDeleted() throws Exception {
@@ -203,6 +214,38 @@ class DeleteOrphanReviewJobConfigTest {
         insertDeletedUser(deletedUserId);
         UUID reviewId = UUID.randomUUID();
         insertDeletedReview(reviewId, bookId, deletedUserId);
+
+        JobExecution result = jobLauncherTestUtils.launchJob();
+
+        assertThat(result.getStatus()).isEqualTo(BatchStatus.COMPLETED);
+        assertThat(deletedReviewRepository.findById(reviewId)).isPresent();
+    }
+
+    @Test
+    @DisplayName("논리 삭제 후 30일이 지난 deleted_review는 물리 삭제된다")
+    void orphanBy30DaysElapsed_isDeleted() throws Exception {
+        UUID bookId = UUID.randomUUID();
+        UUID userId = UUID.randomUUID();
+        insertBook(bookId);
+        insertUser(userId);
+        UUID reviewId = UUID.randomUUID();
+        insertDeletedReview(reviewId, bookId, userId, Instant.now().minus(31, ChronoUnit.DAYS));
+
+        JobExecution result = jobLauncherTestUtils.launchJob();
+
+        assertThat(result.getStatus()).isEqualTo(BatchStatus.COMPLETED);
+        assertThat(deletedReviewRepository.findById(reviewId)).isEmpty();
+    }
+
+    @Test
+    @DisplayName("논리 삭제 후 30일이 지나지 않은 deleted_review는 물리 삭제되지 않는다")
+    void orphanBy29Days_isNotDeleted() throws Exception {
+        UUID bookId = UUID.randomUUID();
+        UUID userId = UUID.randomUUID();
+        insertBook(bookId);
+        insertUser(userId);
+        UUID reviewId = UUID.randomUUID();
+        insertDeletedReview(reviewId, bookId, userId, Instant.now().minus(29, ChronoUnit.DAYS));
 
         JobExecution result = jobLauncherTestUtils.launchJob();
 
