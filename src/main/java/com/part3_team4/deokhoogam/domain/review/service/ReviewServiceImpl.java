@@ -237,7 +237,10 @@ public class ReviewServiceImpl implements ReviewService {
       try {
         reviewLikeRepository.save(ReviewLike.create(reviewId, userId));
       } catch (DataIntegrityViolationException e) {
-        throw ReviewLikeAlreadyExistsException.withReviewIdAndUserId(reviewId, userId);
+        if (e.getMessage() != null && e.getMessage().contains("idx_review_like_user_review_unique")) {
+          throw ReviewLikeAlreadyExistsException.withReviewIdAndUserId(reviewId, userId);
+        }
+        throw e;
       }
       reviewRepository.incrementLikeCount(reviewId); // DB 원자적 증가
 
