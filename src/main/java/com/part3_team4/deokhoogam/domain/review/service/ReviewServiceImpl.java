@@ -266,28 +266,23 @@ public class ReviewServiceImpl implements ReviewService {
         BigDecimal cursorRating = new BigDecimal(cursor);
         if ("DESC".equalsIgnoreCase(request.direction())) {
           reviews = reviewRepository.findReviewsWithCursorRatingDesc(
-              request.userId(), request.bookId(), request.keyword(), cursorRating, afterId,
-              pageable);
+              request.userId(), request.bookId(), request.keyword(), cursorRating, afterId, pageable);
         } else {
           reviews = reviewRepository.findReviewsWithCursorRatingAsc(
-              request.userId(), request.bookId(), request.keyword(), cursorRating, afterId,
-              pageable);
+              request.userId(), request.bookId(), request.keyword(), cursorRating, afterId, pageable);
         }
       } else {
         Instant cursorInstant = Instant.parse(cursor);
         if ("DESC".equalsIgnoreCase(request.direction())) {
           reviews = reviewRepository.findReviewsWithCursorCreatedAtDesc(
-              request.userId(), request.bookId(), request.keyword(), cursorInstant, afterId,
-              pageable);
+              request.userId(), request.bookId(), request.keyword(), cursorInstant, afterId, pageable);
         } else {
           reviews = reviewRepository.findReviewsWithCursorCreatedAtAsc(
-              request.userId(), request.bookId(), request.keyword(), cursorInstant, afterId,
-              pageable);
+              request.userId(), request.bookId(), request.keyword(), cursorInstant, afterId, pageable);
         }
       }
     } else {
-      reviews = reviewRepository.findReviews(request.userId(), request.bookId(), request.keyword(),
-          pageable);
+      reviews = reviewRepository.findReviews(request.userId(), request.bookId(), request.keyword(), pageable);
     }
 
     boolean hasNext = reviews.size() > request.limit();
