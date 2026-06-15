@@ -28,7 +28,7 @@ public class DeletedUserAutoDeleteService {
   public void deleteExpiredUsers() {
     long startTime = System.currentTimeMillis();
 
-    Instant oneDayAgo = Instant.now(clock).minus(1, ChronoUnit.DAYS);
+    Instant oneDayAgo = Instant.now(clock).minus(7, ChronoUnit.DAYS);
 
     log.info("유저 물리 삭제 배치 작업 시작. 기준 시각: {}", oneDayAgo);
 
