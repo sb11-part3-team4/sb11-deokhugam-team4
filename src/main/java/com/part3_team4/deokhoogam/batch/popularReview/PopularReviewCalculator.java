@@ -35,16 +35,18 @@ public class PopularReviewCalculator {
 
         PopularReviewPeriod range = PopularReviewPeriod.of(period);
 
-        List<Review> reviews = reviewRepository.findByCreatedAtBetween(range.getStart(), range.getEnd());
+        List<Review> reviews = reviewRepository.findByCreatedAtBetween(range.getStart(),
+            range.getEnd());
 
         List<Scored> scored = new ArrayList<>();
         for (Review review : reviews) {
-            BigDecimal score = BigDecimal.valueOf(review.getLikeCount() * 1.0 + review.getCommentCount() * 0.5);
+            BigDecimal score = BigDecimal.valueOf(
+                review.getLikeCount() * 1.0 + review.getCommentCount() * 0.5);
             scored.add(new Scored(review, score));
         }
 
         scored.sort(Comparator.comparing(Scored::score).reversed()
-                .thenComparing(s -> s.review().getCreatedAt()));
+            .thenComparing(s -> s.review().getCreatedAt()));
 
         popularReviewRepository.deleteByPeriod(period.name());
         popularReviewRepository.flush();
@@ -53,36 +55,39 @@ public class PopularReviewCalculator {
         int rank = 1;
         for (Scored s : scored) {
             results.add(PopularReview.create(
-                    s.review().getId(),
-                    period.name(),
-                    s.score(),
-                    rank++,
-                    LocalDate.now(ZoneId.of("Asia/Seoul"))
+                s.review().getId(),
+                period.name(),
+                s.score(),
+                rank++,
+                LocalDate.now(ZoneId.of("Asia/Seoul"))
             ));
         }
         popularReviewRepository.saveAll(results);
 
         // 커밋 후 캐시 삭제
-        TransactionSynchronizationManager.registerSynchronization(
-            new TransactionSynchronization() {
-                @Override
-                public void afterCommit() {
-                    try {
-                        String pattern = "ranking:review:" + period + ":*";
-                        ScanOptions options = ScanOptions.scanOptions().match(pattern).count(100).build();
-                        List<String> keysToDelete = new ArrayList<>();
-                        try (Cursor<String> cursor = redisTemplate.scan(options)) {
-                            cursor.forEachRemaining(keysToDelete::add);
+        if (TransactionSynchronizationManager.isSynchronizationActive()) {
+            TransactionSynchronizationManager.registerSynchronization(
+                new TransactionSynchronization() {
+                    @Override
+                    public void afterCommit() {
+                        try {
+                            String pattern = "ranking:review:" + period + ":*";
+                            ScanOptions options = ScanOptions.scanOptions().match(pattern)
+                                .count(100).build();
+                            List<String> keysToDelete = new ArrayList<>();
+                            try (Cursor<String> cursor = redisTemplate.scan(options)) {
+                                cursor.forEachRemaining(keysToDelete::add);
+                            }
+                            if (!keysToDelete.isEmpty()) {
+                                redisTemplate.delete(keysToDelete);
+                            }
+                        } catch (Exception e) {
+                            log.warn("Redis 캐시 삭제 실패 (인기 리뷰): period={}", period, e);
                         }
-                        if (!keysToDelete.isEmpty()) {
-                            redisTemplate.delete(keysToDelete);
-                        }
-                    } catch (Exception e) {
-                        log.warn("Redis 캐시 삭제 실패 (인기 리뷰): period={}", period, e);
                     }
                 }
-            }
-        );
+            );
+        }
     }
     private record Scored(Review review, BigDecimal score) {}
 

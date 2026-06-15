@@ -112,28 +112,30 @@ public class PowerUserRankingService {
     calculateAndSaveForPeriod(PowerUserPeriod.MONTHLY, now.minus(30, ChronoUnit.DAYS), now);
     calculateAndSaveForPeriod(PowerUserPeriod.ALL_TIME, Instant.EPOCH, now);
 
-    TransactionSynchronizationManager.registerSynchronization(
-        new TransactionSynchronization() {
-          @Override
-          public void afterCommit() {
-            for (PowerUserPeriod period : PowerUserPeriod.values()) {
-              try {
-                String pattern = "ranking:user:" + period + ":*";
-                ScanOptions options = ScanOptions.scanOptions().match(pattern).count(100).build();
-                List<String> keysToDelete = new ArrayList<>();
-                try (Cursor<String> cursor = redisTemplate.scan(options)) {
-                  cursor.forEachRemaining(keysToDelete::add);
+    if (TransactionSynchronizationManager.isSynchronizationActive()) {
+      TransactionSynchronizationManager.registerSynchronization(
+          new TransactionSynchronization() {
+            @Override
+            public void afterCommit() {
+              for (PowerUserPeriod period : PowerUserPeriod.values()) {
+                try {
+                  String pattern = "ranking:user:" + period + ":*";
+                  ScanOptions options = ScanOptions.scanOptions().match(pattern).count(100).build();
+                  List<String> keysToDelete = new ArrayList<>();
+                  try (Cursor<String> cursor = redisTemplate.scan(options)) {
+                    cursor.forEachRemaining(keysToDelete::add);
+                  }
+                  if (!keysToDelete.isEmpty()) {
+                    redisTemplate.delete(keysToDelete);
+                  }
+                } catch (Exception e) {
+                  log.warn("Redis 캐시 삭제 실패 (파워유저): period={}", period, e);
                 }
-                if (!keysToDelete.isEmpty()) {
-                  redisTemplate.delete(keysToDelete);
-                }
-              } catch (Exception e) {
-                log.warn("Redis 캐시 삭제 실패 (파워유저): period={}", period, e);
               }
             }
           }
-        }
-    );
+      );
+    }
 
   }
 

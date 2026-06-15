@@ -83,27 +83,29 @@ public class RankingCalculator {
     bookRankingRepository.flush();
     bookRankingRepository.saveAll(rankings);
 
-    // 커밋 후 캐시 삭제 (커밋 전 삭제 시 옛 데이터 재캐싱 방지)
-    TransactionSynchronizationManager.registerSynchronization(
-        new TransactionSynchronization() {
-          @Override
-          public void afterCommit() {
-            try {
-              String pattern = "ranking:book:" + period + ":*";
-              ScanOptions options = ScanOptions.scanOptions().match(pattern).count(100).build();
-              List<String> keysToDelete = new ArrayList<>();
-              try (Cursor<String> cursor = redisTemplate.scan(options)) {
-                cursor.forEachRemaining(keysToDelete::add);
+    // 커밋 후 캐시 삭제
+    if (TransactionSynchronizationManager.isSynchronizationActive()) {
+      TransactionSynchronizationManager.registerSynchronization(
+          new TransactionSynchronization() {
+            @Override
+            public void afterCommit() {
+              try {
+                String pattern = "ranking:book:" + period + ":*";
+                ScanOptions options = ScanOptions.scanOptions().match(pattern).count(100).build();
+                List<String> keysToDelete = new ArrayList<>();
+                try (Cursor<String> cursor = redisTemplate.scan(options)) {
+                  cursor.forEachRemaining(keysToDelete::add);
+                }
+                if (!keysToDelete.isEmpty()) {
+                  redisTemplate.delete(keysToDelete);
+                }
+              } catch (Exception e) {
+                log.warn("Redis 캐시 삭제 실패 (도서): period={}", period, e);
               }
-              if (!keysToDelete.isEmpty()) {
-                redisTemplate.delete(keysToDelete);
-              }
-            } catch (Exception e) {
-              log.warn("Redis 캐시 삭제 실패 (도서): period={}", period, e);
             }
           }
-        }
-    );
+      );
+    }
 
     log.info("기간별 랭킹 산출 완료: period={}, 대상도서={}건", period, rankings.size());
   }
