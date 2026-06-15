@@ -1,5 +1,6 @@
 package com.part3_team4.deokhoogam.domain.review.service;
 
+import com.part3_team4.deokhoogam.domain.review.exception.ReviewLikeAlreadyExistsException;
 import com.part3_team4.deokhoogam.domain.book.entity.Book;
 import com.part3_team4.deokhoogam.domain.book.exception.BookNotFoundException;
 import com.part3_team4.deokhoogam.domain.book.repository.BookRepository;
@@ -10,10 +11,7 @@ import com.part3_team4.deokhoogam.domain.review.entity.DeletedReview;
 import com.part3_team4.deokhoogam.domain.review.entity.PopularReview;
 import com.part3_team4.deokhoogam.domain.review.entity.Review;
 import com.part3_team4.deokhoogam.domain.review.entity.ReviewLike;
-import com.part3_team4.deokhoogam.domain.review.exception.InvalidReviewException;
-import com.part3_team4.deokhoogam.domain.review.exception.ReviewAlreadyExistsException;
-import com.part3_team4.deokhoogam.domain.review.exception.ReviewNotFoundException;
-import com.part3_team4.deokhoogam.domain.review.exception.ReviewNotOwnerException;
+import com.part3_team4.deokhoogam.domain.review.exception.*;
 import com.part3_team4.deokhoogam.domain.review.repository.DeletedReviewRepository;
 import com.part3_team4.deokhoogam.domain.review.repository.PopularReviewRepository;
 import com.part3_team4.deokhoogam.domain.review.repository.ReviewLikeRepository;
@@ -217,7 +215,11 @@ public class ReviewServiceImpl implements ReviewService {
         } else {
             User actor = userRepository.findById(userId)
                     .orElseThrow(() -> UserNotFoundException.withId(userId));
-            reviewLikeRepository.save(ReviewLike.create(reviewId, userId));
+            try {
+                reviewLikeRepository.save(ReviewLike.create(reviewId, userId));
+            } catch (DataIntegrityViolationException e) {
+                throw ReviewLikeAlreadyExistsException.withReviewIdAndUserId(reviewId, userId);
+            }
             reviewRepository.incrementLikeCount(reviewId);
             notificationService.createLikeNotification(
                     review.getUserId(), reviewId, review.getContent(), actor.getName(), userId
