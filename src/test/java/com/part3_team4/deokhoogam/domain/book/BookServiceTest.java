@@ -52,6 +52,7 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -82,6 +83,9 @@ class BookServiceTest {
 
   @Mock
   private BookPersistence bookPersistence;
+
+  @Mock
+  private ApplicationEventPublisher eventPublisher;
 
   private static final String BOOK_THUMBNAIL_DIR = "books";
   private static final String ISBN_UNIQUE_CONSTRAINT = "uk_book_isbn";
@@ -869,6 +873,7 @@ class BookServiceTest {
       bookService.delete(mockId);
 
       //then
+      then(eventPublisher).should().publishEvent(any(com.part3_team4.deokhoogam.domain.book.entity.BookDeletedEvent.class));
       then(bookRepository).should().deleteById(mockId);
       then(deletedBookRepository).should().save(any(DeletedBook.class));
 
@@ -902,6 +907,7 @@ class BookServiceTest {
 
       bookService.deleteHard(mockId);
 
+      then(eventPublisher).should().publishEvent(any(com.part3_team4.deokhoogam.domain.book.entity.BookDeletedEvent.class));
       then(deletedBookRepository).should().findById(mockId);
       then(deletedBookRepository).should().deleteById(mockId);
       then(fileUploader).should().delete(any());
