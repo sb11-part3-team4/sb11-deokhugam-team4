@@ -26,10 +26,7 @@ import com.part3_team4.deokhoogam.domain.review.dto.ReviewWithLiked;
 import com.part3_team4.deokhoogam.domain.review.entity.DeletedReview;
 import com.part3_team4.deokhoogam.domain.review.entity.PopularReview;
 import com.part3_team4.deokhoogam.domain.review.entity.Review;
-import com.part3_team4.deokhoogam.domain.review.exception.InvalidReviewException;
-import com.part3_team4.deokhoogam.domain.review.exception.ReviewAlreadyExistsException;
-import com.part3_team4.deokhoogam.domain.review.exception.ReviewNotFoundException;
-import com.part3_team4.deokhoogam.domain.review.exception.ReviewNotOwnerException;
+import com.part3_team4.deokhoogam.domain.review.exception.*;
 import com.part3_team4.deokhoogam.domain.review.repository.DeletedReviewRepository;
 import com.part3_team4.deokhoogam.domain.review.repository.PopularReviewRepository;
 import com.part3_team4.deokhoogam.domain.review.repository.ReviewLikeRepository;
@@ -51,6 +48,7 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.context.ApplicationEventPublisher;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.data.domain.Pageable;
 import org.springframework.test.util.ReflectionTestUtils;
 
@@ -352,6 +350,24 @@ public class ReviewServiceTest {
   }
 
   @Test
+  @DisplayName("동시 좋아요 요청으로 유니크 제약 위반 시 ReviewLikeAlreadyExistsException을 던진다")
+  void toggleLike_duplicateLike_throwsException() {
+    UUID userId = UUID.randomUUID();
+    UUID bookId = UUID.randomUUID();
+    Review review = Review.create(userId, bookId, 4, "내용");
+    User actor = new User("test@test.com", "닉네임", "password");
+
+    given(reviewRepository.findById(review.getId())).willReturn(Optional.of(review));
+    given(reviewLikeRepository.existsByReviewIdAndUserId(review.getId(), userId)).willReturn(false);
+    given(userRepository.findById(userId)).willReturn(Optional.of(actor));
+    given(reviewLikeRepository.save(any()))
+            .willThrow(new DataIntegrityViolationException("idx_review_like_user_review_unique"));
+
+    assertThatThrownBy(() -> reviewService.toggleLike(review.getId(), userId))
+            .isInstanceOf(ReviewLikeAlreadyExistsException.class);
+  }
+
+  @Test
   @DisplayName("이미 좋아요 상태에서 토글하면 liked=false가 되고, DB의 감소 쿼리를 호출한다")
   void toggleLike_unlike_success() {
     UUID userId = UUID.randomUUID();
@@ -620,7 +636,7 @@ public class ReviewServiceTest {
 
   @Test
   @DisplayName("cursor/after가 있으면 createdAt 기준 커서 쿼리를 호출한다")
-  void getReviews_withCoursor_createdAt() {
+  void getReviews_withCursor_createdAt() {
     UUID requestUserId = UUID.randomUUID();
     UUID afterId = UUID.randomUUID();
     Instant cursorInstant = Instant.now();
