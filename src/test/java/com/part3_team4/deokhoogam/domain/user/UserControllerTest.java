@@ -1,6 +1,7 @@
 package com.part3_team4.deokhoogam.domain.user;
 
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.BDDMockito.then;
 import static org.mockito.BDDMockito.willThrow;
@@ -238,8 +239,7 @@ public class UserControllerTest {
   @Test
   @DisplayName("파워 유저 조회 성공 - 200 반환")
   void getPowerUsers_success() throws Exception {
-    given(powerUserRankingService.getRankingWithNickname(any(PowerUserPeriod.class))).willReturn(List.of());
-
+    given(powerUserRankingService.getRankingWithNickname(any(PowerUserPeriod.class), anyInt())).willReturn(List.of());
     mockMvc.perform(get("/api/users/power?period=DAILY"))
         .andExpect(status().isOk())
         .andExpect(jsonPath("$.content").isArray())

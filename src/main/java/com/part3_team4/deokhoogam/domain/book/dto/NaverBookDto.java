@@ -2,6 +2,7 @@ package com.part3_team4.deokhoogam.domain.book.dto;
 
 import com.fasterxml.jackson.annotation.JsonAlias;
 import com.fasterxml.jackson.annotation.JsonFormat;
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.part3_team4.deokhoogam.global.util.DateDeserializer;
 import java.time.LocalDate;
@@ -16,6 +17,7 @@ import lombok.Setter;
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
+@JsonIgnoreProperties(ignoreUnknown = true)
 public class NaverBookDto {
 
   private String title;

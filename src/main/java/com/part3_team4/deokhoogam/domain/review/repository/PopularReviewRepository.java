@@ -21,6 +21,8 @@ public interface PopularReviewRepository extends JpaRepository<PopularReview, UU
         """, nativeQuery = true)
     List<PopularReview> findByPeriodOrderByRankAsc(@Param("period") String period, Pageable pageable);
 
+    // 리뷰 ID로 인기 리뷰 기록 삭제
+    void deleteAllByReviewId(UUID reviewId);
     @Query(value = """
         SELECT pr.* FROM popular_review pr
         INNER JOIN review r ON pr.review_id = r.id
@@ -49,4 +51,5 @@ public interface PopularReviewRepository extends JpaRepository<PopularReview, UU
             """, nativeQuery = true)
     List<PopularReview> findByPeriodAndRankLessThan(@Param("period") String period, @Param("rank") int rank, Pageable pageable);
 
+    void deleteByPeriod(String period);
 }

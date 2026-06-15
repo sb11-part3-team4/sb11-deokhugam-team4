@@ -14,7 +14,8 @@ public enum ErrorCode {
   PASSWORD_MISMATCH(HttpStatus.BAD_REQUEST, "USER-003", "비밀번호가 일치하지 않습니다."),
   INVALID_CREDENTIALS(HttpStatus.UNAUTHORIZED, "USER-004", "이메일 또는 비밀번호가 일치하지 않습니다."),
   USER_NOT_DELETED_YET(HttpStatus.BAD_REQUEST, "USER-005", "활동 중인 유저는 바로 영구 삭제할 수 없습니다"),
-  USER_BATCH_INFINITE_LOOP(HttpStatus.INTERNAL_SERVER_ERROR, "USER-006", "삭제 진행 없음: 반복 실패 항목으로 인한 무한 루프 방지"),
+  USER_BATCH_INFINITE_LOOP(HttpStatus.INTERNAL_SERVER_ERROR, "USER-006",
+      "삭제 진행 없음: 반복 실패 항목으로 인한 무한 루프 방지"),
 
   // 2. 도서 예외
   BOOK_NOT_FOUND(HttpStatus.NOT_FOUND, "BOOK-001", "존재하지 않는 도서입니다."),
@@ -52,6 +53,7 @@ public enum ErrorCode {
   BASE64_DECODING_ERROR(HttpStatus.BAD_REQUEST, "COMMON-006", "잘못된 커서로 인해 디코딩에 실패했습니다."),
   INVALID_SORT_TYPE_ERROR(HttpStatus.BAD_REQUEST, "COMMON-007", "잘못된 정렬 조건 입력입니다."),
   INVALID_DIRECTION_VALUE(HttpStatus.BAD_REQUEST, "COMMON-008", "잘못된 정렬 방향입니다."),
+  DUPLICATE_CONFLICT_ERROR(HttpStatus.CONFLICT, "COMMON-009", "이미 등록된 데이터가 존재합니다."),
 
   // 7. 스토리지 예외
   INVALID_FILE_INPUT(HttpStatus.BAD_REQUEST, "STORAGE-001", "올바르지 않은 파일 정보입니다."),

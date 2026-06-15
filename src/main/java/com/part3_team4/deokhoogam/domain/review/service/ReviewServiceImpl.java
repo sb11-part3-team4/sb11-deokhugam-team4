@@ -9,6 +9,7 @@ import com.part3_team4.deokhoogam.domain.review.dto.*;
 import com.part3_team4.deokhoogam.domain.review.entity.DeletedReview;
 import com.part3_team4.deokhoogam.domain.review.entity.PopularReview;
 import com.part3_team4.deokhoogam.domain.review.entity.Review;
+import com.part3_team4.deokhoogam.domain.review.entity.ReviewDeletedEvent;
 import com.part3_team4.deokhoogam.domain.review.entity.ReviewLike;
 import com.part3_team4.deokhoogam.domain.review.exception.InvalidReviewException;
 import com.part3_team4.deokhoogam.domain.review.exception.ReviewAlreadyExistsException;
@@ -21,10 +22,10 @@ import com.part3_team4.deokhoogam.domain.review.repository.ReviewRepository;
 import com.part3_team4.deokhoogam.domain.user.entity.User;
 import com.part3_team4.deokhoogam.domain.user.exception.UserNotFoundException;
 import com.part3_team4.deokhoogam.domain.user.repository.UserRepository;
-import com.part3_team4.deokhoogam.domain.review.dto.ReviewWithLiked;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
+import java.time.Instant;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -32,6 +33,7 @@ import com.part3_team4.deokhoogam.global.common.PageResponse;
 import com.part3_team4.deokhoogam.global.exception.ErrorKey;
 
 import lombok.RequiredArgsConstructor;
+import org.springframework.context.ApplicationEventPublisher;
 import lombok.extern.slf4j.Slf4j;
 
 import org.springframework.dao.DataIntegrityViolationException;
@@ -40,7 +42,6 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-
 
 @Slf4j
 @Service
@@ -55,7 +56,7 @@ public class ReviewServiceImpl implements ReviewService {
     private final UserRepository userRepository;
     private final BookService bookService;
     private final NotificationService notificationService;
-
+    private final ApplicationEventPublisher eventPublisher;
 
     @Override
     @Transactional
@@ -79,9 +80,8 @@ public class ReviewServiceImpl implements ReviewService {
             throw ReviewAlreadyExistsException.withUserIdAndBookId(userId, request.bookId());
         }
         long reviewCount = reviewRepository.countByBookId(request.bookId());
-        BigDecimal avgRating =
-                reviewRepository.averageRatingByBookId(request.bookId())
-                                .setScale(2, RoundingMode.HALF_UP);
+        BigDecimal avgRating = reviewRepository.averageRatingByBookId(request.bookId())
+                .setScale(2, RoundingMode.HALF_UP);
         bookService.updateReviewData(request.bookId(), Math.toIntExact(reviewCount), avgRating);
 
         log.info("[ReviewService] createReview 완료 - reviewId: {}", saved.getId());
@@ -101,7 +101,6 @@ public class ReviewServiceImpl implements ReviewService {
                 saved.getCreatedAt(),
                 saved.getUpdatedAt()
         );
-
     }
 
     @Override
@@ -135,9 +134,7 @@ public class ReviewServiceImpl implements ReviewService {
                 review.getCreatedAt(),
                 review.getUpdatedAt()
         );
-
     }
-
 
     @Override
     @Transactional
@@ -182,60 +179,93 @@ public class ReviewServiceImpl implements ReviewService {
     @Override
     @Transactional
     public void deleteReview(UUID reviewId, UUID userId) {
-
         Review review = reviewRepository.findById(reviewId)
                 .orElseThrow(() -> ReviewNotFoundException.withId(reviewId));
-        if (!review.getUserId().equals(userId))
+        if (!review.getUserId().equals(userId)) {
             throw ReviewNotOwnerException.withUserId(userId);
+        }
+
+        // 이벤트 발행 및 연관 데이터 선행 삭제 (EDA 적용)
+        eventPublisher.publishEvent(new ReviewDeletedEvent(reviewId, false));
+        popularReviewRepository.deleteAllByReviewId(reviewId);
         reviewLikeRepository.deleteAllByReviewId(reviewId);
+
+        // 원본 데이터 백업 및 삭제
         deletedReviewRepository.save(DeletedReview.from(review));
         reviewRepository.delete(review);
 
+        // 도서 통계 업데이트
         long reviewCount = reviewRepository.countByBookId(review.getBookId());
-        BigDecimal avgRating =
-                reviewRepository.averageRatingByBookId(review.getBookId())
-                                .setScale(2, RoundingMode.HALF_UP);
+        BigDecimal avgRating = reviewRepository.averageRatingByBookId(review.getBookId())
+                .setScale(2, RoundingMode.HALF_UP);
         bookService.updateReviewData(review.getBookId(), Math.toIntExact(reviewCount), avgRating);
 
         log.info("[ReviewService] deleteReview 완료 - reviewId: {}", reviewId);
-
     }
 
     @Override
     @Transactional
     public ReviewLikeResponse toggleLike(UUID reviewId, UUID userId) {
-
         Review review = reviewRepository.findById(reviewId)
                 .orElseThrow(() -> ReviewNotFoundException.withId(reviewId));
 
         boolean alreadyLiked = reviewLikeRepository.existsByReviewIdAndUserId(reviewId, userId);
+
         if (alreadyLiked) {
             reviewLikeRepository.deleteByReviewIdAndUserId(reviewId, userId);
-            review.decrementLikeCount();
+            reviewRepository.decrementLikeCount(reviewId); // DB 원자적 감소
         } else {
-            reviewLikeRepository.save(ReviewLike.create(reviewId, userId));
-            review.incrementLikeCount();
             User actor = userRepository.findById(userId)
                     .orElseThrow(() -> UserNotFoundException.withId(userId));
+
+            reviewLikeRepository.save(ReviewLike.create(reviewId, userId));
+            reviewRepository.incrementLikeCount(reviewId); // DB 원자적 증가
+
             notificationService.createLikeNotification(
-                    review.getUserId(), reviewId, review.getContent(), actor.getName(), userId
-            );
+                    review.getUserId(), reviewId, review.getContent(), actor.getName(), userId);
         }
+        int updatedCount = reviewRepository.getLikeCount(reviewId);
 
         log.info("[ReviewService] toggleLike 완료 - reviewId: {}, liked: {}", reviewId, !alreadyLiked);
-
-        return new ReviewLikeResponse(reviewId, !alreadyLiked, review.getLikeCount());
+        
+        return new ReviewLikeResponse(reviewId, !alreadyLiked, updatedCount);
     }
 
     @Override
     @Transactional(readOnly = true)
-    public PageResponse<ReviewResponse> getReviews(UUID userId, ReviewListRequest request)
-    {
+    public PageResponse<ReviewResponse> getReviews(UUID userId, ReviewListRequest request) {
 
-        Sort sort = Sort.by(Sort.Direction.fromString(request.direction()),
-        request.orderBy());
+        Sort sort = Sort.by(Sort.Direction.fromString(request.direction()), request.orderBy());
         Pageable pageable = PageRequest.of(0, request.limit() + 1, sort);
-        List<Review> reviews = reviewRepository.findReviews(request.userId(), request.bookId(), request.keyword(), pageable);
+
+        List<Review> reviews;
+        String cursor = request.cursor();
+        String after = request.after();
+
+        if (cursor != null && after != null) {
+            UUID afterId = UUID.fromString(after);
+            if ("rating".equals(request.orderBy())) {
+                BigDecimal cursorRating = new BigDecimal(cursor);
+                if ("DESC".equalsIgnoreCase(request.direction())) {
+                    reviews = reviewRepository.findReviewsWithCursorRatingDesc(
+                            request.userId(), request.bookId(), request.keyword(), cursorRating, afterId, pageable);
+                } else {
+                    reviews = reviewRepository.findReviewsWithCursorRatingAsc(
+                            request.userId(), request.bookId(), request.keyword(), cursorRating, afterId, pageable);
+                }
+            } else {
+                Instant cursorInstant = Instant.parse(cursor);
+                if ("DESC".equalsIgnoreCase(request.direction())) {
+                    reviews = reviewRepository.findReviewsWithCursorCreatedAtDesc(
+                            request.userId(), request.bookId(), request.keyword(), cursorInstant, afterId, pageable);
+                } else {
+                    reviews = reviewRepository.findReviewsWithCursorCreatedAtAsc(
+                            request.userId(), request.bookId(), request.keyword(), cursorInstant, afterId, pageable);
+                }
+            }
+        } else {
+            reviews = reviewRepository.findReviews(request.userId(), request.bookId(), request.keyword(), pageable);
+        }
 
         boolean hasNext = reviews.size() > request.limit();
         if (hasNext) {
@@ -255,29 +285,25 @@ public class ReviewServiceImpl implements ReviewService {
         Map<UUID, User> userMap = userRepository.findAllById(userIds).stream()
                 .collect(Collectors.toMap(User::getId, u -> u));
 
-
-
-
         List<ReviewResponse> content = reviews.stream()
                 .map(review -> {
-                        Book book = bookMap.get(review.getBookId());
-                        User user = userMap.get(review.getUserId());
-                        return new ReviewResponse(
-
-                                review.getId(),
-                                review.getUserId(),
-                                review.getBookId(),
-                                review.getRating(),
-                                review.getContent(),
-                                book != null ? book.getTitle() : null,
-                                book != null ? book.getThumbnailUrl() : null,
-                                user != null ? user.getName() : null,
-                                review.getLikeCount(),
-                                review.getCommentCount(),
-                                likedReviewIds.contains(review.getId()),
-                                review.getCreatedAt(),
-                                review.getUpdatedAt()
-                        );
+                    Book book = bookMap.get(review.getBookId());
+                    User user = userMap.get(review.getUserId());
+                    return new ReviewResponse(
+                            review.getId(),
+                            review.getUserId(),
+                            review.getBookId(),
+                            review.getRating(),
+                            review.getContent(),
+                            book != null ? book.getTitle() : null,
+                            book != null ? book.getThumbnailUrl() : null,
+                            user != null ? user.getName() : null,
+                            review.getLikeCount(),
+                            review.getCommentCount(),
+                            likedReviewIds.contains(review.getId()),
+                            review.getCreatedAt(),
+                            review.getUpdatedAt()
+                    );
                 })
                 .toList();
 
@@ -340,12 +366,14 @@ public class ReviewServiceImpl implements ReviewService {
         List<PopularReviewResponse> content = popularReviews.stream()
                 .map(pr -> {
                     Review rev = reviewMap.get(pr.getReviewId());
+                    if (rev == null) return null;
                     Book book = bookMap.get(rev.getBookId());
                     User user = userMap.get(rev.getUserId());
+                    if (book == null || user == null) return null;
                     return toPopularReviewResponse(pr, rev, book, user);
                 })
+                .filter(Objects::nonNull)
                 .toList();
-
 
         String nextCursor = null;
         String nextAfter = null;
@@ -372,7 +400,7 @@ public class ReviewServiceImpl implements ReviewService {
 
     @Override
     @Transactional
-    public void incrementCommentCount (UUID reviewId) {
+    public void incrementCommentCount(UUID reviewId) {
         int updated = reviewRepository.incrementCommentCount(reviewId);
         if (updated == 0) throw ReviewNotFoundException.withId(reviewId);
         log.info("[ReviewService] incrementCommentCount 완료 - reviewId: {}", reviewId);
@@ -390,5 +418,4 @@ public class ReviewServiceImpl implements ReviewService {
         }
         log.info("[ReviewService] decrementCommentCount 완료 - reviewId: {}", reviewId);
     }
-
 }

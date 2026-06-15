@@ -108,6 +108,9 @@ CREATE TABLE review
 -- 제약
 CREATE UNIQUE INDEX idx_review_user_book_unique ON review (user_id, book_id);
 
+-- 정렬
+CREATE INDEX idx_review_book_created ON review (book_id, created_at DESC);
+
 -- DeletedReview
 CREATE TABLE deleted_review
 (
@@ -167,6 +170,10 @@ CREATE TABLE comment
     CONSTRAINT fk_comment_review FOREIGN KEY (review_id) REFERENCES review (id),
     CONSTRAINT fk_comment_user FOREIGN KEY (user_id) REFERENCES "user" (id)
 );
+
+-- 정렬
+CREATE INDEX idx_comment_review_created ON comment (review_id, created_at DESC);
+
 
 -- DeletedComment
 CREATE TABLE deleted_comment
