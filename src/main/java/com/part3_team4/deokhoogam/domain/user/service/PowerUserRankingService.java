@@ -18,6 +18,8 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.redis.core.StringRedisTemplate;
@@ -41,8 +43,7 @@ public class PowerUserRankingService {
 
   public record UserScore(UUID userId, BigDecimal score) {}
 
-  public List<PowerUserRankingResponseDto> getRankingWithNickname(PowerUserPeriod period) {
-
+  public List<PowerUserRankingResponseDto> getRankingWithNickname(PowerUserPeriod period, int limit) {
     String key = "ranking:user:" + period;
 
     // 캐시 조회
@@ -52,8 +53,8 @@ public class PowerUserRankingService {
         if (cached != null) {
           log.debug("파워유저 랭킹 캐시 히트: key={}", key);
           return redisObjectMapper.readValue(
-              cached, new TypeReference<>() {
-              });
+              cached, new TypeReference<>() {}
+          );
         }
         log.debug("파워유저 랭킹 캐시 미스: key={}", key);
       } catch (Exception e) {
@@ -61,10 +62,9 @@ public class PowerUserRankingService {
       }
     }
 
-
-
-
-    List<PowerUserRanking> rankings = powerUserRankingRepository.findByPeriodOrderByRankingAsc(period);
+    // PageRequest를 생성하여 최대 limit 개수만큼만 가져오도록 설정
+    Pageable pageable = PageRequest.of(0, limit);
+    List<PowerUserRanking> rankings = powerUserRankingRepository.findByPeriodOrderByRankingAsc(period, pageable);
 
     if (rankings.isEmpty()) {
       return List.of();
@@ -81,15 +81,17 @@ public class PowerUserRankingService {
     List<PowerUserRankingResponseDto> result = rankings.stream().map(ranking -> {
       String nickname = nicknameMap.getOrDefault(ranking.getUserId(), "알수없음");
       double flooredScore = Math.floor(ranking.getScore().doubleValue());
+
       return new PowerUserRankingResponseDto(
-          ranking.getUserId(), nickname, ranking.getRanking(), flooredScore);
+          ranking.getUserId(), nickname, ranking.getRanking(), flooredScore
+      );
     }).collect(Collectors.toList());
 
     // 캐시 저장
     if (cacheEnabled) {
       try {
         redisTemplate.opsForValue().set(
-            key, redisObjectMapper.writeValueAsString(result), Duration.ofHours(2));
+            key, redisObjectMapper.writeValueAsString(result), java.time.Duration.ofHours(2));
       } catch (Exception e) {
         log.warn("파워유저 랭킹 캐시 저장 실패: key={}", key, e);
       }
