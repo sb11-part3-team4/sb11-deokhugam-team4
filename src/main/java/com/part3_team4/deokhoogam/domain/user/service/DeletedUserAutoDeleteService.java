@@ -3,6 +3,7 @@ package com.part3_team4.deokhoogam.domain.user.service;
 import com.part3_team4.deokhoogam.domain.user.entity.DeletedUser;
 import com.part3_team4.deokhoogam.domain.user.exception.BatchInfiniteLoopException;
 import com.part3_team4.deokhoogam.domain.user.repository.DeletedUserRepository;
+import com.part3_team4.deokhoogam.global.metric.CustomMetrics;
 import java.time.Clock;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
@@ -20,6 +21,7 @@ import org.springframework.transaction.annotation.Transactional;
 public class DeletedUserAutoDeleteService {
   private final DeletedUserRepository deletedUserRepository;
   private final Clock clock;
+  private final CustomMetrics customMetrics;
 
   @Transactional
   public void deleteExpiredUsers() {
@@ -59,6 +61,10 @@ public class DeletedUserAutoDeleteService {
 
       long duration = System.currentTimeMillis() - startTime;
       log.info("유저 물리 삭제 배치 작업 완료. 총 처리 건수: {}건, 소요시간: {}ms", totalDeletedCount, duration);
+
+      customMetrics.recordGauge("batch.user.delete", "deleteExpiredUser", "deleted", totalDeletedCount);
+      customMetrics.recordLastSuccess("deleteExpiredUser", null);
+
 
     } catch (Exception e) {
       log.error("유저 물리 삭제 배치 작업 실패", e);

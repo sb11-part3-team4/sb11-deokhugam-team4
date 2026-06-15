@@ -1,11 +1,12 @@
 package com.part3_team4.deokhoogam.batch.delete.notification;
 
 import com.part3_team4.deokhoogam.domain.notification.service.NotificationAutoDeleteService;
+import com.part3_team4.deokhoogam.global.metric.CustomMetrics;
+import java.util.concurrent.TimeUnit;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
-import java.util.concurrent.TimeUnit;
 
 /**
  * 만료된 알림을 주기적으로 삭제하는 배치 실행 클래스입니다.
@@ -23,6 +24,7 @@ import java.util.concurrent.TimeUnit;
 public class DeleteExpiredNotificationJobConfig {
 
   private final NotificationAutoDeleteService notificationAutoDeleteService;
+  private final CustomMetrics customMetrics;
 
   /**
    * 매일 새벽 3시에 만료된 알림 삭제 작업을 실행합니다.
@@ -52,6 +54,11 @@ public class DeleteExpiredNotificationJobConfig {
           deletedCount,
           elapsedMillis
       );
+
+      customMetrics.recordGauge("batch.notification.delete", "deleteExpiredNotification", "deleted",
+          deletedCount);
+      customMetrics.recordLastSuccess("deleteExpiredNotification", null);
+
     } catch (RuntimeException exception) {
       long elapsedMillis = TimeUnit.NANOSECONDS.toMillis(
           System.nanoTime() - startNanos
