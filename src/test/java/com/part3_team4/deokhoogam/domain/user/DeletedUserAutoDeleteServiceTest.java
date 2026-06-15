@@ -11,6 +11,7 @@ import static org.mockito.Mockito.times;
 import com.part3_team4.deokhoogam.domain.user.entity.DeletedUser;
 import com.part3_team4.deokhoogam.domain.user.repository.DeletedUserRepository;
 import com.part3_team4.deokhoogam.domain.user.service.DeletedUserAutoDeleteService;
+import com.part3_team4.deokhoogam.global.metric.CustomMetrics;
 import java.time.Clock;
 import java.time.Instant;
 import java.util.List;
@@ -30,6 +31,9 @@ class DeletedUserAutoDeleteServiceTest {
 
   @Mock
   private Clock clock; // 테스트 시점의 시간을 고정하기 위한 Mock
+
+  @Mock
+  private CustomMetrics customMetrics;
 
   @InjectMocks
   private DeletedUserAutoDeleteService deletedUserAutoDeleteService;
