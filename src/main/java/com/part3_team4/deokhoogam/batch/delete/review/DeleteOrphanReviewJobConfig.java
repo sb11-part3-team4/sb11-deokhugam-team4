@@ -1,5 +1,7 @@
 package com.part3_team4.deokhoogam.batch.delete.review;
 
+import com.part3_team4.deokhoogam.batch.listener.BatchJobMetricListener;
+import com.part3_team4.deokhoogam.batch.listener.BatchStepMetricListener;
 import com.part3_team4.deokhoogam.domain.review.entity.DeletedReview;
 import com.part3_team4.deokhoogam.domain.review.repository.DeletedReviewRepository;
 import jakarta.persistence.EntityManagerFactory;
@@ -37,6 +39,9 @@ public class DeleteOrphanReviewJobConfig {
     private final PlatformTransactionManager transactionManager;
     private final EntityManagerFactory entityManagerFactory;
     private final DeletedReviewRepository deletedReviewRepository;
+
+    private final BatchJobMetricListener batchJobMetricListener;
+    private final BatchStepMetricListener batchStepMetricListener;
 
     private static final int CHUNK_SIZE = 100;
 
@@ -83,6 +88,7 @@ public class DeleteOrphanReviewJobConfig {
             .<DeletedReview, DeletedReview>chunk(CHUNK_SIZE, transactionManager)
             .reader(orphanDeletedReviewReader())
             .writer(orphanDeletedReviewWriter())
+            .listener(batchStepMetricListener)
             .build();
     }
 

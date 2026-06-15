@@ -31,7 +31,7 @@ public class PopularReviewCalculator {
     private final StringRedisTemplate redisTemplate;
 
     @Transactional
-    public void calculateAndSave(PeriodType period) {
+    public int calculateAndSave(PeriodType period) {
 
         PopularReviewPeriod range = PopularReviewPeriod.of(period);
 
@@ -62,7 +62,7 @@ public class PopularReviewCalculator {
                 LocalDate.now(ZoneId.of("Asia/Seoul"))
             ));
         }
-        popularReviewRepository.saveAll(results);
+      int size = popularReviewRepository.saveAll(results).size();
 
         // 커밋 후 캐시 삭제
         if (TransactionSynchronizationManager.isSynchronizationActive()) {
@@ -88,6 +88,7 @@ public class PopularReviewCalculator {
                 }
             );
         }
+        return size;
     }
     private record Scored(Review review, BigDecimal score) {}
 

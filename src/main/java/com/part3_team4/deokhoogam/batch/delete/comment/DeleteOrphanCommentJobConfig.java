@@ -1,5 +1,7 @@
 package com.part3_team4.deokhoogam.batch.delete.comment;
 
+import com.part3_team4.deokhoogam.batch.listener.BatchJobMetricListener;
+import com.part3_team4.deokhoogam.batch.listener.BatchStepMetricListener;
 import com.part3_team4.deokhoogam.domain.comment.entity.DeletedComment;
 import com.part3_team4.deokhoogam.domain.comment.repository.DeletedCommentRepository;
 import jakarta.persistence.EntityManagerFactory;
@@ -32,6 +34,9 @@ public class DeleteOrphanCommentJobConfig {
     private final PlatformTransactionManager transactionManager;
     private final EntityManagerFactory entityManagerFactory;
     private final DeletedCommentRepository deletedCommentRepository;
+
+    private final BatchJobMetricListener batchJobMetricListener;
+    private final BatchStepMetricListener batchStepMetricListener;
 
     private static final int CHUNK_SIZE = 100;
 
@@ -77,6 +82,7 @@ public class DeleteOrphanCommentJobConfig {
             .<DeletedComment, DeletedComment>chunk(CHUNK_SIZE, transactionManager)
             .reader(orphanDeletedCommentReader())
             .writer(orphanDeletedCommentWriter())
+            .listener(batchStepMetricListener)
             .build();
     }
 

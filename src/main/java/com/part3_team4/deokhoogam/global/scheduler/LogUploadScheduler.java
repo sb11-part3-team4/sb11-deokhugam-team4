@@ -1,7 +1,9 @@
 package com.part3_team4.deokhoogam.global.scheduler;
 
+import com.part3_team4.deokhoogam.global.metric.CustomMetrics;
 import java.io.File;
 import java.time.LocalDate;
+import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -19,6 +21,7 @@ import software.amazon.awssdk.services.s3.model.PutObjectRequest;
 public class LogUploadScheduler {
 
   private final S3Client s3Client;
+  private final CustomMetrics customMetrics;
 
   @Value("${spring.cloud.aws.s3.bucket}")
   private String bucketName;
@@ -27,7 +30,7 @@ public class LogUploadScheduler {
   public void uploadYesterdayLog() {
 
     // 전날 날짜로 파일명 생성
-    String yesterday = LocalDate.now().minusDays(1)
+    String yesterday = LocalDate.now(ZoneId.of("Asia/Seoul")).minusDays(1)
         .format(DateTimeFormatter.ofPattern("yyyy-MM-dd"));
     String fileName = "deokhugam." + yesterday + ".log";
     File logFile = new File("logs/" + fileName);
@@ -48,6 +51,8 @@ public class LogUploadScheduler {
 
       s3Client.putObject(request, logFile.toPath());
       log.info("로그 파일 S3 업로드 완료: {}, size={} bytes", fileName, logFile.length());
+      customMetrics.recordGauge("batch.log.upload", "uploadLog", "uploaded", 1);   // ← 성공 직후 여기
+      customMetrics.recordLastSuccess("uploadLog", null);
 
       // 로컬 파일 삭제
       if (logFile.delete()) {
@@ -58,6 +63,7 @@ public class LogUploadScheduler {
 
     } catch (Exception e) {
       log.error("로그 파일 S3 업로드 실패: {}", fileName, e);
+      customMetrics.recordGauge("batch.log.upload", "uploadLog", "failed", 1);
     }
   }
 }

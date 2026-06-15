@@ -3,6 +3,7 @@ package com.part3_team4.deokhoogam.batch.delete.notification;
 import static org.mockito.BDDMockito.then;
 
 import com.part3_team4.deokhoogam.domain.notification.service.NotificationAutoDeleteService;
+import com.part3_team4.deokhoogam.global.metric.CustomMetrics;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -23,8 +24,12 @@ class DeleteExpiredNotificationJobConfigTest {
   @Mock
   private NotificationAutoDeleteService notificationAutoDeleteService;
 
+  @Mock
+  private CustomMetrics customMetrics;
+
   @InjectMocks
   private DeleteExpiredNotificationJobConfig deleteExpiredNotificationJobConfig;
+
 
   @Test
   @DisplayName("만료된 알림 삭제 배치가 실행되면 알림 자동 삭제 서비스를 호출한다")

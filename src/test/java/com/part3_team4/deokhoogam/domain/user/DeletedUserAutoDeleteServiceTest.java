@@ -12,6 +12,7 @@ import com.part3_team4.deokhoogam.domain.user.entity.DeletedUser;
 import com.part3_team4.deokhoogam.domain.user.entity.UserDeletedEvent;
 import com.part3_team4.deokhoogam.domain.user.repository.DeletedUserRepository;
 import com.part3_team4.deokhoogam.domain.user.service.DeletedUserAutoDeleteService;
+import com.part3_team4.deokhoogam.global.metric.CustomMetrics;
 import java.time.Clock;
 import java.time.Instant;
 import java.util.List;
@@ -36,6 +37,9 @@ class DeletedUserAutoDeleteServiceTest {
 
   @Mock
   private ApplicationEventPublisher eventPublisher;
+
+  @Mock
+  private CustomMetrics customMetrics;
 
   @InjectMocks
   private DeletedUserAutoDeleteService deletedUserAutoDeleteService;

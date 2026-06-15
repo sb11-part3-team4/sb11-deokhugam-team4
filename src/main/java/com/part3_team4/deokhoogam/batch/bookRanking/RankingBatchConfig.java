@@ -1,6 +1,7 @@
-package com.part3_team4.deokhoogam.batch.BookRanking;
+package com.part3_team4.deokhoogam.batch.bookRanking;
 
 
+import com.part3_team4.deokhoogam.batch.listener.BatchJobMetricListener;
 import com.part3_team4.deokhoogam.domain.book.entity.PeriodType;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -20,29 +21,31 @@ import org.springframework.transaction.PlatformTransactionManager;
 @RequiredArgsConstructor
 public class RankingBatchConfig {
 
+  private final BatchJobMetricListener batchJobMetricListener;
   private final JobRepository jobRepository;
   private final PlatformTransactionManager transactionManager;
   private final RankingCalculator rankingCalculator;
 
   // Job: 전체 작업 봉투
   @Bean
-  public Job rankingJob() {
-    return new JobBuilder("rankingJob", jobRepository)
-        .start(rankingStep())
+  public Job popularBookRankingJob() {
+    return new JobBuilder("popularBookRankingJob", jobRepository)
+        .listener(batchJobMetricListener)
+        .start(popularBookRankingStep())
         .build();
   }
 
   // Step: Tasklet 하나로 구성
   @Bean
-  public Step rankingStep() {
+  public Step popularBookRankingStep() {
     return new StepBuilder("rankingStep", jobRepository)
-        .tasklet(rankingTasklet(), transactionManager)
+        .tasklet(popularBookRankingTasklet(), transactionManager)
         .build();
   }
 
   // Tasklet: 4개 기간에 대해 calculateAndSave 실행
   @Bean
-  public Tasklet rankingTasklet() {
+  public Tasklet popularBookRankingTasklet() {
     return (contribution, chunkContext) -> {
       log.info("인기 도서 랭킹 산출 시작");
       for (PeriodType period : PeriodType.values()) {

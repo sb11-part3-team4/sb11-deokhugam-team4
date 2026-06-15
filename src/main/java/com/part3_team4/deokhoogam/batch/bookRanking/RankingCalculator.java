@@ -1,4 +1,4 @@
-package com.part3_team4.deokhoogam.batch.BookRanking;
+package com.part3_team4.deokhoogam.batch.bookRanking;
 
 
 import com.part3_team4.deokhoogam.domain.book.dto.ranking.BookScoreProjection;
@@ -7,6 +7,7 @@ import com.part3_team4.deokhoogam.domain.book.entity.BookRanking;
 import com.part3_team4.deokhoogam.domain.book.entity.PeriodType;
 import com.part3_team4.deokhoogam.domain.book.repository.BookRepository;
 import com.part3_team4.deokhoogam.domain.book.repository.ranking.BookRankingRepository;
+import com.part3_team4.deokhoogam.global.metric.CustomMetrics;
 import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.ArrayList;
@@ -36,6 +37,8 @@ public class RankingCalculator {
 
 
   private final RankingScoreCalculator scoreCalculator;
+
+  private final CustomMetrics customMetrics;
 
   @Transactional
   public void calculateAndSave(PeriodType period) {
@@ -83,7 +86,10 @@ public class RankingCalculator {
     bookRankingRepository.flush();
     bookRankingRepository.saveAll(rankings);
 
-    // 커밋 후 캐시 삭제
+    // 6. 메트릭 기록
+    customMetrics.recordCount("popularBookRankingJob", period.name(), rankings.size());
+
+    // 트랜잭션 커밋 후 Redis 캐시 삭제
     if (TransactionSynchronizationManager.isSynchronizationActive()) {
       TransactionSynchronizationManager.registerSynchronization(
           new TransactionSynchronization() {
@@ -92,15 +98,17 @@ public class RankingCalculator {
               try {
                 String pattern = "ranking:book:" + period + ":*";
                 ScanOptions options = ScanOptions.scanOptions().match(pattern).count(100).build();
+
                 List<String> keysToDelete = new ArrayList<>();
                 try (Cursor<String> cursor = redisTemplate.scan(options)) {
                   cursor.forEachRemaining(keysToDelete::add);
                 }
+
                 if (!keysToDelete.isEmpty()) {
                   redisTemplate.delete(keysToDelete);
                 }
               } catch (Exception e) {
-                log.warn("Redis 캐시 삭제 실패 (도서): period={}", period, e);
+                log.warn("Redis 캐시 삭제 실패 (무시): period={}", period, e);
               }
             }
           }

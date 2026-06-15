@@ -28,6 +28,11 @@ spring:
     properties:
       hibernate:
         default_batch_fetch_size: 1000
+        jdbc:
+          batch_size: 1000
+        order_inserts: true
+        order_updates: true
+
 
 
 logging:
@@ -50,3 +55,11 @@ cache:
     enabled: true
 
 
+
+
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health, info, metrics

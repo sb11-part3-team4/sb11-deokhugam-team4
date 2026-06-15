@@ -105,41 +105,12 @@ public class PowerUserRankingService {
 
   @Transactional
   public void calculateAndSaveAllRankings() {
-    Instant now = Instant.now();
-
-    calculateAndSaveForPeriod(PowerUserPeriod.DAILY, now.minus(1, ChronoUnit.DAYS), now);
-    calculateAndSaveForPeriod(PowerUserPeriod.WEEKLY, now.minus(7, ChronoUnit.DAYS), now);
-    calculateAndSaveForPeriod(PowerUserPeriod.MONTHLY, now.minus(30, ChronoUnit.DAYS), now);
-    calculateAndSaveForPeriod(PowerUserPeriod.ALL_TIME, Instant.EPOCH, now);
-
-    if (TransactionSynchronizationManager.isSynchronizationActive()) {
-      TransactionSynchronizationManager.registerSynchronization(
-          new TransactionSynchronization() {
-            @Override
-            public void afterCommit() {
-              for (PowerUserPeriod period : PowerUserPeriod.values()) {
-                try {
-                  String pattern = "ranking:user:" + period + ":*";
-                  ScanOptions options = ScanOptions.scanOptions().match(pattern).count(100).build();
-                  List<String> keysToDelete = new ArrayList<>();
-                  try (Cursor<String> cursor = redisTemplate.scan(options)) {
-                    cursor.forEachRemaining(keysToDelete::add);
-                  }
-                  if (!keysToDelete.isEmpty()) {
-                    redisTemplate.delete(keysToDelete);
-                  }
-                } catch (Exception e) {
-                  log.warn("Redis 캐시 삭제 실패 (파워유저): period={}", period, e);
-                }
-              }
-            }
-          }
-      );
+    for (PowerUserPeriod period : PowerUserPeriod.values()) {
+      calculateAndSaveForPeriod(period);   // ← 새 메서드 재사용
     }
-
   }
 
-  private void calculateAndSaveForPeriod(PowerUserPeriod period, Instant startDate, Instant endDate) {
+  private int calculateAndSaveForPeriod(PowerUserPeriod period, Instant startDate, Instant endDate) {
     powerUserRankingRepository.deleteByPeriod(period);
 
     Map<UUID, BigDecimal> reviewScores = powerUserRankingRepository.getReviewPopularScoreSum(startDate, endDate);
@@ -148,12 +119,40 @@ public class PowerUserRankingService {
 
     List<UserScore> userScores = calculateScores(reviewScores, likeCounts, commentCounts);
 
-    if (userScores.isEmpty()) return;
+    if (userScores.isEmpty()) return 0;
 
     List<PowerUserRanking> rankings = assignRankings(userScores, period);
     powerUserRankingRepository.saveAll(rankings);
+    return rankings.size();
   }
 
+  @Transactional
+  public int calculateAndSaveForPeriod(PowerUserPeriod period) {
+    Instant now = Instant.now();
+    Instant start = switch (period) {
+      case DAILY    -> now.minus(1, ChronoUnit.DAYS);
+      case WEEKLY   -> now.minus(7, ChronoUnit.DAYS);
+      case MONTHLY  -> now.minus(30, ChronoUnit.DAYS);
+      case ALL_TIME -> Instant.EPOCH;
+    };
+    int saved = calculateAndSaveForPeriod(period, start, now);
+
+    // 커밋 후 캐시 무효화 (limit별 키 전부 패턴 삭제)
+    if (TransactionSynchronizationManager.isSynchronizationActive()) {
+      TransactionSynchronizationManager.registerSynchronization(
+          new TransactionSynchronization() {
+            @Override
+            public void afterCommit() {
+              evictRankingCache(period);
+            }
+          }
+      );
+    } else {
+      evictRankingCache(period);
+    }
+
+    return saved;
+  }
   public List<UserScore> calculateScores(Map<UUID, BigDecimal> reviewScores, Map<UUID, Long> likeCounts, Map<UUID, Long> commentCounts) {
     Set<UUID> activeUserIds = new HashSet<>();
     activeUserIds.addAll(reviewScores.keySet());
@@ -194,5 +193,21 @@ public class PowerUserRankingService {
           .build());
     }
     return rankings;
+  }
+  private void evictRankingCache(PowerUserPeriod period) {
+    try {
+      String pattern = "ranking:user:" + period + ":*";
+      ScanOptions options = ScanOptions.scanOptions().match(pattern).count(100).build();
+
+      List<String> keysToDelete = new ArrayList<>();
+      try (Cursor<String> cursor = redisTemplate.scan(options)) {
+        cursor.forEachRemaining(keysToDelete::add);
+      }
+      if (!keysToDelete.isEmpty()) {
+        redisTemplate.delete(keysToDelete);
+      }
+    } catch (Exception e) {
+      log.warn("파워유저 랭킹 캐시 삭제 실패 (무시): period={}", period, e);
+    }
   }
 }

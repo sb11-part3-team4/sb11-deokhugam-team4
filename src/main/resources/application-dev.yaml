@@ -14,7 +14,7 @@ spring:
         use_sql_comments: true
 
   datasource:
-    url: jdbc:postgresql://localhost:54321/deokhugam
+    url: jdbc:postgresql://localhost:54321/deokhugam?reWriteBatchedInserts=true
     username: team4
     password: deokhugam4!
     driver-class-name: org.postgresql.Driver
@@ -39,6 +39,8 @@ logging:
     com.sprint.mission.discodeit: DEBUG
     org.hibernate.SQL: DEBUG
     org.hibernate.orm.jdbc.bind: TRACE
+    com.zaxxer.hikari: DEBUG
+    com.zaxxer.hikari.HikariConfig: DEBUG
 
 
 

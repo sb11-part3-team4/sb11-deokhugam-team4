@@ -1,6 +1,9 @@
 package com.part3_team4.deokhoogam.batch.userRanking;
 
+import com.part3_team4.deokhoogam.batch.listener.BatchJobMetricListener;
+import com.part3_team4.deokhoogam.domain.user.enums.PowerUserPeriod;
 import com.part3_team4.deokhoogam.domain.user.service.PowerUserRankingService;
+import com.part3_team4.deokhoogam.global.metric.CustomMetrics;
 import java.time.Instant;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -22,10 +25,15 @@ public class PowerUserRankingBatchConfig {
   private final JobRepository jobRepository;
   private final PlatformTransactionManager transactionManager;
   private final PowerUserRankingService powerUserRankingService;
+  private final BatchJobMetricListener batchJobMetricListener;
+  private final CustomMetrics customMetrics;
+
+
 
   @Bean
   public Job powerUserRankingJob() {
     return new JobBuilder("powerUserRankingJob", jobRepository)
+        .listener(batchJobMetricListener)
         .start(powerUserRankingStep())
         .build();
   }
@@ -40,15 +48,13 @@ public class PowerUserRankingBatchConfig {
   @Bean
   public Tasklet powerUserRankingTasklet() {
     return (contribution, chunkContext) -> {
-      long startTime = System.currentTimeMillis();
       log.info("파워 유저 랭킹 산정 시작. 실행 시각: {}", Instant.now());
-
       try {
-        powerUserRankingService.calculateAndSaveAllRankings();
-
-        long duration = System.currentTimeMillis() - startTime;
-        log.info("파워 유저 랭킹 산정 완료. 소요시간: {}ms", duration);
-
+        for (PowerUserPeriod period : PowerUserPeriod.values()) {
+          int saved = powerUserRankingService.calculateAndSaveForPeriod(period);
+          customMetrics.recordCount("powerUserRankingJob", period.name(), saved);
+        }
+        log.info("파워 유저 랭킹 산정 완료");
         return RepeatStatus.FINISHED;
       } catch (Exception e) {
         log.error("파워 유저 랭킹 산정 실패", e);
