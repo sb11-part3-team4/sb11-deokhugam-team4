@@ -98,7 +98,9 @@ tasks.named('jacocoTestReport') {
                         "**/entity/**",
                         "**/exception/**",
                         "**/global/exception/**",
-                        "**/Q*.class"
+                        "**/Q*.class",
+                        "**/batch/**/*Listener*",
+                        "**/batch/**/*Scheduler*"
                 ])
             })
     )
