@@ -88,6 +88,8 @@ class BookServiceTest {
 
   @Mock
   private OrphanThumbnailRepository orphanThumbnailRepository;
+
+  @Mock
   private ApplicationEventPublisher eventPublisher;
 
   private static final String BOOK_THUMBNAIL_DIR = "books";
