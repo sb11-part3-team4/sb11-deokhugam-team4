@@ -30,7 +30,7 @@ public class CustomMetrics {
       g.register(meterRegistry);
       return al;
     });
-    holder.set(count);   // ← 더하는 게 아니라 덮어쓰기
+    holder.set(count);
   }
   //최근 성공 시간 기록
   public void recordLastSuccess(String job, String period) {

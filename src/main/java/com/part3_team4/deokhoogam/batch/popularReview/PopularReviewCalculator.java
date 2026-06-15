@@ -5,16 +5,15 @@ import com.part3_team4.deokhoogam.domain.review.entity.PopularReview;
 import com.part3_team4.deokhoogam.domain.review.entity.Review;
 import com.part3_team4.deokhoogam.domain.review.repository.PopularReviewRepository;
 import com.part3_team4.deokhoogam.domain.review.repository.ReviewRepository;
-import lombok.RequiredArgsConstructor;
-import org.springframework.stereotype.Component;
-import org.springframework.transaction.annotation.Transactional;
-
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.ZoneId;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
+import lombok.RequiredArgsConstructor;
+import org.springframework.stereotype.Component;
+import org.springframework.transaction.annotation.Transactional;
 
 @Component
 @RequiredArgsConstructor
@@ -24,7 +23,7 @@ public class PopularReviewCalculator {
     private final PopularReviewRepository popularReviewRepository;
 
     @Transactional
-    public void calculateAndSave(PeriodType period) {
+    public int calculateAndSave(PeriodType period) {
 
         PopularReviewPeriod range = PopularReviewPeriod.of(period);
 
@@ -53,7 +52,8 @@ public class PopularReviewCalculator {
                     LocalDate.now(ZoneId.of("Asia/Seoul"))
             ));
         }
-        popularReviewRepository.saveAll(results);
+        return popularReviewRepository.saveAll(results).size();
+
     }
     private record Scored(Review review, BigDecimal score) {}
 

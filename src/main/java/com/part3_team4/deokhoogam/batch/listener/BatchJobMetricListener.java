@@ -1,5 +1,6 @@
 package com.part3_team4.deokhoogam.batch.listener;
 
+import com.part3_team4.deokhoogam.global.metric.CustomMetrics;
 import io.micrometer.core.instrument.Counter;
 import io.micrometer.core.instrument.MeterRegistry;
 import io.micrometer.core.instrument.Timer;
@@ -15,6 +16,7 @@ import org.springframework.stereotype.Component;
 public class BatchJobMetricListener implements JobExecutionListener {
 
   private final MeterRegistry meterRegistry;
+  private final CustomMetrics customMetrics;
 
   @Override
   public void beforeJob(JobExecution jobExecution) {
@@ -33,5 +35,9 @@ public class BatchJobMetricListener implements JobExecutionListener {
     String status = jobExecution.getStatus() == BatchStatus.COMPLETED ? "success" : "failure";
     Counter.builder("batch.execution.count").tag("job", jobName).tag("status", status)
         .register(meterRegistry).increment();
+
+    if (jobExecution.getStatus() == BatchStatus.COMPLETED) {
+      customMetrics.recordLastSuccess(jobName, null);
+    }
   }
 }

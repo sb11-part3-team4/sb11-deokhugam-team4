@@ -28,24 +28,24 @@ public class RankingBatchConfig {
 
   // Job: 전체 작업 봉투
   @Bean
-  public Job rankingJob() {
+  public Job popularBookRankingJob() {
     return new JobBuilder("rankingJob", jobRepository)
         .listener(batchJobMetricListener)
-        .start(rankingStep())
+        .start(popularBookRankingStep())
         .build();
   }
 
   // Step: Tasklet 하나로 구성
   @Bean
-  public Step rankingStep() {
+  public Step popularBookRankingStep() {
     return new StepBuilder("rankingStep", jobRepository)
-        .tasklet(rankingTasklet(), transactionManager)
+        .tasklet(popularBookRankingTasklet(), transactionManager)
         .build();
   }
 
   // Tasklet: 4개 기간에 대해 calculateAndSave 실행
   @Bean
-  public Tasklet rankingTasklet() {
+  public Tasklet popularBookRankingTasklet() {
     return (contribution, chunkContext) -> {
       log.info("인기 도서 랭킹 산출 시작");
       for (PeriodType period : PeriodType.values()) {
