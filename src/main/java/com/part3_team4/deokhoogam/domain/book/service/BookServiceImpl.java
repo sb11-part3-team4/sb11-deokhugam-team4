@@ -9,6 +9,7 @@ import com.part3_team4.deokhoogam.domain.book.dto.NaverBookDto;
 import com.part3_team4.deokhoogam.domain.book.entity.Book;
 import com.part3_team4.deokhoogam.domain.book.entity.BookDeletedEvent;
 import com.part3_team4.deokhoogam.domain.book.entity.DeletedBook;
+import com.part3_team4.deokhoogam.domain.book.entity.OrphanThumbnail;
 import com.part3_team4.deokhoogam.domain.book.entity.SortType;
 import com.part3_team4.deokhoogam.domain.book.exception.BookNotFoundException;
 import com.part3_team4.deokhoogam.domain.book.exception.InvalidIsbnException;
@@ -17,6 +18,7 @@ import com.part3_team4.deokhoogam.domain.book.infrastructure.naver.NaverApiServi
 import com.part3_team4.deokhoogam.domain.book.repository.BookPersistence;
 import com.part3_team4.deokhoogam.domain.book.repository.BookRepository;
 import com.part3_team4.deokhoogam.domain.book.repository.DeletedBookRepository;
+import com.part3_team4.deokhoogam.domain.book.repository.OrphanThumbnailRepository;
 import com.part3_team4.deokhoogam.global.common.PageResponse;
 import com.part3_team4.deokhoogam.global.exception.ErrorCode;
 import com.part3_team4.deokhoogam.global.exception.InvalidRequestException;
@@ -45,6 +47,7 @@ public class BookServiceImpl implements BookService {
 
   private final BookRepository bookRepository;
   private final DeletedBookRepository deletedBookRepository;
+  private final OrphanThumbnailRepository orphanThumbnailRepository;
 
   private final FileUploader fileUploader;
 
@@ -99,12 +102,21 @@ public class BookServiceImpl implements BookService {
 
   @Override
   public BookDto update(UUID id, BookUpdateRequest request, MultipartFile thumbnailFile) {
+    Book oldBook = bookRepository.findById(id).orElseThrow(() -> BookNotFoundException.withId(id));
+    String oldThumbnailUrl = oldBook.getThumbnailUrl();
+
     String newThumbnailUrl = uploadThumbnail(thumbnailFile);
     String originalFilename = extractOriginalFilename(thumbnailFile);
 
     try {
-      // TODO: 기존 썸네일 삭제 정책은 추후 Reconciliation를 도입하여 고도화 예정
       Book updatedBook = bookPersistence.update(id, request, newThumbnailUrl, originalFilename);
+
+      if (newThumbnailUrl != null && oldThumbnailUrl != null
+          && !oldThumbnailUrl.equals(newThumbnailUrl)) {
+        orphanThumbnailRepository.save(new OrphanThumbnail(oldThumbnailUrl));
+        log.info("고아 썸네일 등록: {}", oldThumbnailUrl);
+      }
+
       log.info("도서 수정 완료: bookId={}", id);
       return BookDto.from(updatedBook);
 

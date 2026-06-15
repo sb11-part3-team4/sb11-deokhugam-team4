@@ -54,6 +54,18 @@ CREATE TABLE deleted_book
     deleted_at        TIMESTAMPTZ   NOT NULL
 );
 
+-- 썸네일 고아파일
+CREATE TABLE orphan_thumbnail
+(
+    id         UUID PRIMARY KEY,
+    created_at TIMESTAMPTZ  NOT NULL,
+    updated_at TIMESTAMPTZ,
+    file_url   VARCHAR(512) NOT NULL
+);
+
+-- 배치 조회
+CREATE INDEX idx_orphan_thumbnail_created_at ON orphan_thumbnail (created_at);
+
 -- User
 CREATE TABLE "user"
 (
@@ -97,7 +109,8 @@ CREATE TABLE review
 CREATE UNIQUE INDEX idx_review_user_book_unique ON review (user_id, book_id);
 
 -- 정렬
-CREATE INDEX idx_review_book_created ON review (book_id, created_at DESC);
+CREATE INDEX idx_review_cursor_created_at ON review (book_id, created_at DESC, id DESC);
+CREATE INDEX idx_review_cursor_rating ON review (book_id, rating DESC, created_at DESC, id DESC);
 
 -- DeletedReview
 CREATE TABLE deleted_review

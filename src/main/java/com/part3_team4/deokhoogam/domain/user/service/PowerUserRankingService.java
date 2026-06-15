@@ -43,7 +43,7 @@ public class PowerUserRankingService {
   public record UserScore(UUID userId, BigDecimal score) {}
 
   public List<PowerUserRankingResponseDto> getRankingWithNickname(PowerUserPeriod period, int limit) {
-    String key = "ranking:user:" + period;
+    String key = "ranking:user:" + period + ":" + limit;
 
     // 캐시 조회
     if (cacheEnabled) {

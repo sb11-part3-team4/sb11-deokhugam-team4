@@ -39,6 +39,7 @@ public enum ErrorCode {
   REVIEW_ALREADY_EXISTS(HttpStatus.CONFLICT, "REVIEW-002", "이미 해당 도서에 작성한 리뷰가 존재합니다."),
   REVIEW_INVALID_INPUT(HttpStatus.BAD_REQUEST, "REVIEW-003", "올바르지 않은 리뷰 정보입니다."),
   REVIEW_NOT_OWNER(HttpStatus.FORBIDDEN, "REVIEW-004", "사용자가 남긴 리뷰가 아닙니다."),
+  REVIEW_LIKE_ALREADY_EXISTS(HttpStatus.CONFLICT, "REVIEW-005", "이미 좋아요를 누른 리뷰입니다."),
 
   // 5. 알림 예외
   NOTIFICATION_NOT_FOUND(HttpStatus.NOT_FOUND, "NOTIFICATION-001", "존재하지 않는 알림입니다."),
