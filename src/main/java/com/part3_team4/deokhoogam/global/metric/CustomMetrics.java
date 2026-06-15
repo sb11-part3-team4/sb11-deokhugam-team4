@@ -46,4 +46,18 @@ public class CustomMetrics {
     });
     holder.set(System.currentTimeMillis());
   }
+
+  // 고아 데이터 정리용
+  public void recordGauge(String metricName, String job, String type, long value) {
+    String key = metricName + ":" + job + ":" + type;
+    AtomicLong holder = countHolders.computeIfAbsent(key, k -> {
+      AtomicLong al = new AtomicLong();
+      Gauge.builder(metricName, al, AtomicLong::get)
+          .tag("job", job)
+          .tag("type", type)
+          .register(meterRegistry);
+      return al;
+    });
+    holder.set(value);
+  }
 }

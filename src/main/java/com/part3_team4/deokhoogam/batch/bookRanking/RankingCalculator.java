@@ -85,8 +85,8 @@ public class RankingCalculator {
     bookRankingRepository.saveAll(rankings);
 
     // 6. 메트릭 기록
-    customMetrics.recordCount("RankingBookJob", period.name(), rankings.size());
-    customMetrics.recordLastSuccess("RankingBookJob", period.name());
+    customMetrics.recordCount("popularBookRankingJob", period.name(), rankings.size());
+
 
 
     //기존 캐시 삭제

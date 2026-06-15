@@ -29,7 +29,7 @@ public class RankingBatchConfig {
   // Job: 전체 작업 봉투
   @Bean
   public Job popularBookRankingJob() {
-    return new JobBuilder("rankingJob", jobRepository)
+    return new JobBuilder("popularBookRankingJob", jobRepository)
         .listener(batchJobMetricListener)
         .start(popularBookRankingStep())
         .build();

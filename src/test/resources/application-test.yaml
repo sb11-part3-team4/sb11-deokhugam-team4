@@ -23,6 +23,7 @@ spring:
     job:
       enabled: false
 
+
   cloud:
     aws:
       s3:

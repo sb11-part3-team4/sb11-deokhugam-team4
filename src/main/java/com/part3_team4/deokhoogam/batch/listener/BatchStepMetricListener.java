@@ -17,10 +17,12 @@ public class BatchStepMetricListener implements StepExecutionListener {
   public ExitStatus afterStep(StepExecution stepExecution) {
     String jobName = stepExecution.getJobExecution().getJobInstance().getJobName();
 
-    // Spring Batch가 자동으로 세어둔 "삭제(=쓴) 건수"
-    long deleted = stepExecution.getWriteCount();
+    long detected = stepExecution.getReadCount();    // reader가 읽은 = 찾은 고아 수
+    long deleted  = stepExecution.getWriteCount();   // writer가 쓴 = 지운 수
 
-    customMetrics.recordCount(jobName, null, deleted);  // 0건이어도 자동 기록됨
+    customMetrics.recordGauge("batch.orphan.count", jobName, "detected", detected);
+    customMetrics.recordGauge("batch.orphan.count", jobName, "deleted", deleted);
+
     return stepExecution.getExitStatus();
   }
 }

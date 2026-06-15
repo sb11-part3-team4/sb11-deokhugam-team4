@@ -7,7 +7,6 @@ import com.part3_team4.deokhoogam.domain.user.entity.PowerUserRanking;
 import com.part3_team4.deokhoogam.domain.user.enums.PowerUserPeriod;
 import com.part3_team4.deokhoogam.domain.user.repository.PowerUserRankingRepository;
 import java.math.BigDecimal;
-import java.time.Duration;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
@@ -18,10 +17,10 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
-import org.springframework.data.domain.PageRequest;
-import org.springframework.data.domain.Pageable;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -102,21 +101,12 @@ public class PowerUserRankingService {
 
   @Transactional
   public void calculateAndSaveAllRankings() {
-    Instant now = Instant.now();
-
-    calculateAndSaveForPeriod(PowerUserPeriod.DAILY, now.minus(1, ChronoUnit.DAYS), now);
-    calculateAndSaveForPeriod(PowerUserPeriod.WEEKLY, now.minus(7, ChronoUnit.DAYS), now);
-    calculateAndSaveForPeriod(PowerUserPeriod.MONTHLY, now.minus(30, ChronoUnit.DAYS), now);
-    calculateAndSaveForPeriod(PowerUserPeriod.ALL_TIME, Instant.EPOCH, now);
-
-    try {
-      for (PowerUserPeriod period : PowerUserPeriod.values()) {
-        redisTemplate.delete("ranking:user:" + period);
-      }
-    } catch (Exception e) { }
+    for (PowerUserPeriod period : PowerUserPeriod.values()) {
+      calculateAndSaveForPeriod(period);   // ← 새 메서드 재사용
+    }
   }
 
-  private void calculateAndSaveForPeriod(PowerUserPeriod period, Instant startDate, Instant endDate) {
+  private int calculateAndSaveForPeriod(PowerUserPeriod period, Instant startDate, Instant endDate) {
     powerUserRankingRepository.deleteByPeriod(period);
 
     Map<UUID, BigDecimal> reviewScores = powerUserRankingRepository.getReviewPopularScoreSum(startDate, endDate);
@@ -125,10 +115,25 @@ public class PowerUserRankingService {
 
     List<UserScore> userScores = calculateScores(reviewScores, likeCounts, commentCounts);
 
-    if (userScores.isEmpty()) return;
+    if (userScores.isEmpty()) return 0;
 
     List<PowerUserRanking> rankings = assignRankings(userScores, period);
     powerUserRankingRepository.saveAll(rankings);
+    return rankings.size();
+  }
+
+  @Transactional
+  public int calculateAndSaveForPeriod(PowerUserPeriod period) {
+    Instant now = Instant.now();
+    Instant start = switch (period) {
+      case DAILY    -> now.minus(1, ChronoUnit.DAYS);
+      case WEEKLY   -> now.minus(7, ChronoUnit.DAYS);
+      case MONTHLY  -> now.minus(30, ChronoUnit.DAYS);
+      case ALL_TIME -> Instant.EPOCH;
+    };
+    int saved = calculateAndSaveForPeriod(period, start, now);
+    redisTemplate.delete("ranking:user:" + period);
+    return saved;
   }
 
   public List<UserScore> calculateScores(Map<UUID, BigDecimal> reviewScores, Map<UUID, Long> likeCounts, Map<UUID, Long> commentCounts) {
