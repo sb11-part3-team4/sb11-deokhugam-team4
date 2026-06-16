@@ -50,7 +50,7 @@ public class BatchScheduler {
     }
   }
 
-  @Scheduled(cron = "0/20 * * * * *", zone = "Asia/Seoul")
+  @Scheduled(cron = "0 0 * * * *", zone = "Asia/Seoul")
   public void runPopularReviewJob() {
     try {
       JobParameters params = new JobParametersBuilder()
