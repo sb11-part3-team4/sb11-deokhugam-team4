@@ -11,6 +11,8 @@
 - 유지보수성을 고려하여 객체지향 설계 원칙에 따라 개발하고, TDD 사이클을 준수하며 테스트 커버리지 80% 이상을 유지합니다.
 - GitHub Actions와 AWS ECS를 활용한 CI/CD 파이프라인을 구성하여 빌드·테스트·배포를 자동화합니다.
 
+[팀 개발 종합 보고서](https://shining-earl-0c6.notion.site/Part3-4-380a308953978018b04bebc6d6a3729b?pvs=74)
+
 ### CODECOV 배지
 
 ![codecov|112](https://codecov.io/gh/sb11-part3-team4/sb11-deokhugam-team4/branch/main/graph/badge.svg)
@@ -77,3 +79,10 @@
 ## 트러블 슈팅
 
 [위키-트러블슈팅](https://github.com/sb11-part3-team4/sb11-deokhugam-team4/wiki/Troubleshooting)
+
+
+## k6 성능 테스트
+
+k6 + influxDB + Grafana로 대시보드 시각화하여 성능 테스트 진행
+
+[덕후감 성능 테스트 레포트 최종본.pdf](https://github.com/user-attachments/files/29002262/default.pdf)
