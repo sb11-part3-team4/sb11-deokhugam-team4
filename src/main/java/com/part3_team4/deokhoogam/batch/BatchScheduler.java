@@ -14,52 +14,52 @@ import org.springframework.stereotype.Component;
 @RequiredArgsConstructor
 public class BatchScheduler {
 
-    private final JobLauncher jobLauncher;
-    private final Job deleteOrphanCommentJob;
-    private final Job deleteOrphanReviewJob;
-    private final Job deleteOrphanNotificationJob;
-    private final Job popularReviewJob;
+  private final JobLauncher jobLauncher;
+  private final Job deleteOrphanCommentJob;
+  private final Job deleteOrphanReviewJob;
+  private final Job deleteOrphanNotificationJob;
+  private final Job popularReviewJob;
 
-    @Scheduled(cron = "0 0 3 * * *")
-    public void runOrphanDeletionJobs() {
-        try {
-            JobParameters params = new JobParametersBuilder()
-                .addLong("time", System.currentTimeMillis())
-                .toJobParameters();
-            jobLauncher.run(deleteOrphanCommentJob, params);
-        } catch (Exception e) {
-            log.error("고아 댓글 삭제 배치 실행 중 오류 발생", e);
-        }
-
-        try {
-            JobParameters params = new JobParametersBuilder()
-                .addLong("time", System.currentTimeMillis())
-                .toJobParameters();
-            jobLauncher.run(deleteOrphanReviewJob, params);
-        } catch (Exception e) {
-            log.error("고아 리뷰 삭제 배치 실행 중 오류 발생", e);
-        }
-
-        try {
-            JobParameters params = new JobParametersBuilder()
-                .addLong("time", System.currentTimeMillis())
-                .toJobParameters();
-            jobLauncher.run(deleteOrphanNotificationJob, params);
-        } catch (Exception e) {
-            log.error("고아 알림 삭제 배치 실행 중 오류 발생", e);
-        }
+  @Scheduled(cron = "0 0 3 * * *", zone = "Asia/Seoul")
+  public void runOrphanDeletionJobs() {
+    try {
+      JobParameters params = new JobParametersBuilder()
+          .addLong("time", System.currentTimeMillis())
+          .toJobParameters();
+      jobLauncher.run(deleteOrphanCommentJob, params);
+    } catch (Exception e) {
+      log.error("고아 댓글 삭제 배치 실행 중 오류 발생", e);
     }
 
-    @Scheduled(cron = "0/20 * * * * *")
-    public void runPopularReviewJob() {
-        try {
-            JobParameters params = new JobParametersBuilder()
-                    .addLong("time", System.currentTimeMillis())
-                    .toJobParameters();
-            jobLauncher.run(popularReviewJob, params);
-        } catch (Exception e) {
-            log.error("인기 리뷰 집계 배치 실행 중 오류 발생", e);
-        }
+    try {
+      JobParameters params = new JobParametersBuilder()
+          .addLong("time", System.currentTimeMillis())
+          .toJobParameters();
+      jobLauncher.run(deleteOrphanReviewJob, params);
+    } catch (Exception e) {
+      log.error("고아 리뷰 삭제 배치 실행 중 오류 발생", e);
     }
+
+    try {
+      JobParameters params = new JobParametersBuilder()
+          .addLong("time", System.currentTimeMillis())
+          .toJobParameters();
+      jobLauncher.run(deleteOrphanNotificationJob, params);
+    } catch (Exception e) {
+      log.error("고아 알림 삭제 배치 실행 중 오류 발생", e);
+    }
+  }
+
+  @Scheduled(cron = "0/20 * * * * *", zone = "Asia/Seoul")
+  public void runPopularReviewJob() {
+    try {
+      JobParameters params = new JobParametersBuilder()
+          .addLong("time", System.currentTimeMillis())
+          .toJobParameters();
+      jobLauncher.run(popularReviewJob, params);
+    } catch (Exception e) {
+      log.error("인기 리뷰 집계 배치 실행 중 오류 발생", e);
+    }
+  }
 
 }

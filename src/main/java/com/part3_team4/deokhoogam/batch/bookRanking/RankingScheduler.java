@@ -23,7 +23,7 @@ public class RankingScheduler {
   }
 
   // 매시간 정각에 실행 (초 분 시 일 월 요일) -> 임시로 20초마다로 설정. 이후 메인 발표 종료 후 매시간 정각으로 수정
-  @Scheduled(cron = "0/20 * * * * *")
+  @Scheduled(cron = "0/20 * * * * *", zone = "Asia/Seoul")
   public void runRankingJob() throws Exception {
     try {
       JobParameters params = new JobParametersBuilder()
