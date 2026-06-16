@@ -35,32 +35,38 @@ class BookRepositoryTest extends RepositoryTestSupport {
   @Autowired
   private BookRepository bookRepository;
 
-  @Test
-  @DisplayName("저장된 ISBN으로 조회 시 true를 반환한다")
-  void existsByIsbn_savedIsbn_returnsTrue() {
-    // given
-    String targetIsbn = "1234567890123";
-    Book book = BookFixtures.validBook(targetIsbn);
-    bookRepository.save(book);
 
-    // when
-    boolean exists = bookRepository.existsByIsbn(targetIsbn);
+  @DisplayName("BookRepository existsByIsbn에서")
+  @Nested
+  class TestExistsIsbn {
 
-    // then
-    assertThat(exists).isTrue();
-  }
+    @Test
+    @DisplayName("저장된 ISBN으로 조회 시 true를 반환한다")
+    void existsByIsbn_savedIsbn_returnsTrue() {
+      // given
+      String targetIsbn = "1234567890123";
+      Book book = BookFixtures.validBook(targetIsbn);
+      bookRepository.save(book);
 
-  @Test
-  @DisplayName("저장되지 않은 ISBN으로 조회 시 false를 반환한다")
-  void existsByIsbn_notSavedIsbn_returnsFalse() {
-    // given
-    String notSavedIsbn = "0000000000000";
+      // when
+      boolean exists = bookRepository.existsByIsbn(targetIsbn);
 
-    // when
-    boolean notExists = bookRepository.existsByIsbn(notSavedIsbn);
+      // then
+      assertThat(exists).isTrue();
+    }
 
-    // then
-    assertThat(notExists).isFalse();
+    @Test
+    @DisplayName("저장되지 않은 ISBN으로 조회 시 false를 반환한다")
+    void existsByIsbn_notSavedIsbn_returnsFalse() {
+      // given
+      String notSavedIsbn = "0000000000000";
+
+      // when
+      boolean notExists = bookRepository.existsByIsbn(notSavedIsbn);
+
+      // then
+      assertThat(notExists).isFalse();
+    }
   }
 
 
@@ -111,9 +117,6 @@ class BookRepositoryTest extends RepositoryTestSupport {
       savedBooks.sort(
           Comparator.comparing(Book::getTitle));
 
-
-
-
       Book lastBookOfFirstPage = savedBooks.get(1);
 
       BookCursor testCursor = new BookCursor( //커서.
@@ -133,7 +136,6 @@ class BookRepositoryTest extends RepositoryTestSupport {
       // then
       assertThat(result.getContent()).hasSize(2); // 총 네개. 두개를 가져오고 두개를 추가로 가져온 상황
       assertThat(result.hasNext()).isFalse(); //
-
 
       assertThat(result.getContent().get(0).getId()).isEqualTo(savedBooks.get(2).getId());
       assertThat(result.getContent().get(1).getId()).isEqualTo(savedBooks.get(3).getId());

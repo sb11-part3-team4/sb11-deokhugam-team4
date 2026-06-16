@@ -95,397 +95,406 @@ class BookServiceTest {
   private static final String BOOK_THUMBNAIL_DIR = "books";
   private static final String ISBN_UNIQUE_CONSTRAINT = "uk_book_isbn";
 
-  @Test
-  @DisplayName("새로운 도서를 성공적으로 등록한다")
-  void createBook_Success() {
-    // given
-    BookCreateRequest request = BookFixtures.validBookCreateRequest();
-    UUID mockId = UUID.randomUUID();
+  @Nested
+  @DisplayName("도서 등록 서비스에서")
+  class TestCreateBook {
 
-    Book mockSavedBook = Book.builder()
-        .isbn(request.isbn())
-        .title(request.title())
-        .author(request.author())
-        .description(request.description())
-        .publisher(request.publisher())
-        .publishedDate(request.publishedDate())
-        .build();
+    @Test
+    @DisplayName("새로운 도서를 성공적으로 등록한다")
+    void createBook_Success() {
+      // given
+      BookCreateRequest request = BookFixtures.validBookCreateRequest();
+      UUID mockId = UUID.randomUUID();
 
-    setField(mockSavedBook, "id", mockId);
+      Book mockSavedBook = Book.builder()
+          .isbn(request.isbn())
+          .title(request.title())
+          .author(request.author())
+          .description(request.description())
+          .publisher(request.publisher())
+          .publishedDate(request.publishedDate())
+          .build();
 
-    given(bookRepository.existsByIsbn(request.isbn())).willReturn(false);
-    given(bookPersistence.save(any(Book.class))).willReturn(mockSavedBook);
+      setField(mockSavedBook, "id", mockId);
 
-    // when
-    BookDto result = bookService.create(request, null);
+      given(bookRepository.existsByIsbn(request.isbn())).willReturn(false);
+      given(bookPersistence.save(any(Book.class))).willReturn(mockSavedBook);
 
-    // then
-    assertThat(result).isNotNull();
-    assertThat(result.id()).isEqualTo(mockId);
-    assertThat(result.isbn()).isEqualTo(request.isbn());
-    assertThat(result.title()).isEqualTo(request.title());
+      // when
+      BookDto result = bookService.create(request, null);
 
-    ArgumentCaptor<Book> bookCaptor = ArgumentCaptor.forClass(Book.class);
-    then(bookPersistence).should().save(bookCaptor.capture());
+      // then
+      assertThat(result).isNotNull();
+      assertThat(result.id()).isEqualTo(mockId);
+      assertThat(result.isbn()).isEqualTo(request.isbn());
+      assertThat(result.title()).isEqualTo(request.title());
 
-    Book actualSavedBook = bookCaptor.getValue();
-    assertThat(actualSavedBook.getIsbn()).isEqualTo(request.isbn());
-    assertThat(actualSavedBook.getTitle()).isEqualTo(request.title());
-    assertThat(actualSavedBook.getAuthor()).isEqualTo(request.author());
+      ArgumentCaptor<Book> bookCaptor = ArgumentCaptor.forClass(Book.class);
+      then(bookPersistence).should().save(bookCaptor.capture());
+
+      Book actualSavedBook = bookCaptor.getValue();
+      assertThat(actualSavedBook.getIsbn()).isEqualTo(request.isbn());
+      assertThat(actualSavedBook.getTitle()).isEqualTo(request.title());
+      assertThat(actualSavedBook.getAuthor()).isEqualTo(request.author());
+    }
+
+    @Test
+    @DisplayName("도서 등록 시 썸네일 파일이 주어지면 파일 저장소에 업로드 후 원본 파일명도 함께 저장한다")
+    void createBook_WithThumbnail_Success() {
+      // given
+      BookCreateRequest request = BookFixtures.validBookCreateRequest();
+      String originalFilename = "image.png";
+      MockMultipartFile thumbnailFile = new MockMultipartFile(
+          "thumbnailFile",
+          originalFilename,
+          "image/png",
+          "test_content".getBytes());
+
+      String mockUploadedUrl = "https://s3.deokhugam.com/books/test-image.png";
+      UUID mockId = UUID.randomUUID();
+
+      given(bookRepository.existsByIsbn(request.isbn())).willReturn(false);
+      given(fileUploader.upload(any(MultipartFile.class), eq(BOOK_THUMBNAIL_DIR))).willReturn(
+          mockUploadedUrl);
+
+      Book mockSavedBook = Book.builder()
+          .isbn(request.isbn())
+          .title(request.title())
+          .author(request.author())
+          .description(request.description())
+          .publisher(request.publisher())
+          .publishedDate(request.publishedDate())
+          .thumbnailUrl(mockUploadedUrl)
+          .originalFilename(originalFilename)
+          .build();
+      setField(mockSavedBook, "id", mockId);
+
+      given(bookPersistence.save(any(Book.class))).willReturn(mockSavedBook);
+
+      // when
+      BookDto result = bookService.create(request, thumbnailFile);
+
+      // then
+      assertThat(result).isNotNull();
+      assertThat(result.thumbnailUrl()).isEqualTo(mockUploadedUrl);
+
+      ArgumentCaptor<Book> bookCaptor = ArgumentCaptor.forClass(Book.class);
+      then(bookPersistence).should().save(bookCaptor.capture());
+      assertThat(bookCaptor.getValue().getThumbnailUrl()).isEqualTo(mockUploadedUrl);
+      assertThat(bookCaptor.getValue().getOriginalFilename()).isEqualTo(originalFilename);
+    }
+
+    @Test
+    @DisplayName("파일 스토리지 업로드 중 예외가 발생하면 도서 등록이 실패하고 예외가 상위로 전파된다")
+    void createBook_ThumbnailUploadFail_ThrowsException() {
+      // given
+      BookCreateRequest request = BookFixtures.validBookCreateRequest();
+      MockMultipartFile thumbnailFile = new MockMultipartFile(
+          "thumbnailFile",
+          "image.png",
+          "image/png",
+          "test_content".getBytes());
+
+      given(bookRepository.existsByIsbn(request.isbn())).willReturn(false);
+      given(fileUploader.upload(any(MultipartFile.class), eq(BOOK_THUMBNAIL_DIR)))
+          .willThrow(new RuntimeException("S3 업로드 에러 발생"));
+
+      // when & then
+      assertThatThrownBy(() -> bookService.create(request, thumbnailFile))
+          .isInstanceOf(RuntimeException.class)
+          .hasMessageContaining("S3 업로드 에러 발생");
+
+      then(bookPersistence).shouldHaveNoInteractions();
+    }
+
+    @Test
+    @DisplayName("이미 존재하는 ISBN으로 도서를 등록하면 예외가 발생한다")
+    void createBook_WithAlreadyExistIsbn_ThrowsException() {
+      // given
+      BookCreateRequest request = BookFixtures.validBookCreateRequest();
+      given(bookRepository.existsByIsbn(request.isbn())).willReturn(true);
+
+      // when & then
+      assertThatThrownBy(() -> bookService.create(request, null))
+          .isInstanceOf(IsbnAlreadyExistsException.class);
+
+      then(bookRepository).should().existsByIsbn(request.isbn());
+      then(bookPersistence).shouldHaveNoInteractions();
+    }
+
+    @Test
+    @DisplayName("ISBN 제약 위반시 IsbnAlreadyExistsException으로 변환한다")
+    void createBook_UniqueViolationOnIsbn_ThrowsBusinessException() {
+      // given
+      BookCreateRequest request = BookFixtures.validBookCreateRequest();
+      given(bookRepository.existsByIsbn(request.isbn())).willReturn(false);
+
+      DataIntegrityViolationException exception = createDataIntegrityViolation(
+          ISBN_UNIQUE_CONSTRAINT);
+      given(bookPersistence.save(any(Book.class))).willThrow(exception);
+
+      // when & then
+      assertThatThrownBy(() -> bookService.create(request, null))
+          .isInstanceOf(IsbnAlreadyExistsException.class);
+    }
+
+    @Test
+    @DisplayName("ISBN 외 제약 위반 발생 시 원본 예외 그대로 전파한다")
+    void createBook_DataIntegrityViolationOnOtherConstraint_Propagates() {
+      // given
+      BookCreateRequest request = BookFixtures.validBookCreateRequest();
+      given(bookRepository.existsByIsbn(request.isbn())).willReturn(false);
+
+      DataIntegrityViolationException exception = createDataIntegrityViolation("other_constraint");
+      given(bookPersistence.save(any(Book.class))).willThrow(exception);
+
+      // when & then
+      assertThatThrownBy(() -> bookService.create(request, null))
+          .isInstanceOf(DataIntegrityViolationException.class);
+    }
+
+    @Test
+    @DisplayName("도서 생성 중 ISBN 제약조건 위반 예외가 발생하면 업로드된 S3 파일을 삭제하고 IsbnAlreadyExistsException을 던진다")
+    void createBook_DataIntegrityViolation_DeletesFileAndThrowsException() {
+      // given
+      BookCreateRequest request = BookFixtures.validBookCreateRequest();
+      MockMultipartFile file = new MockMultipartFile(
+          "thumbnailImage",
+          "test.png",
+          "image/png",
+          "content".getBytes());
+      String uploadedUrl = "https://s3.com/books/test.png";
+
+      given(fileUploader.upload(any(), any())).willReturn(uploadedUrl);
+
+      DataIntegrityViolationException exception = createDataIntegrityViolation(
+          ISBN_UNIQUE_CONSTRAINT);
+      given(bookPersistence.save(any(Book.class))).willThrow(exception);
+
+      // when & then
+      assertThatThrownBy(() -> bookService.create(request, file)).isInstanceOf(
+          IsbnAlreadyExistsException.class);
+
+      then(fileUploader).should().delete(uploadedUrl);
+    }
+
+    @Test
+    @DisplayName("도서 생성 중 일반 예외가 발생하면 업로드된 S3 파일을 정리하고 예외를 전파한다")
+    void createBook_GeneralException_DeletesFileAndPropagates() {
+      // given
+      BookCreateRequest request = BookFixtures.validBookCreateRequest();
+      MockMultipartFile file = new MockMultipartFile(
+          "thumbnailImage",
+          "test.png",
+          "image/png",
+          "content".getBytes());
+      String uploadedUrl = "https://s3.com/books/test.png";
+
+      given(fileUploader.upload(any(), any())).willReturn(uploadedUrl);
+
+      given(bookPersistence.save(any(Book.class)))
+          .willThrow(new RuntimeException("DB 오류 발생"));
+
+      // when & then
+      assertThatThrownBy(() -> bookService.create(request, file))
+          .isInstanceOf(RuntimeException.class);
+
+      then(fileUploader).should().delete(uploadedUrl);
+    }
+
+    @Test
+    @DisplayName("원인이 ConstraintViolationException이 아닌 DataIntegrityViolationException 발생 시 원본 예외를 전파한다")
+    void createBook_DataIntegrityViolationWithDifferentCause_Propagates() {
+      // given
+      BookCreateRequest request = BookFixtures.validBookCreateRequest();
+      given(bookRepository.existsByIsbn(request.isbn())).willReturn(false);
+
+      SQLException differentCause = new SQLException("일반적인 SQL 문법 에러 등");
+      DataIntegrityViolationException exception = new DataIntegrityViolationException("예외 발생",
+          differentCause);
+
+      given(bookPersistence.save(any(Book.class))).willThrow(exception);
+
+      // when & then
+      assertThatThrownBy(() -> bookService.create(request, null))
+          .isInstanceOf(DataIntegrityViolationException.class);
+    }
   }
 
-  @Test
-  @DisplayName("도서 등록 시 썸네일 파일이 주어지면 파일 저장소에 업로드 후 원본 파일명도 함께 저장한다")
-  void createBook_WithThumbnail_Success() {
-    // given
-    BookCreateRequest request = BookFixtures.validBookCreateRequest();
-    String originalFilename = "image.png";
-    MockMultipartFile thumbnailFile = new MockMultipartFile(
-        "thumbnailFile",
-        originalFilename,
-        "image/png",
-        "test_content".getBytes());
+  @Nested
+  @DisplayName("도서 수정 서비스에서")
+  class TestUpdateBook {
 
-    String mockUploadedUrl = "https://s3.deokhugam.com/books/test-image.png";
-    UUID mockId = UUID.randomUUID();
+    @Test
+    @DisplayName("썸네일 없이 기존 도서 정보를 요청에 따라 수정한다")
+    void updateBook_Success() {
+      // given
+      UUID targetId = UUID.randomUUID();
+      BookUpdateRequest updateRequest = BookFixtures.validBookUpdateRequest();
 
-    given(bookRepository.existsByIsbn(request.isbn())).willReturn(false);
-    given(fileUploader.upload(any(MultipartFile.class), eq(BOOK_THUMBNAIL_DIR))).willReturn(
-        mockUploadedUrl);
+      Book oldBook = BookFixtures.validBook("1234567890123");
+      setField(oldBook, "id", targetId);
+      setField(oldBook, "thumbnailUrl", "https://s3.com/old.png");
 
-    Book mockSavedBook = Book.builder()
-        .isbn(request.isbn())
-        .title(request.title())
-        .author(request.author())
-        .description(request.description())
-        .publisher(request.publisher())
-        .publishedDate(request.publishedDate())
-        .thumbnailUrl(mockUploadedUrl)
-        .originalFilename(originalFilename)
-        .build();
-    setField(mockSavedBook, "id", mockId);
+      Book updatedBook = Book.builder()
+          .isbn("1234567890123")
+          .title(updateRequest.title())
+          .author(updateRequest.author())
+          .description(updateRequest.description())
+          .publisher(updateRequest.publisher())
+          .publishedDate(updateRequest.publishedDate())
+          .thumbnailUrl("https://s3.com/old.png")
+          .build();
+      setField(updatedBook, "id", targetId);
 
-    given(bookPersistence.save(any(Book.class))).willReturn(mockSavedBook);
+      given(bookRepository.findById(targetId)).willReturn(Optional.of(oldBook));
+      given(bookPersistence.update(eq(targetId), eq(updateRequest), eq(null), eq(null)))
+          .willReturn(updatedBook);
 
-    // when
-    BookDto result = bookService.create(request, thumbnailFile);
+      // when
+      BookDto result = bookService.update(targetId, updateRequest, null);
 
-    // then
-    assertThat(result).isNotNull();
-    assertThat(result.thumbnailUrl()).isEqualTo(mockUploadedUrl);
+      // then
+      assertThat(result).isNotNull();
+      assertThat(result.id()).isEqualTo(targetId);
+      assertThat(result.title()).isEqualTo(updateRequest.title());
 
-    ArgumentCaptor<Book> bookCaptor = ArgumentCaptor.forClass(Book.class);
-    then(bookPersistence).should().save(bookCaptor.capture());
-    assertThat(bookCaptor.getValue().getThumbnailUrl()).isEqualTo(mockUploadedUrl);
-    assertThat(bookCaptor.getValue().getOriginalFilename()).isEqualTo(originalFilename);
+      then(bookPersistence).should().update(eq(targetId), eq(updateRequest), eq(null), eq(null));
+      then(orphanThumbnailRepository).shouldHaveNoInteractions();
+    }
+
+    @Test
+    @DisplayName("도서 정보 수정 시 썸네일이 주어지면 업로드 후 반영하며, 기존 썸네일은 고아 객체로 저장한다")
+    void updateBook_WithThumbnail_Success() {
+      // given
+      UUID targetId = UUID.randomUUID();
+      BookUpdateRequest request = BookFixtures.validBookUpdateRequest();
+      String newOriginalFilename = "image.png";
+      MockMultipartFile thumbnailFile = new MockMultipartFile(
+          "thumbnailFile",
+          newOriginalFilename,
+          "image/png",
+          "test_content".getBytes());
+
+      String oldMockUrl = "https://s3.deokhugam.com/books/old-image.png";
+      String newMockUrl = "https://s3.deokhugam.com/books/new-image.png";
+
+      Book oldBook = BookFixtures.validBook("1234567890123");
+      setField(oldBook, "id", targetId);
+      setField(oldBook, "thumbnailUrl", oldMockUrl);
+
+      Book updatedBook = BookFixtures.validBook("1234567890123");
+      setField(updatedBook, "id", targetId);
+      setField(updatedBook, "thumbnailUrl", newMockUrl);
+      setField(updatedBook, "originalFilename", newOriginalFilename);
+
+      given(fileUploader.upload(any(MultipartFile.class), eq(BOOK_THUMBNAIL_DIR))).willReturn(
+          newMockUrl);
+      given(bookRepository.findById(targetId)).willReturn(Optional.of(oldBook));
+      given(bookPersistence.update(eq(targetId), eq(request), eq(newMockUrl),
+          eq(newOriginalFilename))).willReturn(updatedBook);
+
+      // when
+      BookDto result = bookService.update(targetId, request, thumbnailFile);
+
+      // then
+      assertThat(result.thumbnailUrl()).isEqualTo(newMockUrl);
+
+      then(fileUploader).should(times(1)).upload(any(), eq(BOOK_THUMBNAIL_DIR));
+      then(bookPersistence).should()
+          .update(eq(targetId), eq(request), eq(newMockUrl), eq(newOriginalFilename));
+
+      ArgumentCaptor<OrphanThumbnail> orphanCaptor = ArgumentCaptor.forClass(OrphanThumbnail.class);
+      then(orphanThumbnailRepository).should(times(1)).save(orphanCaptor.capture());
+      assertThat(orphanCaptor.getValue().getFileUrl()).isEqualTo(oldMockUrl);
+    }
+
+    @Test
+    @DisplayName("도서 수정 시 파일 스토리지 업로드 중 예외가 발생하면 수정이 실패하고 예외가 전파된다")
+    void updateBook_ThumbnailUploadFail_ThrowsException() {
+      // given
+      UUID targetId = UUID.randomUUID();
+      BookUpdateRequest request = BookFixtures.validBookUpdateRequest();
+      MockMultipartFile thumbnailFile = new MockMultipartFile(
+          "thumbnailFile", "image.png", "image/png", "test_content".getBytes());
+
+      Book oldBook = BookFixtures.validBook("1234567890123");
+      setField(oldBook, "id", targetId);
+      given(bookRepository.findById(targetId)).willReturn(Optional.of(oldBook));
+
+      given(fileUploader.upload(any(MultipartFile.class), eq(BOOK_THUMBNAIL_DIR)))
+          .willThrow(new RuntimeException("S3 업로드 에러 발생"));
+
+      // when & then
+      assertThatThrownBy(() -> bookService.update(targetId, request, thumbnailFile))
+          .isInstanceOf(RuntimeException.class)
+          .hasMessageContaining("S3 업로드 에러 발생");
+
+      then(bookPersistence).shouldHaveNoInteractions();
+    }
+
+    @Test
+    @DisplayName("도서 수정 중 예외가 발생하면 새로 업로드된 S3 파일을 삭제하고 예외를 전파한다")
+    void updateBook_Exception_DeletesNewFileAndPropagates() {
+      // given
+      UUID bookId = UUID.randomUUID();
+      BookUpdateRequest request = BookFixtures.validBookUpdateRequest();
+      String newOriginalFilename = "new.png";
+      MockMultipartFile newFile = new MockMultipartFile(
+          "thumbnailImage",
+          newOriginalFilename,
+          "image/png",
+          "new-content".getBytes());
+      String newUploadedUrl = "https://s3.com/books/new.png";
+
+      Book oldBook = BookFixtures.validBook("1234567890123");
+      setField(oldBook, "id", bookId);
+
+      given(fileUploader.upload(any(), any())).willReturn(newUploadedUrl);
+      given(bookRepository.findById(bookId)).willReturn(Optional.of(oldBook));
+      given(bookPersistence.update(eq(bookId), any(), eq(newUploadedUrl), eq(newOriginalFilename)))
+          .willThrow(new RuntimeException("Update Failed"));
+
+      // when & then
+      assertThatThrownBy(() -> bookService.update(bookId, request, newFile))
+          .isInstanceOf(RuntimeException.class);
+
+      then(fileUploader).should().delete(newUploadedUrl);
+    }
+
+    @Test
+    @DisplayName("존재하지 않는 도서 ID로 수정을 요청하면 예외가 발생한다")
+    void updateBook_WithNonExistentId_ThrowsException() {
+      // given
+      UUID nonExistentId = UUID.randomUUID();
+      BookUpdateRequest request = BookFixtures.validBookUpdateRequest();
+
+      given(bookRepository.findById(nonExistentId)).willReturn(Optional.empty());
+
+      // when & then
+      assertThatThrownBy(() -> bookService.update(nonExistentId, request, null))
+          .isInstanceOf(BookNotFoundException.class);
+
+      then(bookRepository).should().findById(nonExistentId);
+      then(bookPersistence).shouldHaveNoInteractions();
+    }
+
+    @Test
+    @DisplayName("정상적인 데이터가 들어오면 Persistence에 수정을 위임한다")
+    void updateReviewData_Success() {
+      // given
+      UUID mockId = UUID.randomUUID();
+      int newCount = 10;
+      BigDecimal newRating = new BigDecimal("4.50");
+
+      // when
+      bookService.updateReviewData(mockId, newCount, newRating);
+
+      // then
+      then(bookPersistence).should().updateReviewData(mockId, newCount, newRating);
+    }
   }
 
-  @Test
-  @DisplayName("파일 스토리지 업로드 중 예외가 발생하면 도서 등록이 실패하고 예외가 상위로 전파된다")
-  void createBook_ThumbnailUploadFail_ThrowsException() {
-    // given
-    BookCreateRequest request = BookFixtures.validBookCreateRequest();
-    MockMultipartFile thumbnailFile = new MockMultipartFile(
-        "thumbnailFile",
-        "image.png",
-        "image/png",
-        "test_content".getBytes());
-
-    given(bookRepository.existsByIsbn(request.isbn())).willReturn(false);
-    given(fileUploader.upload(any(MultipartFile.class), eq(BOOK_THUMBNAIL_DIR)))
-        .willThrow(new RuntimeException("S3 업로드 에러 발생"));
-
-    // when & then
-    assertThatThrownBy(() -> bookService.create(request, thumbnailFile))
-        .isInstanceOf(RuntimeException.class)
-        .hasMessageContaining("S3 업로드 에러 발생");
-
-    then(bookPersistence).shouldHaveNoInteractions();
-  }
-
-  @Test
-  @DisplayName("이미 존재하는 ISBN으로 도서를 등록하면 예외가 발생한다")
-  void createBook_WithAlreadyExistIsbn_ThrowsException() {
-    // given
-    BookCreateRequest request = BookFixtures.validBookCreateRequest();
-    given(bookRepository.existsByIsbn(request.isbn())).willReturn(true);
-
-    // when & then
-    assertThatThrownBy(() -> bookService.create(request, null))
-        .isInstanceOf(IsbnAlreadyExistsException.class);
-
-    then(bookRepository).should().existsByIsbn(request.isbn());
-    then(bookPersistence).shouldHaveNoInteractions();
-  }
-
-  @Test
-  @DisplayName("ISBN 제약 위반시 IsbnAlreadyExistsException으로 변환한다")
-  void createBook_UniqueViolationOnIsbn_ThrowsBusinessException() {
-    // given
-    BookCreateRequest request = BookFixtures.validBookCreateRequest();
-    given(bookRepository.existsByIsbn(request.isbn())).willReturn(false);
-
-    DataIntegrityViolationException exception = createDataIntegrityViolation(
-        ISBN_UNIQUE_CONSTRAINT);
-    given(bookPersistence.save(any(Book.class))).willThrow(exception);
-
-    // when & then
-    assertThatThrownBy(() -> bookService.create(request, null))
-        .isInstanceOf(IsbnAlreadyExistsException.class);
-  }
-
-  @Test
-  @DisplayName("ISBN 외 제약 위반 발생 시 원본 예외 그대로 전파한다")
-  void createBook_DataIntegrityViolationOnOtherConstraint_Propagates() {
-    // given
-    BookCreateRequest request = BookFixtures.validBookCreateRequest();
-    given(bookRepository.existsByIsbn(request.isbn())).willReturn(false);
-
-    DataIntegrityViolationException exception = createDataIntegrityViolation("other_constraint");
-    given(bookPersistence.save(any(Book.class))).willThrow(exception);
-
-    // when & then
-    assertThatThrownBy(() -> bookService.create(request, null))
-        .isInstanceOf(DataIntegrityViolationException.class);
-  }
-
-  @Test
-  @DisplayName("도서 생성 중 ISBN 제약조건 위반 예외가 발생하면 업로드된 S3 파일을 삭제하고 IsbnAlreadyExistsException을 던진다")
-  void createBook_DataIntegrityViolation_DeletesFileAndThrowsException() {
-    // given
-    BookCreateRequest request = BookFixtures.validBookCreateRequest();
-    MockMultipartFile file = new MockMultipartFile(
-        "thumbnailImage",
-        "test.png",
-        "image/png",
-        "content".getBytes());
-    String uploadedUrl = "https://s3.com/books/test.png";
-
-    given(fileUploader.upload(any(), any())).willReturn(uploadedUrl);
-
-    DataIntegrityViolationException exception = createDataIntegrityViolation(
-        ISBN_UNIQUE_CONSTRAINT);
-    given(bookPersistence.save(any(Book.class))).willThrow(exception);
-
-    // when & then
-    assertThatThrownBy(() -> bookService.create(request, file)).isInstanceOf(
-        IsbnAlreadyExistsException.class);
-
-    then(fileUploader).should().delete(uploadedUrl);
-  }
-
-  @Test
-  @DisplayName("도서 생성 중 일반 예외가 발생하면 업로드된 S3 파일을 정리하고 예외를 전파한다")
-  void createBook_GeneralException_DeletesFileAndPropagates() {
-    // given
-    BookCreateRequest request = BookFixtures.validBookCreateRequest();
-    MockMultipartFile file = new MockMultipartFile(
-        "thumbnailImage",
-        "test.png",
-        "image/png",
-        "content".getBytes());
-    String uploadedUrl = "https://s3.com/books/test.png";
-
-    given(fileUploader.upload(any(), any())).willReturn(uploadedUrl);
-
-    given(bookPersistence.save(any(Book.class)))
-        .willThrow(new RuntimeException("DB 오류 발생"));
-
-    // when & then
-    assertThatThrownBy(() -> bookService.create(request, file))
-        .isInstanceOf(RuntimeException.class);
-
-    then(fileUploader).should().delete(uploadedUrl);
-  }
-
-  @Test
-  @DisplayName("원인이 ConstraintViolationException이 아닌 DataIntegrityViolationException 발생 시 원본 예외를 전파한다")
-  void createBook_DataIntegrityViolationWithDifferentCause_Propagates() {
-    // given
-    BookCreateRequest request = BookFixtures.validBookCreateRequest();
-    given(bookRepository.existsByIsbn(request.isbn())).willReturn(false);
-
-    SQLException differentCause = new SQLException("일반적인 SQL 문법 에러 등");
-    DataIntegrityViolationException exception = new DataIntegrityViolationException("예외 발생",
-        differentCause);
-
-    given(bookPersistence.save(any(Book.class))).willThrow(exception);
-
-    // when & then
-    assertThatThrownBy(() -> bookService.create(request, null))
-        .isInstanceOf(DataIntegrityViolationException.class);
-  }
-
-  @Test
-  @DisplayName("썸네일 없이 기존 도서 정보를 요청에 따라 수정한다")
-  void updateBook_Success() {
-    // given
-    UUID targetId = UUID.randomUUID();
-    BookUpdateRequest updateRequest = BookFixtures.validBookUpdateRequest();
-
-    Book oldBook = BookFixtures.validBook("1234567890123");
-    setField(oldBook, "id", targetId);
-    setField(oldBook, "thumbnailUrl", "https://s3.com/old.png");
-
-    Book updatedBook = Book.builder()
-        .isbn("1234567890123")
-        .title(updateRequest.title())
-        .author(updateRequest.author())
-        .description(updateRequest.description())
-        .publisher(updateRequest.publisher())
-        .publishedDate(updateRequest.publishedDate())
-        .thumbnailUrl("https://s3.com/old.png")
-        .build();
-    setField(updatedBook, "id", targetId);
-    
-    given(bookRepository.findById(targetId)).willReturn(Optional.of(oldBook));
-    given(bookPersistence.update(eq(targetId), eq(updateRequest), eq(null), eq(null)))
-        .willReturn(updatedBook);
-
-    // when
-    BookDto result = bookService.update(targetId, updateRequest, null);
-
-    // then
-    assertThat(result).isNotNull();
-    assertThat(result.id()).isEqualTo(targetId);
-    assertThat(result.title()).isEqualTo(updateRequest.title());
-
-    then(bookPersistence).should().update(eq(targetId), eq(updateRequest), eq(null), eq(null));
-    then(orphanThumbnailRepository).shouldHaveNoInteractions();
-  }
-
-  @Test
-  @DisplayName("도서 정보 수정 시 썸네일이 주어지면 업로드 후 반영하며, 기존 썸네일은 고아 객체로 저장한다")
-  void updateBook_WithThumbnail_Success() {
-    // given
-    UUID targetId = UUID.randomUUID();
-    BookUpdateRequest request = BookFixtures.validBookUpdateRequest();
-    String newOriginalFilename = "image.png";
-    MockMultipartFile thumbnailFile = new MockMultipartFile(
-        "thumbnailFile",
-        newOriginalFilename,
-        "image/png",
-        "test_content".getBytes());
-
-    String oldMockUrl = "https://s3.deokhugam.com/books/old-image.png";
-    String newMockUrl = "https://s3.deokhugam.com/books/new-image.png";
-
-    Book oldBook = BookFixtures.validBook("1234567890123");
-    setField(oldBook, "id", targetId);
-    setField(oldBook, "thumbnailUrl", oldMockUrl);
-
-    Book updatedBook = BookFixtures.validBook("1234567890123");
-    setField(updatedBook, "id", targetId);
-    setField(updatedBook, "thumbnailUrl", newMockUrl);
-    setField(updatedBook, "originalFilename", newOriginalFilename);
-
-    given(fileUploader.upload(any(MultipartFile.class), eq(BOOK_THUMBNAIL_DIR))).willReturn(
-        newMockUrl);
-    given(bookRepository.findById(targetId)).willReturn(Optional.of(oldBook));
-    given(bookPersistence.update(eq(targetId), eq(request), eq(newMockUrl),
-        eq(newOriginalFilename))).willReturn(updatedBook);
-
-    // when
-    BookDto result = bookService.update(targetId, request, thumbnailFile);
-
-    // then
-    assertThat(result.thumbnailUrl()).isEqualTo(newMockUrl);
-
-    then(fileUploader).should(times(1)).upload(any(), eq(BOOK_THUMBNAIL_DIR));
-    then(bookPersistence).should()
-        .update(eq(targetId), eq(request), eq(newMockUrl), eq(newOriginalFilename));
-
-    ArgumentCaptor<OrphanThumbnail> orphanCaptor = ArgumentCaptor.forClass(OrphanThumbnail.class);
-    then(orphanThumbnailRepository).should(times(1)).save(orphanCaptor.capture());
-    assertThat(orphanCaptor.getValue().getFileUrl()).isEqualTo(oldMockUrl);
-  }
-
-  @Test
-  @DisplayName("도서 수정 시 파일 스토리지 업로드 중 예외가 발생하면 수정이 실패하고 예외가 전파된다")
-  void updateBook_ThumbnailUploadFail_ThrowsException() {
-    // given
-    UUID targetId = UUID.randomUUID();
-    BookUpdateRequest request = BookFixtures.validBookUpdateRequest();
-    MockMultipartFile thumbnailFile = new MockMultipartFile(
-        "thumbnailFile", "image.png", "image/png", "test_content".getBytes());
-
-    Book oldBook = BookFixtures.validBook("1234567890123");
-    setField(oldBook, "id", targetId);
-    given(bookRepository.findById(targetId)).willReturn(Optional.of(oldBook));
-
-    given(fileUploader.upload(any(MultipartFile.class), eq(BOOK_THUMBNAIL_DIR)))
-        .willThrow(new RuntimeException("S3 업로드 에러 발생"));
-
-    // when & then
-    assertThatThrownBy(() -> bookService.update(targetId, request, thumbnailFile))
-        .isInstanceOf(RuntimeException.class)
-        .hasMessageContaining("S3 업로드 에러 발생");
-
-    then(bookPersistence).shouldHaveNoInteractions();
-  }
-
-  @Test
-  @DisplayName("도서 수정 중 예외가 발생하면 새로 업로드된 S3 파일을 삭제하고 예외를 전파한다")
-  void updateBook_Exception_DeletesNewFileAndPropagates() {
-    // given
-    UUID bookId = UUID.randomUUID();
-    BookUpdateRequest request = BookFixtures.validBookUpdateRequest();
-    String newOriginalFilename = "new.png";
-    MockMultipartFile newFile = new MockMultipartFile(
-        "thumbnailImage",
-        newOriginalFilename,
-        "image/png",
-        "new-content".getBytes());
-    String newUploadedUrl = "https://s3.com/books/new.png";
-
-    Book oldBook = BookFixtures.validBook("1234567890123");
-    setField(oldBook, "id", bookId);
-
-    given(fileUploader.upload(any(), any())).willReturn(newUploadedUrl);
-    // ⭐ 기존 도서 조회 모킹 추가
-    given(bookRepository.findById(bookId)).willReturn(Optional.of(oldBook));
-    given(bookPersistence.update(eq(bookId), any(), eq(newUploadedUrl), eq(newOriginalFilename)))
-        .willThrow(new RuntimeException("Update Failed"));
-
-    // when & then
-    assertThatThrownBy(() -> bookService.update(bookId, request, newFile))
-        .isInstanceOf(RuntimeException.class);
-
-    then(fileUploader).should().delete(newUploadedUrl);
-  }
-
-  @Test
-  @DisplayName("존재하지 않는 도서 ID로 수정을 요청하면 예외가 발생한다")
-  void updateBook_WithNonExistentId_ThrowsException() {
-    // given
-    UUID nonExistentId = UUID.randomUUID();
-    BookUpdateRequest request = BookFixtures.validBookUpdateRequest();
-
-    // ⭐ 이제 에러가 Persistence가 아니라 최상단 findById에서 터짐
-    given(bookRepository.findById(nonExistentId)).willReturn(Optional.empty());
-
-    // when & then
-    assertThatThrownBy(() -> bookService.update(nonExistentId, request, null))
-        .isInstanceOf(BookNotFoundException.class);
-
-    then(bookRepository).should().findById(nonExistentId);
-    then(bookPersistence).shouldHaveNoInteractions(); // Persistence까지 가지 않아야 함
-  }
-
-  @Test
-  @DisplayName("정상적인 데이터가 들어오면 Persistence에 수정을 위임한다")
-  void updateReviewData_Success() {
-    // given
-    UUID mockId = UUID.randomUUID();
-    int newCount = 10;
-    BigDecimal newRating = new BigDecimal("4.50");
-
-    // when
-    bookService.updateReviewData(mockId, newCount, newRating);
-
-    // then
-    then(bookPersistence).should().updateReviewData(mockId, newCount, newRating);
-  }
 
   @Nested
   @DisplayName("getDetails() 메서드")
@@ -904,7 +913,8 @@ class BookServiceTest {
       bookService.delete(mockId);
 
       //then
-      then(eventPublisher).should().publishEvent(any(com.part3_team4.deokhoogam.domain.book.entity.BookDeletedEvent.class));
+      then(eventPublisher).should()
+          .publishEvent(any(com.part3_team4.deokhoogam.domain.book.entity.BookDeletedEvent.class));
       then(bookRepository).should().deleteById(mockId);
       then(deletedBookRepository).should().save(any(DeletedBook.class));
 
@@ -938,7 +948,8 @@ class BookServiceTest {
 
       bookService.deleteHard(mockId);
 
-      then(eventPublisher).should().publishEvent(any(com.part3_team4.deokhoogam.domain.book.entity.BookDeletedEvent.class));
+      then(eventPublisher).should()
+          .publishEvent(any(com.part3_team4.deokhoogam.domain.book.entity.BookDeletedEvent.class));
       then(deletedBookRepository).should().findById(mockId);
       then(deletedBookRepository).should().deleteById(mockId);
       then(fileUploader).should().delete(any());
