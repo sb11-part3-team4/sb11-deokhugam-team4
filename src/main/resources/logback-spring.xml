@@ -51,6 +51,12 @@
     </root>
   </springProfile>
 
-
+  <springProfile name="perf">
+    <logger name="org.springframework.batch" level="ERROR"/>
+    <logger name="org.hibernate.SQL" level="ERROR"/>
+    <root level="WARN">
+      <appender-ref ref="CONSOLE"/>
+    </root>
+  </springProfile>
 
 </configuration>
