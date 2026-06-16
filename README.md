@@ -76,4 +76,4 @@
 
 ## 트러블 슈팅
 
-[위키-트러블 슈팅](Troubleshooting)
+[위키-트러블슈팅](https://github.com/sb11-part3-team4/sb11-deokhugam-team4/wiki/Troubleshooting)
