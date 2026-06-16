@@ -1,4 +1,4 @@
-package com.part3_team4.deokhoogam.batch.delete.book.bookThumbnail;
+package com.part3_team4.deokhoogam.batch.listener;
 
 import com.part3_team4.deokhoogam.domain.book.entity.OrphanThumbnail;
 import lombok.extern.slf4j.Slf4j;

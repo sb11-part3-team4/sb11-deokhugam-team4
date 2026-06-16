@@ -1,4 +1,4 @@
-package com.part3_team4.deokhoogam.batch.delete.book.bookThumbnail;
+package com.part3_team4.deokhoogam.batch.listener;
 
 import java.time.Clock;
 import java.time.Duration;
@@ -46,7 +46,7 @@ public class JobLoggingListener implements JobExecutionListener {
       log.error("배치 실패 - Job: {}, 메인 예외 발생", jobName);
       jobExecution.getAllFailureExceptions()
           .forEach(e -> log.error("배치 실패 예외 내용: ", e));
-      
+
     } else {
       log.warn("배치 비정상 종료 - Job: {}, 상태: {}", jobName, status);
     }

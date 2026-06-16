@@ -2,6 +2,8 @@ package com.part3_team4.deokhoogam.batch.delete.book.bookThumbnail;
 
 import com.part3_team4.deokhoogam.batch.listener.BatchJobMetricListener;
 import com.part3_team4.deokhoogam.batch.listener.BatchStepMetricListener;
+import com.part3_team4.deokhoogam.batch.listener.JobLoggingListener;
+import com.part3_team4.deokhoogam.batch.listener.SkipLoggingListener;
 import com.part3_team4.deokhoogam.domain.book.entity.OrphanThumbnail;
 import com.part3_team4.deokhoogam.domain.book.repository.OrphanThumbnailRepository;
 import com.part3_team4.deokhoogam.global.exception.storage.StorageOperationException;
@@ -40,7 +42,7 @@ public class DeleteOrphanThumbnailJobConfig {
   private final EntityManagerFactory entityManagerFactory;
   private final FileUploader fileUploader;
   private final Clock clock;
-  
+
   private final JobLoggingListener jobLoggingListener;
   private final SkipLoggingListener skipLoggingListener;
   private final BatchStepMetricListener batchStepMetricListener;
