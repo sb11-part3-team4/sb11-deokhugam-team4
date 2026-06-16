@@ -15,3 +15,21 @@ services:
     container_name: deokhugam-redis
     ports:
       - "6379:6379"
+
+  influxdb:
+    image: influxdb:1.8
+    container_name: deokhugam-influxdb
+    ports:
+      - "8086:8086"
+    environment:
+      - INFLUXDB_DB=k6
+
+  grafana:
+    image: grafana/grafana:latest
+    container_name: deokhugam-grafana
+    ports:
+      - "3000:3000"
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=admin
+    depends_on:
+      - influxdb

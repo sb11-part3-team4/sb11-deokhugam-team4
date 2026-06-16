@@ -1,0 +1,26 @@
+spring:
+  datasource:
+    url: jdbc:postgresql://localhost:54321/deokhugam_perf
+    username: team4
+    password: deokhugam4!
+    driver-class-name: org.postgresql.Driver
+    hikari:
+      maximum-pool-size: 50
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    show-sql: false
+
+  cloud:
+    aws:
+      s3:
+        endpoint: http://localhost:9000
+        path-style-access-enabled: true
+      region:
+        static: ap-northeast-2
+      credentials:
+        access-key: test-access-key
+        secret-key: test-secret-key
+  batch:
+    jdbc:
+      initialize-schema: always
